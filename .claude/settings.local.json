@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(exit 0)",
+      "WebSearch",
+      "WebFetch(domain:developers.figma.com)",
+      "Bash(npx vite:*)"
+    ]
+  }
+}

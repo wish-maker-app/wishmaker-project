@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Variables CSS globales ─── */
+:root {
+  --primary-start:  #5B6BF5;
+  --primary-end:    #9B59F5;
+  --gradient:       linear-gradient(135deg, #5B6BF5, #9B59F5);
+  --bg:             #FFFFFF;
+  --surface:        #F5F5F7;
+  --text-primary:   #1A1A2E;
+  --text-secondary: #8A8A9A;
+  --online-dot:     #22C55E;
+  --success:        #22C55E;
+}
+
+/* ─── Reset de base ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: #F0F0F0;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Shell mobile centré — source unique de largeur ─── */
+#root {
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  background: white;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.15);
+  overflow-x: hidden;
+}
+
+/* ─── Scrollbar discrète ─── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #E0E0E0; border-radius: 4px; }
+
+/* ─── Leaflet : fix z-index ─── */
+.leaflet-container {
+  z-index: 1;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* ─── Animations utilitaires ─── */
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.4); opacity: 0.6; }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* ─── Input focus style global ─── */
+input:focus, textarea:focus {
+  outline: none;
+}
+
+/* ─── Gradient text utilitaire ─── */
+.text-gradient {
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Scrollable sans scrollbar visible ─── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

@@ -1,0 +1,36 @@
+{
+  "common": {
+    "continuer": "Continue",
+    "retour": "Back",
+    "annuler": "Cancel",
+    "valider": "Confirm",
+    "enregistrer": "Save",
+    "loading": "Loading...",
+    "erreur": "An error occurred",
+    "succes": "Success"
+  },
+  "splash": {
+    "version": "Version 1.0.0"
+  },
+  "onboarding": {
+    "step1": {
+      "titre": "Welcome to Wish Maker!",
+      "sous_titre": "Got a need? Post your wish instantly. The Genies around you take care of the rest."
+    },
+    "step2": {
+      "titre": "Free time? Become a Genie! ✨",
+      "sous_titre": "Browse wishes around you and offer your services."
+    },
+    "step3": {
+      "titre": "Simple, fast & rewarding",
+      "sous_titre": "Instant matchmaking through our interactive map. Track your wishes in real time."
+    },
+    "commencer": "Get Started"
+  },
+  "nav": {
+    "accueil": "Home",
+    "explorer": "Explore",
+    "messages": "Messages",
+    "profil": "Profile"
+  }
+}

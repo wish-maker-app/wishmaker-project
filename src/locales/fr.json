@@ -1,0 +1,200 @@
+{
+  "common": {
+    "continuer": "Continuer",
+    "retour": "Retour",
+    "annuler": "Annuler",
+    "valider": "Valider",
+    "enregistrer": "Enregistrer",
+    "loading": "Chargement...",
+    "erreur": "Une erreur est survenue",
+    "succes": "Succès"
+  },
+  "splash": {
+    "version": "Version 1.0.0"
+  },
+  "onboarding": {
+    "step1": {
+      "titre": "Bienvenue sur Wish Maker !",
+      "sous_titre": "Un besoin ? Publie ton vœu en un instant. Les Génies autour de toi s'occupent du reste."
+    },
+    "step2": {
+      "titre": "Du temps libre ? Deviens un Génie ! ✨",
+      "sous_titre": "Parcourez les vœux autour de vous et proposez vos services."
+    },
+    "step3": {
+      "titre": "Simple, rapide & gratifiant",
+      "sous_titre": "Une mise en relation instantanée grâce à notre carte interactive. Suivez vos vœux en temps réel."
+    },
+    "commencer": "Commencer"
+  },
+  "auth": {
+    "landing": {
+      "titre": "Bonjour, bienvenue ! 👋",
+      "sous_titre": "Exaucez vos besoins du quotidien en un clin d'œil.",
+      "email_label": "Email",
+      "email_placeholder": "Entrez votre adresse e-mail",
+      "btn_email": "Continuer avec l'e-mail",
+      "btn_google": "Continuer avec Google",
+      "btn_apple": "Continuer avec Apple",
+      "ou": "Ou continuez avec",
+      "pas_de_compte": "Vous n'avez pas de compte ?",
+      "inscrire": "Inscrivez-vous"
+    },
+    "login": {
+      "titre": "Se connecter",
+      "email_label": "Adresse email",
+      "password_label": "Mot de passe",
+      "remember": "Remember Me",
+      "forgot": "Forgot Password",
+      "btn": "Se connecter",
+      "succes": "Vous vous êtes connecté avec succès",
+      "pas_de_compte": "Vous n'avez pas de compte ?",
+      "inscrire": "Inscrivez-vous",
+      "erreur_credentials": "Email ou mot de passe incorrect"
+    },
+    "register_email": {
+      "titre": "Créer un compte",
+      "sous_titre": "Créer vos vœux ou réaliser en !",
+      "email_label": "Email",
+      "btn": "S'enregistrer",
+      "deja_compte": "Vous avez un compte ?",
+      "connecter": "Connectez-vous"
+    },
+    "register": {
+      "titre": "Complétez votre compte",
+      "sous_titre": "Vous êtes à 2 pas de devenir un génie",
+      "prenom_label": "Prénom",
+      "nom_label": "Nom",
+      "email_label": "E-mail",
+      "password_label": "Mot de passe",
+      "confirm_label": "Confirmez le mot de passe",
+      "btn": "Continuer",
+      "succes": "Votre compte a été créé avec succès !",
+      "deja_compte": "Vous avez un compte ?",
+      "connecter": "Connectez-vous"
+    },
+    "otp": {
+      "titre": "Entrez le code",
+      "sous_titre": "Nous venons de vous envoyer un code à 4 chiffres par e-mail.",
+      "btn": "Continuer",
+      "pas_recu": "Vous n'avez pas reçu le code ?",
+      "renvoyer": "Renvoyer le code",
+      "renvoi_succes": "Code renvoyé !",
+      "erreur": "Code invalide"
+    },
+    "forgot": {
+      "titre": "Mot de passe oublié",
+      "sous_titre": "Récupérez le mot de passe de votre compte",
+      "email_label": "E-mail",
+      "btn": "Continuer",
+      "email_envoye": "Email envoyé ! Vérifiez votre boîte."
+    },
+    "new_password": {
+      "titre": "Créer un nouveau mot de passe",
+      "sous_titre": "Saisissez votre nouveau mot de passe",
+      "new_label": "Nouveau mot de passe",
+      "confirm_label": "Confirmez le mot de passe",
+      "btn": "Continuer"
+    }
+  },
+  "setup": {
+    "langue": {
+      "titre": "Selectionnez votre langue",
+      "label": "Language",
+      "placeholder": "Sélectionner",
+      "modal_titre": "Sélectionner une langue",
+      "btn": "Continuer"
+    },
+    "localisation": {
+      "titre": "Choisir votre localisation",
+      "sous_titre": "Indiquez votre quartier pour voir les voisins qui proposent leurs services autour de vous.",
+      "placeholder": "Votre ville",
+      "sur_carte": "📍 Définir l'emplacement sur la carte",
+      "btn": "Continuer"
+    },
+    "carte": {
+      "titre": "Choisir un emplacement",
+      "recherche": "Recherche...",
+      "lieux_populaires": "Emplacement populaire",
+      "btn": "Valider la localisation"
+    }
+  },
+  "wisher": {
+    "home": {
+      "bonjour": "Bonjour",
+      "bienvenue": "Bienvenue Wisher",
+      "faire_voeu": "Faire un vœu",
+      "faire_voeu_sub": "Complétez les informations",
+      "mes_voeux": "Mes vœux",
+      "mes_voeux_sub": "vœux enregistrés"
+    },
+    "create": {
+      "step1_titre": "Faites votre Vœux",
+      "step2_titre": "Ajouter des photos",
+      "step3_titre": "Ajouter une localisation",
+      "step4_titre": "Ajouter des mots clefs",
+      "titre_placeholder": "Titre de votre vœu",
+      "description_placeholder": "Décrivez votre besoin...",
+      "ajouter_images": "Ajouter des images",
+      "position_actuelle": "Utiliser ma position actuelle",
+      "publier": "Publier mon vœu",
+      "succes_titre": "Bravo !",
+      "succes_sous": "Vous êtes officiellement un Wisher",
+      "retour_accueil": "Retour à l'accueil"
+    },
+    "mes_voeux": {
+      "titre": "Mes Vœux",
+      "en_cours": "En cours",
+      "realise": "Réalisé",
+      "annule": "Annulé",
+      "vide": "Aucun vœu dans cette catégorie"
+    }
+  },
+  "maker": {
+    "home": {
+      "bienvenue": "Bienvenue Maker",
+      "aucun_voeu": "Aucun vœu dans cette zone"
+    },
+    "search": {
+      "placeholder": "Rechercher un vœu...",
+      "historique": "Recherches récentes"
+    },
+    "filters": {
+      "titre": "Filtres",
+      "tri": "Trier par",
+      "pertinence": "Pertinence",
+      "distance": "Distance",
+      "recent": "Plus récents",
+      "rayon": "Rayon de recherche",
+      "categories": "Catégories",
+      "voir_resultats": "Voir les {{count}} résultats",
+      "reinitialiser": "Réinitialiser"
+    },
+    "detail": {
+      "realiser": "Réaliser ce vœu",
+      "ouvrir_map": "Ouvrir dans Google Maps",
+      "succes_titre": "Bravo !",
+      "succes_sous": "Vous avez réalisez le vœu de {{prenom}}",
+      "retour_accueil": "Retour à l'accueil"
+    }
+  },
+  "messages": {
+    "titre": "Messages",
+    "mes_voeux": "Mes vœux",
+    "mes_missions": "Mes missions",
+    "recherche": "Rechercher...",
+    "vide": "Aucun message",
+    "envoyer": "Envoyer"
+  },
+  "profile": {
+    "titre": "Profil",
+    "deconnexion": "Se déconnecter",
+    "modifier": "Modifier le profil"
+  },
+  "nav": {
+    "accueil": "Wisher",
+    "explorer": "Maker",
+    "messages": "Message",
+    "profil": "Profil"
+  }
+}
