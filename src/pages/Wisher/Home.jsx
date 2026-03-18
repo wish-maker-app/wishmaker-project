@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import BottomTabBar from '../../components/layout/BottomTabBar'
-import { MOCK_USER, MOCK_WISHES } from '../../data/mock'
+import useAuthStore from '../../store/authStore'
+import { useWishes } from '../../hooks/useWishes'
 
 function NotificationBell() {
   return (
@@ -40,8 +42,21 @@ function ActionCard({ icon, title, subtitle, onClick }) {
 export default function WisherHome() {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const user = MOCK_USER
-  const wishCount = MOCK_WISHES.filter(w => w.wisher.prenom === user.prenom).length || MOCK_WISHES.length
+  const user = useAuthStore((s) => s.profile)
+  const { getMyWishes } = useWishes()
+  const [wishCount, setWishCount] = useState(0)
+
+  useEffect(() => {
+    getMyWishes().then((w) => setWishCount(w.length)).catch(() => {})
+  }, [])
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-4 border-[#5B6BF5] border-t-transparent animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">

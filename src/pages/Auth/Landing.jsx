@@ -11,28 +11,17 @@ export default function Landing() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [email, setEmail] = useState('')
-  const [loading, setLoading] = useState(false)
 
-  async function handleEmailContinue(e) {
+  function handleEmailContinue(e) {
     e.preventDefault()
     if (!email.trim()) return
-    setLoading(true)
-    try {
-      // Vérifie si l'email existe déjà dans auth
-      const { data } = await supabase.rpc('check_email_exists', { p_email: email.trim().toLowerCase() }).maybeSingle()
-      // Note : si la fonction n'existe pas encore, on redirige vers register-email par défaut
-      navigate('/auth/register-email', { state: { email } })
-    } catch {
-      navigate('/auth/register-email', { state: { email } })
-    } finally {
-      setLoading(false)
-    }
+    navigate('/auth/register', { state: { email: email.trim().toLowerCase() } })
   }
 
   async function handleGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/wisher` },
+      options: { redirectTo: `${window.location.origin}/splash` },
     })
     if (error) toast.error('Erreur avec Google : ' + error.message)
   }
@@ -40,7 +29,7 @@ export default function Landing() {
   async function handleApple() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'apple',
-      options: { redirectTo: `${window.location.origin}/wisher` },
+      options: { redirectTo: `${window.location.origin}/splash` },
     })
     if (error) toast.error('Erreur avec Apple : ' + error.message)
   }
@@ -80,7 +69,7 @@ export default function Landing() {
               </svg>
             }
           />
-          <Button type="submit" loading={loading}>{t('auth.register_email.btn')}</Button>
+          <Button type="submit">{t('auth.register_email.btn')}</Button>
         </form>
 
         {/* Séparateur */}

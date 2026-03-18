@@ -16,9 +16,7 @@ const OnboardingStep3 = lazy(() => import('../pages/Onboarding/Step3'))
 const Landing      = lazy(() => import('../pages/Auth/Landing'))
 const Login        = lazy(() => import('../pages/Auth/Login'))
 const Register     = lazy(() => import('../pages/Auth/Register'))
-const RegisterEmail = lazy(() => import('../pages/Auth/RegisterEmail'))
 const ForgotPassword = lazy(() => import('../pages/Auth/ForgotPassword'))
-const EnterOTP     = lazy(() => import('../pages/Auth/EnterOTP'))
 const NewPassword  = lazy(() => import('../pages/Auth/NewPassword'))
 
 // Setup
@@ -63,14 +61,25 @@ function PageLoader() {
 // Guards
 // ──────────────────────────────────────────────
 
-/**
- * Route protégée — redirige vers /auth si non connecté
- * Redirige vers /setup/langue si onboarding non complété
- */
-// PREVIEW MODE — guards désactivés pour visualiser toutes les pages
-function ProtectedRoute() { return <Outlet /> }
-function SetupRoute()     { return <Outlet /> }
-function PublicRoute()    { return <Outlet /> }
+function ProtectedRoute() {
+  const { user, profile } = useAuthStore()
+  if (!user) return <Navigate to="/auth" replace />
+  if (profile && !profile.onboarding_completed) return <Navigate to="/setup/langue" replace />
+  return <Outlet />
+}
+
+function SetupRoute() {
+  const { user, profile } = useAuthStore()
+  if (!user) return <Navigate to="/auth" replace />
+  if (profile?.onboarding_completed) return <Navigate to="/wisher" replace />
+  return <Outlet />
+}
+
+function PublicRoute() {
+  const { user, profile } = useAuthStore()
+  if (user && profile?.onboarding_completed) return <Navigate to="/wisher" replace />
+  return <Outlet />
+}
 
 // ──────────────────────────────────────────────
 // Router
@@ -103,9 +112,7 @@ const router = createBrowserRouter([
       { index: true,              element: <Suspense fallback={<PageLoader />}><Landing /></Suspense> },
       { path: 'login',            element: <Suspense fallback={<PageLoader />}><Login /></Suspense> },
       { path: 'register',         element: <Suspense fallback={<PageLoader />}><Register /></Suspense> },
-      { path: 'register-email',   element: <Suspense fallback={<PageLoader />}><RegisterEmail /></Suspense> },
       { path: 'forgot-password',  element: <Suspense fallback={<PageLoader />}><ForgotPassword /></Suspense> },
-      { path: 'otp',              element: <Suspense fallback={<PageLoader />}><EnterOTP /></Suspense> },
       { path: 'new-password',     element: <Suspense fallback={<PageLoader />}><NewPassword /></Suspense> },
     ],
   },

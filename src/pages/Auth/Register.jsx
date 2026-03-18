@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
+import useAuthStore from '../../store/authStore'
 import Header from '../../components/layout/Header'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
@@ -37,16 +38,34 @@ export default function Register() {
   async function onSubmit(data) {
     setLoading(true)
     try {
-      // Met à jour le mot de passe (session déjà créée par OTP)
-      const { error: pwErr } = await supabase.auth.updateUser({ password: data.password })
-      if (pwErr) throw pwErr
+      // Crée le compte — le trigger SQL handle_new_user() crée le profil dans public.users
+      const { data: authData, error: signUpErr } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: { prenom: data.prenom, nom: data.nom },
+        },
+      })
+      if (signUpErr) throw signUpErr
 
-      // Met à jour le profil dans public.users
-      const { data: { user } } = await supabase.auth.getUser()
-      const { error: profileErr } = await supabase
-        .from('users')
-        .upsert({ id: user.id, email: data.email, prenom: data.prenom, nom: data.nom })
-      if (profileErr) throw profileErr
+      const user = authData.user
+      if (!user) throw new Error('Erreur lors de la création du compte')
+
+      // Session active → on stocke le user + profil et on continue
+      if (authData.session) {
+        useAuthStore.getState().setUser(user)
+        // Met à jour le profil (le trigger l'a créé, on s'assure que prenom/nom sont corrects)
+        await supabase
+          .from('users')
+          .update({ prenom: data.prenom, nom: data.nom })
+          .eq('id', user.id)
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+        if (profile) useAuthStore.getState().setProfile(profile)
+      }
 
       setShowSuccess(true)
     } catch (err) {

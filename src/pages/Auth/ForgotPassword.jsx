@@ -22,7 +22,7 @@ export default function ForgotPassword() {
       })
       if (error) throw error
       toast.success('Email envoyé ! Vérifiez votre boîte.')
-      navigate('/auth/otp', { state: { email, fromForgot: true } })
+      navigate('/auth/login')
     } catch (err) {
       toast.error(err.message || 'Erreur lors de l\'envoi')
     } finally {

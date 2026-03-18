@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
+import useAuthStore from '../../store/authStore'
 import Header from '../../components/layout/Header'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
@@ -22,6 +23,7 @@ export default function Login() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [remember, setRemember] = useState(false)
+  const [loginFailed, setLoginFailed] = useState(false)
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
@@ -30,19 +32,31 @@ export default function Login() {
 
   async function onSubmit(data) {
     setLoading(true)
+    setLoginFailed(false)
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       })
       if (error) throw error
 
+      const user = authData.user
+      useAuthStore.getState().setUser(user)
+
+      // Charge le profil et le met dans le store
+      const { data: profile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+      if (profile) useAuthStore.getState().setProfile(profile)
+
       // Marque en ligne
-      const { data: { user } } = await supabase.auth.getUser()
       await supabase.from('users').update({ is_online: true }).eq('id', user.id)
 
       setShowSuccess(true)
     } catch (err) {
+      setLoginFailed(true)
       toast.error('Email ou mot de passe incorrect')
     } finally {
       setLoading(false)
@@ -50,10 +64,10 @@ export default function Login() {
   }
 
   async function handleGoogle() {
-    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/wisher` } })
+    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/splash` } })
   }
   async function handleApple() {
-    await supabase.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: `${window.location.origin}/wisher` } })
+    await supabase.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: `${window.location.origin}/splash` } })
   }
 
   return (
@@ -70,18 +84,27 @@ export default function Login() {
           <Input label="Mot de passe" type="password" placeholder="Votre mot de passe"
             {...register('password')} error={errors.password?.message} />
 
-          {/* Remember + Forgot */}
+          {/* Remember me */}
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)}
                 className="w-4 h-4 rounded accent-[#5B6BF5]"/>
-              <span className="text-sm text-[#8A8A9A]">Remember Me</span>
+              <span className="text-sm text-[#8A8A9A]">Se souvenir de moi</span>
             </label>
-            <button type="button" onClick={() => navigate('/auth/forgot-password')}
-              className="text-sm font-medium text-red-500">
-              Forgot Password
-            </button>
           </div>
+
+          {/* Mot de passe oublié — visible seulement après un échec */}
+          {loginFailed && (
+            <motion.button
+              type="button"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              onClick={() => navigate('/auth/forgot-password')}
+              className="text-sm font-medium text-[#5B6BF5] text-right"
+            >
+              Mot de passe oublié ?
+            </motion.button>
+          )}
 
           <Button type="submit" loading={loading}>Se connecter</Button>
         </form>
@@ -103,14 +126,18 @@ export default function Login() {
 
         <p className="text-center text-sm text-[#8A8A9A]">
           Vous n'avez pas de compte ?{' '}
-          <button onClick={() => navigate('/auth/register-email')} className="font-semibold"
+          <button onClick={() => navigate('/auth')} className="font-semibold"
             style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             Inscrivez-vous
           </button>
         </p>
       </motion.div>
 
-      <SuccessModal isOpen={showSuccess} variant="login" onContinue={() => navigate('/wisher', { replace: true })} />
+      <SuccessModal isOpen={showSuccess} variant="login" onContinue={() => {
+        const profile = useAuthStore.getState().profile
+        const dest = profile?.onboarding_completed ? '/wisher' : '/setup/langue'
+        navigate(dest, { replace: true })
+      }} />
     </div>
   )
 }

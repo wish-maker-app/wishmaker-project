@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import BottomTabBar from '../../components/layout/BottomTabBar'
-import { MOCK_MESSAGES } from '../../data/mock'
+import useAuthStore from '../../store/authStore'
+import { useMessages } from '../../hooks/useMessages'
 
 function Avatar({ user, size = 52 }) {
   const initials = `${user.prenom[0]}${user.nom[0]}`
@@ -52,13 +53,41 @@ function ConversationItem({ conv, onClick }) {
   )
 }
 
+function transformConversation(conv, userId) {
+  const isWisher = conv.wisher_id === userId
+  const interlocuteur = isWisher ? conv.maker : conv.wisher
+  const msgs = conv.messages || []
+  const lastMsg = msgs.length > 0
+    ? msgs.reduce((a, b) => new Date(a.created_at) > new Date(b.created_at) ? a : b)
+    : null
+  const nonLus = msgs.filter((m) => m.sender_id !== userId && !m.is_read).length
+
+  return {
+    id: conv.id,
+    type: isWisher ? 'voeu' : 'mission',
+    wish: conv.wish,
+    interlocuteur: interlocuteur || { prenom: '?', nom: '?', is_online: false, avatar_url: null },
+    dernier_message: lastMsg?.contenu || '',
+    heure: lastMsg ? new Date(lastMsg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '',
+    non_lus: nonLus,
+  }
+}
+
 export default function Inbox() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [tab, setTab] = useState('missions')
   const [search, setSearch] = useState('')
+  const userId = useAuthStore((s) => s.user?.id)
+  const { loadConversations, conversations, loading } = useMessages()
 
-  const filtered = MOCK_MESSAGES
+  useEffect(() => {
+    loadConversations()
+  }, [])
+
+  const transformed = conversations.map((c) => transformConversation(c, userId))
+
+  const filtered = transformed
     .filter(c => tab === 'missions' ? c.type === 'mission' : c.type === 'voeu')
     .filter(c =>
       !search ||

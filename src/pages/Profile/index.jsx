@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import BottomTabBar from '../../components/layout/BottomTabBar'
-import { MOCK_USER } from '../../data/mock'
+import useAuthStore from '../../store/authStore'
+import { useAuth } from '../../hooks/useAuth'
 
 function ProfileItem({ icon, label, right, onClick }) {
   return (
@@ -30,7 +31,16 @@ function SectionTitle({ title }) {
 export default function Profile() {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const user = MOCK_USER
+  const { signOut } = useAuth()
+  const user = useAuthStore((s) => s.profile)
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-4 border-[#5B6BF5] border-t-transparent animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -104,6 +114,7 @@ export default function Profile() {
         {/* Déconnexion */}
         <motion.button
           whileTap={{ scale: 0.97 }}
+          onClick={signOut}
           className="mt-6 mb-4 w-full h-12 rounded-full border border-red-400 text-red-500 font-semibold text-sm"
         >
           {t('profile.deconnexion')}

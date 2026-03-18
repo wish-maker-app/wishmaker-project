@@ -6,7 +6,8 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import BottomTabBar from '../../components/layout/BottomTabBar'
-import { MOCK_WISHES, MOCK_USER } from '../../data/mock'
+import useAuthStore from '../../store/authStore'
+import { useWishes } from '../../hooks/useWishes'
 
 // Fix default marker icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -131,14 +132,25 @@ export default function MakerHome() {
   const { t } = useTranslation()
   const [view, setView] = useState('carte')
   const [search, setSearch] = useState('')
+  const profile = useAuthStore((s) => s.profile)
+  const { getAvailableWishes, loading } = useWishes()
+  const [wishes, setWishes] = useState([])
 
-  const filtered = MOCK_WISHES.filter((w) =>
+  useEffect(() => {
+    getAvailableWishes().then(setWishes).catch(() => {})
+  }, [])
+
+  const filtered = wishes.filter((w) =>
     w.titre.toLowerCase().includes(search.toLowerCase()) ||
     w.description.toLowerCase().includes(search.toLowerCase()) ||
-    w.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()))
+    (w.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()))
   )
 
-  const center = [MOCK_USER.latitude, MOCK_USER.longitude]
+  // Fallback Toulouse si profil sans localisation
+  const center = [
+    profile?.latitude || 43.6047,
+    profile?.longitude || 1.4442,
+  ]
 
   return (
     <div className="h-screen bg-white flex flex-col relative overflow-hidden">

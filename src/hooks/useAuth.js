@@ -45,8 +45,31 @@ export function useAuth() {
       .eq('id', userId)
       .single()
 
-    if (data) setProfile(data)
-    return data
+    if (data) {
+      setProfile(data)
+      return data
+    }
+
+    // Profil inexistant (premier login OAuth) — le créer depuis les metadata auth
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const meta = user.user_metadata || {}
+      const newProfile = {
+        id: user.id,
+        email: user.email,
+        prenom: meta.prenom || meta.full_name?.split(' ')[0] || meta.name?.split(' ')[0] || '',
+        nom: meta.nom || meta.full_name?.split(' ').slice(1).join(' ') || meta.name?.split(' ').slice(1).join(' ') || '',
+        avatar_url: meta.avatar_url || meta.picture || null,
+      }
+      const { data: created } = await supabase
+        .from('users')
+        .upsert(newProfile)
+        .select()
+        .single()
+      if (created) setProfile(created)
+      return created
+    }
+    return null
   }
 
   async function signOut() {

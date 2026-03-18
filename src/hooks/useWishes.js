@@ -2,6 +2,16 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import useAuthStore from '../store/authStore'
 
+function normalizeWish(wish) {
+  if (!wish) return null
+  return {
+    ...wish,
+    tags: wish.wish_tags?.map((wt) => wt.tag) || [],
+    images: wish.wish_images?.map((wi) => ({ url: wi.url, is_cover: wi.is_cover })) || [],
+    wisher: wish.wisher || undefined,
+  }
+}
+
 export function useWishes() {
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(false)
@@ -11,7 +21,7 @@ export function useWishes() {
     setLoading(true)
     let query = supabase
       .from('wishes')
-      .select(`*, wish_images(url, is_cover), wish_tags(tag)`)
+      .select(`*, wish_images(url, is_cover), wish_tags(tag), wisher:users!wisher_id(id, prenom, nom, rating, is_online, avatar_url)`)
       .eq('wisher_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -20,7 +30,33 @@ export function useWishes() {
     const { data, error } = await query
     setLoading(false)
     if (error) throw error
-    return data || []
+    return (data || []).map(normalizeWish)
+  }
+
+  async function getAvailableWishes() {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('wishes')
+      .select(`*, wish_images(url, is_cover), wish_tags(tag), wisher:users!wisher_id(id, prenom, nom, rating, is_online, avatar_url)`)
+      .eq('statut', 'en_attente')
+      .order('created_at', { ascending: false })
+
+    setLoading(false)
+    if (error) throw error
+    return (data || []).map(normalizeWish)
+  }
+
+  async function getWishById(id) {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('wishes')
+      .select(`*, wish_images(url, is_cover), wish_tags(tag), wisher:users!wisher_id(id, prenom, nom, rating, is_online, avatar_url)`)
+      .eq('id', id)
+      .single()
+
+    setLoading(false)
+    if (error) throw error
+    return normalizeWish(data)
   }
 
   async function createWish({ titre, description, latitude, longitude, adresse, tags, images }) {
@@ -75,5 +111,5 @@ export function useWishes() {
     if (error) throw error
   }
 
-  return { loading, getMyWishes, createWish, updateWishStatus }
+  return { loading, getMyWishes, getAvailableWishes, getWishById, createWish, updateWishStatus }
 }
