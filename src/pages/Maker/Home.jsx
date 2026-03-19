@@ -6,6 +6,7 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import BottomTabBar from '../../components/layout/BottomTabBar'
+import DragScroll from '../../components/ui/DragScroll'
 import useAuthStore from '../../store/authStore'
 import { useWishes } from '../../hooks/useWishes'
 
@@ -397,7 +398,7 @@ export default function MakerHome() {
                     </div>
                   )}
                 </div>
-                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                <DragScroll className="flex gap-3 pb-2 -mx-4 px-4">
                   {sponsored.map((wish) => (
                     <SponsoredCard
                       key={wish.id}
@@ -407,7 +408,7 @@ export default function MakerHome() {
                       userLng={center[1]}
                     />
                   ))}
-                </div>
+                </DragScroll>
               </div>
             )}
 
