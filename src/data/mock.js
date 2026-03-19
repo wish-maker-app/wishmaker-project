@@ -1,65 +1,6 @@
 // Données de test — utilisées quand Supabase n'est pas connecté
 // ou pour illustrer l'UI (onboarding carte, etc.)
 
-export const MOCK_WISHES = [
-  {
-    id: '1',
-    titre: 'Aide déménagement samedi',
-    description: 'Besoin d\'aide pour porter des cartons au 3ème étage.',
-    statut: 'en_attente',
-    latitude: 43.6047,
-    longitude: 1.4442,
-    adresse: 'Toulouse Centre',
-    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    is_sponsored: false,
-    wisher: { prenom: 'Sophie', nom: 'M.', rating: 4.8, is_online: true, avatar_url: null },
-    tags: ['Déménagement', 'Manutention'],
-    images: [],
-  },
-  {
-    id: '2',
-    titre: 'Cours de guitare débutant',
-    description: 'Je cherche quelqu\'un pour m\'apprendre les bases.',
-    statut: 'en_attente',
-    latitude: 43.6117,
-    longitude: 1.4530,
-    adresse: 'Compans-Caffarelli',
-    created_at: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-    is_sponsored: true,
-    wisher: { prenom: 'Lucas', nom: 'B.', rating: 4.5, is_online: false, avatar_url: null },
-    tags: ['Musique', 'Cours'],
-    images: [],
-  },
-  {
-    id: '3',
-    titre: 'Livraison courses urgente',
-    description: 'Courses à récupérer au Carrefour et livrer à mon domicile.',
-    statut: 'en_cours',
-    latitude: 43.5965,
-    longitude: 1.4380,
-    adresse: 'Saint-Michel, Toulouse',
-    created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    is_sponsored: false,
-    wisher: { prenom: 'Marie', nom: 'D.', rating: 5.0, is_online: true, avatar_url: null },
-    tags: ['Courses', 'Livraison'],
-    images: [],
-  },
-  {
-    id: '4',
-    titre: 'Bricolage — fixation étagères',
-    description: 'Fixer 3 étagères murales dans le salon.',
-    statut: 'en_attente',
-    latitude: 43.6200,
-    longitude: 1.4600,
-    adresse: 'Les Minimes, Toulouse',
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    is_sponsored: false,
-    wisher: { prenom: 'Paul', nom: 'R.', rating: 4.2, is_online: false, avatar_url: null },
-    tags: ['Bricolage', 'Maison'],
-    images: [],
-  },
-]
-
 export const MOCK_USER = {
   id: 'mock-user-1',
   prenom: 'Alex',
@@ -74,6 +15,75 @@ export const MOCK_USER = {
   is_online: true,
   onboarding_completed: true,
 }
+
+export const MOCK_WISHES = [
+  {
+    id: '1',
+    titre: 'Massage bien-être à domicile',
+    description: 'Je recherche une personne de confiance pour assurer l\'entretien régulier de mon domicile, à raison d\'une intervention hebdomadaire, afin de prendre en charge le ménage courant et éventuellement le soin du linge.',
+    statut: 'en_attente',
+    latitude: 43.6047,
+    longitude: 1.4442,
+    adresse: '9175 Chestnut Street, Toulouse',
+    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    is_sponsored: false,
+    wisher: { id: 'user-2', prenom: 'Sophie', nom: 'M.', rating: 4.8, is_online: true, avatar_url: null },
+    tags: ['Santé', 'Aide à domicile', 'Régulier', 'Service à la personne'],
+    images: [
+      { url: '/images/wish-massage.jpg' },
+    ],
+  },
+  {
+    id: '2',
+    titre: 'Cours de guitare débutant',
+    description: 'Je cherche quelqu\'un pour m\'apprendre les bases de la guitare acoustique. Une heure par semaine, chez moi. Débutant complet, mais très motivé !',
+    statut: 'en_attente',
+    latitude: 43.6117,
+    longitude: 1.4530,
+    adresse: 'Compans-Caffarelli, Toulouse',
+    created_at: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+    is_sponsored: true,
+    wisher: { id: 'user-3', prenom: 'Lucas', nom: 'B.', rating: 4.5, is_online: false, avatar_url: null },
+    tags: ['Musique', 'Cours particuliers'],
+    images: [
+      { url: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&q=80' },
+      { url: 'https://images.unsplash.com/photo-1525201548942-d8732f6617a0?w=800&q=80' },
+    ],
+  },
+  {
+    id: '3',
+    titre: 'Livraison courses urgente',
+    description: 'Courses à récupérer au Carrefour Market et livrer à mon domicile. Liste fournie à l\'avance. Remboursement immédiat + rémunération.',
+    statut: 'en_cours',
+    latitude: 43.5965,
+    longitude: 1.4380,
+    adresse: 'Saint-Michel, Toulouse',
+    created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    is_sponsored: false,
+    wisher: { id: 'mock-user-1', prenom: 'Alex', nom: 'D.', rating: 5.0, is_online: true, avatar_url: null },
+    tags: ['Courses', 'Livraison'],
+    images: [
+      { url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80' },
+    ],
+  },
+  {
+    id: '4',
+    titre: 'Bricolage — fixation étagères',
+    description: 'Fixer 3 étagères murales dans le salon. Murs en béton, chevilles et vis fournies. Travail d\'environ 1h.',
+    statut: 'en_attente',
+    latitude: 43.6200,
+    longitude: 1.4600,
+    adresse: 'Les Minimes, Toulouse',
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    is_sponsored: false,
+    wisher: { id: 'user-4', prenom: 'Paul', nom: 'R.', rating: 4.2, is_online: false, avatar_url: null },
+    tags: ['Bricolage', 'Maison'],
+    images: [
+      { url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80' },
+      { url: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&q=80' },
+    ],
+  },
+]
 
 export const MOCK_MESSAGES = [
   {
