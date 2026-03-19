@@ -47,6 +47,7 @@ const Chat  = lazy(() => import('../pages/Messages/Chat'))
 
 // Profile
 const Profile = lazy(() => import('../pages/Profile/index'))
+const EditProfile = lazy(() => import('../pages/Profile/EditProfile'))
 
 // Loader minimal pendant le lazy loading
 function PageLoader() {
@@ -155,6 +156,7 @@ const router = createBrowserRouter([
 
       // Profile
       { path: '/profile',             element: <Suspense fallback={<PageLoader />}><Profile /></Suspense> },
+      { path: '/profile/edit',        element: <Suspense fallback={<PageLoader />}><EditProfile /></Suspense> },
     ],
   },
 

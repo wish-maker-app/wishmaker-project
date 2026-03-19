@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import BottomTabBar from '../../components/layout/BottomTabBar'
@@ -45,85 +45,213 @@ function MapResizer() {
   return null
 }
 
-function Avatar({ user, size = 36 }) {
+function SmallAvatar({ user, size = 28 }) {
   const initials = `${user.prenom[0]}${user.nom[0]}`
+  if (user.avatar_url) {
+    return (
+      <img
+        src={user.avatar_url}
+        alt={user.prenom}
+        className="rounded-full object-cover flex-shrink-0"
+        style={{ width: size, height: size }}
+      />
+    )
+  }
   return (
     <div
-      className="rounded-full flex items-center justify-center flex-shrink-0 font-bold text-white text-xs"
-      style={{ width: size, height: size, background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+      className="rounded-full flex items-center justify-center flex-shrink-0 font-bold text-white"
+      style={{ width: size, height: size, fontSize: size * 0.35, background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
     >
       {initials}
     </div>
   )
 }
 
-function StatusBadge({ statut }) {
-  const map = {
-    en_attente: { label: 'En attente', bg: '#EEF0FF', color: '#5B6BF5' },
-    en_cours:   { label: 'En cours',   bg: '#FFF4E0', color: '#F59E0B' },
-    terminé:    { label: 'Terminé',    bg: '#E6FBF0', color: '#22C55E' },
-  }
-  const s = map[statut] || map.en_attente
-  return (
-    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: s.bg, color: s.color }}>
-      {s.label}
-    </span>
-  )
+function distanceLabel(lat1, lng1, lat2, lng2) {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+  const km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`
 }
 
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000
   if (diff < 60)   return 'à l\'instant'
-  if (diff < 3600) return `${Math.floor(diff / 60)}min`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`
-  return `${Math.floor(diff / 86400)}j`
+  if (diff < 3600) return `Il y a ${Math.floor(diff / 60)}min`
+  if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)}h`
+  return `Il y a ${Math.floor(diff / 86400)} jours`
 }
 
-function WishCard({ wish, onClick }) {
+// ── Carte vœu grille 2 colonnes (style maquette) ──
+function WishGridCard({ wish, onClick, userLat, userLng }) {
+  const coverUrl = wish.images?.[0]?.url || null
+  const dist = distanceLabel(userLat, userLng, wish.latitude, wish.longitude)
+
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
+      exit={{ opacity: 0 }}
       onClick={onClick}
-      className="bg-white rounded-[20px] p-4 shadow-[0_4px_20px_rgba(0,0,0,0.07)] active:scale-[0.99] transition-transform cursor-pointer"
+      className="bg-white rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] active:scale-[0.98] transition-transform cursor-pointer"
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <Avatar user={wish.wisher} size={40} />
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-[#1A1A2E] truncate">{wish.wisher.prenom} {wish.wisher.nom}</p>
-            <span className="flex items-center gap-0.5 text-xs font-semibold text-[#1A1A2E]">
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="#F5C542"><path d="M6 1l1.35 2.74L10.5 4.27l-2.25 2.19.53 3.09L6 8.1l-2.78 1.45.53-3.09L1.5 4.27l3.15-.53L6 1z"/></svg>
-              {wish.wisher.rating}
-            </span>
-          </div>
-        </div>
-        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          <StatusBadge statut={wish.statut} />
-          <span className="text-[10px] text-[#8A8A9A]">{timeAgo(wish.created_at)}</span>
+      {/* Cover image + avatar overlay */}
+      <div className="relative aspect-[4/3] bg-[#F0F0F5]">
+        {coverUrl ? (
+          <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }} />
+        )}
+        {/* Avatar + prénom en overlay */}
+        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full pr-2.5 pl-0.5 py-0.5">
+          <SmallAvatar user={wish.wisher} size={24} />
+          <span className="text-white text-[11px] font-medium">{wish.wisher.prenom}</span>
         </div>
       </div>
-      <h3 className="font-bold text-[#1A1A2E] text-sm mb-1 leading-snug">{wish.titre}</h3>
-      <p className="text-[#8A8A9A] text-xs leading-relaxed line-clamp-2 mb-3">{wish.description}</p>
-      {wish.tags?.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {wish.tags.map((tag) => (
-            <span key={tag} className="text-[10px] font-semibold px-2.5 py-1 rounded-full" style={{ background: '#EEF0FF', color: '#5B6BF5' }}>
-              {tag}
-            </span>
-          ))}
+
+      {/* Contenu texte */}
+      <div className="p-3">
+        {/* Titre + time */}
+        <div className="flex items-start justify-between gap-1 mb-1">
+          <h3 className="font-bold text-[#1A1A2E] text-[13px] leading-snug line-clamp-1 flex-1">{wish.titre}</h3>
+          <span className="text-[10px] text-[#8A8A9A] flex-shrink-0 pt-0.5">{timeAgo(wish.created_at)}</span>
         </div>
-      )}
-      <div className="flex items-center gap-1.5 text-xs text-[#8A8A9A]">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="#8A8A9A" strokeWidth="2"/>
-          <circle cx="12" cy="9" r="2.5" stroke="#8A8A9A" strokeWidth="2"/>
-        </svg>
-        {wish.adresse}
+
+        {/* Description */}
+        <p className="text-[#8A8A9A] text-[11px] leading-relaxed line-clamp-3 mb-2.5">{wish.description}</p>
+
+        {/* Distance */}
+        <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#5B6BF5"/>
+            <circle cx="12" cy="9" r="2.5" fill="white"/>
+          </svg>
+          {dist}
+        </div>
       </div>
     </motion.div>
+  )
+}
+
+// ── Carte sponsorisée (carrousel horizontal) ──
+function SponsoredCard({ wish, onClick, userLat, userLng }) {
+  const coverUrl = wish.images?.[0]?.url || null
+  const dist = distanceLabel(userLat, userLng, wish.latitude, wish.longitude)
+
+  return (
+    <div
+      onClick={onClick}
+      className="flex-shrink-0 w-[300px] bg-white rounded-2xl overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.08)] active:scale-[0.98] transition-transform cursor-pointer flex"
+    >
+      {/* Image côté gauche */}
+      <div className="w-[120px] flex-shrink-0 bg-[#F0F0F5]">
+        {coverUrl ? (
+          <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }} />
+        )}
+      </div>
+      {/* Contenu droite */}
+      <div className="flex-1 p-3 flex flex-col justify-between">
+        <div>
+          <h3 className="font-bold text-[#1A1A2E] text-sm leading-snug mb-1">{wish.titre}</h3>
+          <p className="text-[#8A8A9A] text-[11px] leading-relaxed line-clamp-3 mb-2">{wish.description}</p>
+        </div>
+        <div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <SmallAvatar user={wish.wisher} size={20} />
+            <span className="text-xs font-semibold text-[#1A1A2E]">{wish.wisher.prenom}</span>
+          </div>
+          <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold mb-2">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#5B6BF5"/>
+              <circle cx="12" cy="9" r="2.5" fill="white"/>
+            </svg>
+            {dist}
+          </div>
+          <button
+            className="w-full h-8 rounded-full text-xs font-bold text-white"
+            style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+          >
+            Voir plus
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Fermer l'overlay quand on clique sur la carte ──
+function MapClickHandler({ onMapClick }) {
+  useMapEvents({
+    click: () => onMapClick(),
+  })
+  return null
+}
+
+// ── Overlay aperçu vœu (bottom sheet sur la carte) ──
+function WishPreviewCard({ wish, userLat, userLng, onViewMore, onMessage }) {
+  const coverUrl = wish.images?.[0]?.url || null
+  const dist = distanceLabel(userLat, userLng, wish.latitude, wish.longitude)
+
+  return (
+    <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] flex overflow-hidden">
+      {/* Image gauche */}
+      <div className="w-[110px] flex-shrink-0 bg-[#F0F0F5]">
+        {coverUrl ? (
+          <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }} />
+        )}
+      </div>
+
+      {/* Contenu droite */}
+      <div className="flex-1 p-3.5 flex flex-col justify-between min-w-0">
+        <div>
+          <h3 className="font-bold text-[#1A1A2E] text-[15px] leading-snug mb-1 truncate">{wish.titre}</h3>
+          <p className="text-[#8A8A9A] text-[11px] leading-relaxed line-clamp-3 mb-2.5">{wish.description}</p>
+        </div>
+
+        <div>
+          {/* Avatar + nom */}
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <SmallAvatar user={wish.wisher} size={20} />
+            <span className="text-xs font-semibold text-[#1A1A2E]">{wish.wisher.prenom}</span>
+          </div>
+
+          {/* Distance */}
+          <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold mb-2.5">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#5B6BF5"/>
+              <circle cx="12" cy="9" r="2.5" fill="white"/>
+            </svg>
+            {dist}
+          </div>
+
+          {/* Boutons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onViewMore}
+              className="flex-1 h-9 rounded-full text-xs font-bold text-white"
+              style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+            >
+              Voir plus
+            </button>
+            <button
+              onClick={onMessage}
+              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border border-[#E0E0E0]"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"
+                  stroke="#5B6BF5" strokeWidth="2" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -132,6 +260,7 @@ export default function MakerHome() {
   const { t } = useTranslation()
   const [view, setView] = useState('carte')
   const [search, setSearch] = useState('')
+  const [selectedWish, setSelectedWish] = useState(null)
   const profile = useAuthStore((s) => s.profile)
   const { getAvailableWishes, loading } = useWishes()
   const [wishes, setWishes] = useState([])
@@ -145,6 +274,9 @@ export default function MakerHome() {
     w.description.toLowerCase().includes(search.toLowerCase()) ||
     (w.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()))
   )
+
+  const sponsored = filtered.filter((w) => w.is_sponsored)
+  const nonSponsored = filtered.filter((w) => !w.is_sponsored)
 
   // Fallback Toulouse si profil sans localisation
   const center = [
@@ -202,40 +334,99 @@ export default function MakerHome() {
       {/* Contenu — même conteneur flex-1 pour les deux vues */}
       <div className="flex-1 relative z-0 overflow-hidden">
         {view === 'carte' ? (
-          <MapContainer
-            center={center}
-            zoom={14}
-            scrollWheelZoom
-            style={{ width: '100%', height: '100%' }}
-            zoomControl={false}
-          >
-            <MapResizer />
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {filtered.map((wish) => (
-              <Marker
-                key={wish.id}
-                position={[wish.latitude, wish.longitude]}
-                icon={createAvatarIcon(
-                  `${wish.wisher.prenom[0]}${wish.wisher.nom[0]}`,
-                  wish.wisher.rating
-                )}
-                eventHandlers={{ click: () => navigate(`/maker/wish/${wish.id}`) }}
+          <>
+            <MapContainer
+              center={center}
+              zoom={14}
+              scrollWheelZoom
+              style={{ width: '100%', height: '100%' }}
+              zoomControl={false}
+            >
+              <MapResizer />
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
               />
-            ))}
-          </MapContainer>
+              <MapClickHandler onMapClick={() => setSelectedWish(null)} />
+              {filtered.map((wish) => (
+                <Marker
+                  key={wish.id}
+                  position={[wish.latitude, wish.longitude]}
+                  icon={createAvatarIcon(
+                    `${wish.wisher.prenom[0]}${wish.wisher.nom[0]}`,
+                    wish.wisher.rating
+                  )}
+                  eventHandlers={{ click: () => setSelectedWish(wish) }}
+                />
+              ))}
+            </MapContainer>
+
+            {/* Overlay aperçu vœu */}
+            <AnimatePresence>
+              {selectedWish && (
+                <motion.div
+                  initial={{ y: '100%', opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: '100%', opacity: 0 }}
+                  transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+                  className="absolute bottom-20 left-4 right-4 z-[600]"
+                >
+                  <WishPreviewCard
+                    wish={selectedWish}
+                    userLat={center[0]}
+                    userLng={center[1]}
+                    onViewMore={() => navigate(`/maker/wish/${selectedWish.id}`)}
+                    onMessage={() => navigate(`/maker/wish/${selectedWish.id}`)}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
         ) : (
           <div className="h-full px-4 pt-2 pb-24 overflow-y-auto bg-[#F7F8FC]">
-            <p className="text-xs text-[#8A8A9A] font-medium mb-3">
-              {filtered.length} vœu{filtered.length > 1 ? 'x' : ''} près de vous
-            </p>
+            {/* Section sponsorisés */}
+            {sponsored.length > 0 && (
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-bold text-[#1A1A2E] text-base">Vœux sponsorisés</h2>
+                  {sponsored.length > 1 && (
+                    <div className="flex gap-1">
+                      {sponsored.map((_, i) => (
+                        <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: i === 0 ? '#5B6BF5' : '#D0D0D0' }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                  {sponsored.map((wish) => (
+                    <SponsoredCard
+                      key={wish.id}
+                      wish={wish}
+                      onClick={() => navigate(`/maker/wish/${wish.id}`)}
+                      userLat={center[0]}
+                      userLng={center[1]}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Section vœux trouvés */}
+            <h2 className="font-bold text-[#1A1A2E] text-base mb-3">
+              Vœux trouvés ({nonSponsored.length})
+            </h2>
+
             <AnimatePresence mode="popLayout">
-              {filtered.length > 0 ? (
-                <div className="flex flex-col gap-3">
-                  {filtered.map((wish) => (
-                    <WishCard key={wish.id} wish={wish} onClick={() => navigate(`/maker/wish/${wish.id}`)} />
+              {nonSponsored.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {nonSponsored.map((wish) => (
+                    <WishGridCard
+                      key={wish.id}
+                      wish={wish}
+                      onClick={() => navigate(`/maker/wish/${wish.id}`)}
+                      userLat={center[0]}
+                      userLng={center[1]}
+                    />
                   ))}
                 </div>
               ) : (

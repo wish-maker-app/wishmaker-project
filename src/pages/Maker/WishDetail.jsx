@@ -48,7 +48,7 @@ function StaticMap({ lat, lng }) {
       attributionControl={false}
     >
       <MapSetup />
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
       <Marker position={[lat, lng]} icon={pinIcon} />
     </MapContainer>
   )
@@ -148,6 +148,7 @@ export default function WishDetail() {
             </button>
           }
         />
+{/* Rating badge désactivé pour l'instant
         {wish.tags?.[0] && (
           <div className="absolute top-20 left-5">
             <span className="text-xs font-bold px-3 py-1.5 rounded-full text-white"
@@ -156,6 +157,7 @@ export default function WishDetail() {
             </span>
           </div>
         )}
+*/}
       </div>
 
       {/* Contenu */}
@@ -275,12 +277,14 @@ export default function WishDetail() {
           </div>
         </div>
 
-        {/* CTA */}
-        <div className="pt-2 pb-6">
-          <Button onClick={() => navigate('/maker/success')}>
-            {t('maker.detail.realiser')}
-          </Button>
-        </div>
+        {/* CTA — masqué si c'est ton propre vœu */}
+        {!isOwner && (
+          <div className="pt-2 pb-6">
+            <Button onClick={() => navigate('/maker/success')}>
+              {t('maker.detail.realiser')}
+            </Button>
+          </div>
+        )}
       </motion.div>
 
       <BottomTabBar />

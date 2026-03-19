@@ -142,7 +142,7 @@ export default function Step3() {
           zoomControl={false}
         >
           <MapResizer />
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='© OpenStreetMap' />
+          <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" attribution='© CARTO' />
           <MapClickHandler onMapClick={handleMapClick} />
           {pin && <Marker position={[pin.lat, pin.lng]} icon={customIcon} />}
         </MapContainer>

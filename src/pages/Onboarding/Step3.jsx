@@ -33,7 +33,7 @@ export default function OnboardingStep3() {
           zoomControl={false}
           attributionControl={false}
         >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
           {MOCK_WISHES.map((w) => (
             <Marker key={w.id} position={[w.latitude, w.longitude]} icon={mockIcon}>
               <Popup>{w.titre}</Popup>

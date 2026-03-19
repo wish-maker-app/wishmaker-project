@@ -1,22 +1,24 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import toast from 'react-hot-toast'
 import BottomTabBar from '../../components/layout/BottomTabBar'
+import Button from '../../components/ui/Button'
 import useAuthStore from '../../store/authStore'
 import { useAuth } from '../../hooks/useAuth'
 
-function ProfileItem({ icon, label, right, onClick }) {
+// ── Composants utilitaires ──
+
+function ProfileItem({ icon, label, value, onClick }) {
   return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-4 w-full py-4 text-left"
-    >
-      <div className="w-6 flex items-center justify-center flex-shrink-0 text-[#1A1A2E]">
-        {icon}
-      </div>
+    <button onClick={onClick} className="flex items-center gap-4 w-full py-4 text-left">
+      <div className="w-6 flex items-center justify-center flex-shrink-0">{icon}</div>
       <span className="flex-1 text-[15px] font-medium text-[#1A1A2E]">{label}</span>
-      {right || (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
+      {value ? (
+        <span className="text-[13px] text-[#8A8A9A]">{value}</span>
+      ) : (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <path d="M9 18l6-6-6-6" stroke="#C0C0C0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       )}
@@ -25,16 +27,59 @@ function ProfileItem({ icon, label, right, onClick }) {
 }
 
 function SectionTitle({ title }) {
-  return <p className="text-[13px] font-semibold text-[#8A8A9A] uppercase tracking-wide mt-4 mb-1">{title}</p>
+  return <p className="text-[13px] font-semibold text-[#8A8A9A] uppercase tracking-wide mt-5 mb-1">{title}</p>
+}
+
+function EditModal({ open, onClose, title, children }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/40 z-[900]"
+          />
+          <motion.div
+            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 max-h-[85vh] overflow-y-auto"
+          >
+            <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+            <h2 className="text-lg font-bold text-[#1A1A2E] mb-5">{title}</h2>
+            {children}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// ── Icons ──
+const icons = {
+  user: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#1A1A2E" strokeWidth="1.8"/><path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  payment: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="3" stroke="#1A1A2E" strokeWidth="1.8"/><path d="M2 10h20" stroke="#1A1A2E" strokeWidth="1.8"/></svg>,
+  lock: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="10" rx="2" stroke="#1A1A2E" strokeWidth="1.8"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  lockDot: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="10" rx="2" stroke="#1A1A2E" strokeWidth="1.8"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round"/><circle cx="12" cy="16" r="1.5" fill="#1A1A2E"/></svg>,
+  shield: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#1A1A2E" strokeWidth="1.8" strokeLinejoin="round"/><path d="M9 12l2 2 4-4" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  globe: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#1A1A2E" strokeWidth="1.8"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10A15.3 15.3 0 0112 2z" stroke="#1A1A2E" strokeWidth="1.8"/></svg>,
+  trash: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 6l2 14h14l2-14M10 11v6M14 11v6" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  legal: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#1A1A2E" strokeWidth="1.8" strokeLinejoin="round"/></svg>,
+  help: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#1A1A2E" strokeWidth="1.8"/><path d="M9 9a3 3 0 015.12 2.13c0 2-3 2.5-3 4.37" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round"/><circle cx="12" cy="19" r="0.5" fill="#1A1A2E" stroke="#1A1A2E" strokeWidth="0.5"/></svg>,
 }
 
 export default function Profile() {
   const navigate = useNavigate()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { signOut } = useAuth()
-  const user = useAuthStore((s) => s.profile)
+  const profile = useAuthStore((s) => s.profile)
 
-  if (!user) {
+  const [editModal, setEditModal] = useState(null) // 'password' | 'langue' | null
+  const [saving, setSaving] = useState(false)
+  const [newPwd, setNewPwd] = useState('')
+  const [confirmPwd, setConfirmPwd] = useState('')
+
+  if (!profile) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-4 border-[#5B6BF5] border-t-transparent animate-spin" />
@@ -42,84 +87,118 @@ export default function Profile() {
     )
   }
 
+  async function savePassword() {
+    if (newPwd.length < 6) { toast.error('Min. 6 caractères'); return }
+    if (newPwd !== confirmPwd) { toast.error('Les mots de passe ne correspondent pas'); return }
+    setSaving(true)
+    try {
+      const { error } = await (await import('../../lib/supabase')).supabase.auth.updateUser({ password: newPwd })
+      if (error) throw error
+      setEditModal(null)
+      setNewPwd('')
+      setConfirmPwd('')
+      toast.success('Mot de passe mis à jour !')
+    } catch (err) {
+      toast.error(err.message || 'Erreur')
+    } finally { setSaving(false) }
+  }
+
+  function handleLanguageChange(lang) {
+    i18n.changeLanguage(lang)
+    localStorage.setItem('lang', lang)
+    setEditModal(null)
+    toast.success(lang === 'fr' ? 'Langue mise à jour !' : 'Language updated!')
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
 
-      {/* Header profil */}
-      <div className="px-5 pt-14 pb-4 flex items-center gap-4">
+      {/* Header profil — aligné à gauche comme la maquette */}
+      <div className="px-5 pt-14 pb-2 flex items-center gap-4">
         <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-          {user.avatar_url ? (
-            <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+          {profile.avatar_url ? (
+            <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center font-bold text-white text-lg"
               style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>
-              {user.prenom[0]}{user.nom[0]}
+              {profile.prenom[0]}{profile.nom[0]}
             </div>
           )}
         </div>
         <div>
-          <p className="text-lg font-bold text-[#1A1A2E]">{user.prenom} {user.nom}</p>
-          <p className="text-[13px] text-[#8A8A9A]">@{user.prenom}{user.nom}</p>
+          <p className="text-lg font-bold text-[#1A1A2E]">{profile.prenom} {profile.nom}</p>
+          <p className="text-[13px] text-[#8A8A9A]">@{profile.prenom}{profile.nom}</p>
         </div>
       </div>
 
       {/* Contenu scrollable */}
       <div className="flex-1 px-5 pb-28 overflow-y-auto">
 
-        {/* Personal Info */}
         <SectionTitle title="Personal Info" />
-        <ProfileItem
-          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#1A1A2E" strokeWidth="1.8"/><path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round"/></svg>}
-          label="Profil"
-        />
-        <ProfileItem
-          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="3" stroke="#1A1A2E" strokeWidth="1.8"/><path d="M2 10h20" stroke="#1A1A2E" strokeWidth="1.8"/></svg>}
-          label="Méthode de paiement"
-        />
+        <ProfileItem icon={icons.user} label="Profil" onClick={() => navigate('/profile/edit')} />
 
-        {/* Security */}
         <SectionTitle title="Security" />
-        <ProfileItem
-          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="10" rx="2" stroke="#1A1A2E" strokeWidth="1.8"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round"/></svg>}
-          label="Changer le mot de passe"
-        />
-        <ProfileItem
-          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="10" rx="2" stroke="#1A1A2E" strokeWidth="1.8"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round"/><circle cx="12" cy="16" r="1.5" fill="#1A1A2E"/></svg>}
-          label="Mot de passe oublié"
-        />
-        <ProfileItem
-          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#1A1A2E" strokeWidth="1.8" strokeLinejoin="round"/><path d="M9 12l2 2 4-4" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-          label="Sécurité"
-        />
+        <ProfileItem icon={icons.lock} label="Changer le mot de passe"
+          onClick={() => { setNewPwd(''); setConfirmPwd(''); setEditModal('password') }} />
 
-        {/* General */}
         <SectionTitle title="General" />
-        <ProfileItem
-          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#1A1A2E" strokeWidth="1.8"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10A15.3 15.3 0 0112 2z" stroke="#1A1A2E" strokeWidth="1.8"/></svg>}
-          label="Langue"
-        />
-        <ProfileItem
-          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 6l2 14h14l2-14M10 11v6M14 11v6" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-          label="Vider le cash"
-          right={<span className="text-[13px] text-[#8A8A9A]">88 MB</span>}
-        />
+        <ProfileItem icon={icons.globe} label="Langue" onClick={() => setEditModal('langue')} />
 
-        {/* About */}
         <SectionTitle title="About" />
-        <ProfileItem
-          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#1A1A2E" strokeWidth="1.8" strokeLinejoin="round"/></svg>}
-          label="Mentions légales et politiques"
-        />
+        <ProfileItem icon={icons.legal} label="Mentions légales" />
+        <ProfileItem icon={icons.help} label="Aide et assistance" />
 
         {/* Déconnexion */}
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={signOut}
-          className="mt-6 mb-4 w-full h-12 rounded-full border border-red-400 text-red-500 font-semibold text-sm"
+          className="mt-8 mb-4 w-full h-12 rounded-full border border-[#5B6BF5] text-[#5B6BF5] font-semibold text-sm"
         >
           {t('profile.deconnexion')}
         </motion.button>
       </div>
+
+      {/* Modal mot de passe */}
+      <EditModal open={editModal === 'password'} onClose={() => setEditModal(null)} title="Changer le mot de passe">
+        <div className="mb-4">
+          <label className="text-xs font-semibold text-[#8A8A9A] mb-1.5 block">Nouveau mot de passe</label>
+          <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)}
+            placeholder="Min. 6 caractères"
+            className="w-full h-12 bg-[#F7F8FC] rounded-2xl px-4 text-sm text-[#1A1A2E] outline-none" />
+        </div>
+        <div className="mb-4">
+          <label className="text-xs font-semibold text-[#8A8A9A] mb-1.5 block">Confirmer</label>
+          <input type="password" value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)}
+            placeholder="Confirmez le mot de passe"
+            className="w-full h-12 bg-[#F7F8FC] rounded-2xl px-4 text-sm text-[#1A1A2E] outline-none" />
+        </div>
+        <Button onClick={savePassword} loading={saving}>Mettre à jour</Button>
+      </EditModal>
+
+      {/* Modal langue */}
+      <EditModal open={editModal === 'langue'} onClose={() => setEditModal(null)} title="Choisir la langue">
+        <div className="flex flex-col gap-2">
+          {[
+            { code: 'fr', label: 'Français', flag: '🇫🇷' },
+            { code: 'en', label: 'English', flag: '🇬🇧' },
+          ].map((lang) => {
+            const isActive = i18n.language?.startsWith(lang.code)
+            return (
+              <button key={lang.code} onClick={() => handleLanguageChange(lang.code)}
+                className="flex items-center gap-3 px-4 py-4 rounded-2xl transition-all border-2"
+                style={isActive ? { borderColor: '#5B6BF5', background: '#EEF0FF' } : { borderColor: '#F0F0F0' }}>
+                <span className="text-2xl">{lang.flag}</span>
+                <span className={`text-sm font-semibold ${isActive ? 'text-[#5B6BF5]' : 'text-[#1A1A2E]'}`}>{lang.label}</span>
+                {isActive && (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="ml-auto">
+                    <path d="M5 13l4 4L19 7" stroke="#5B6BF5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </EditModal>
 
       <BottomTabBar />
     </div>

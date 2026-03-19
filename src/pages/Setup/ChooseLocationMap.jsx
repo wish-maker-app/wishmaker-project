@@ -145,7 +145,7 @@ export default function ChooseLocationMap() {
         >
           <MapResizer />
           <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           />
           <MapClickHandler onMapClick={handleMapClick} />
