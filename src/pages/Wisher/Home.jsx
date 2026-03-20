@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import toast from 'react-hot-toast'
 import BottomTabBar from '../../components/layout/BottomTabBar'
-import DragScroll from '../../components/ui/DragScroll'
 import useAuthStore from '../../store/authStore'
 import { useWishes } from '../../hooks/useWishes'
+
+const TABS = ['en_attente', 'realise', 'annule']
+const TAB_LABELS = { en_attente: 'En attente', realise: 'Réalisé', annule: 'Annulé' }
+
+const STATUS_MAP = {
+  en_attente: 'en_attente',
+  en_cours: 'en_attente',
+  terminé: 'realise',
+  realise: 'realise',
+  annule: 'annule',
+}
 
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000
@@ -15,70 +26,170 @@ function timeAgo(iso) {
   return `${Math.floor(diff / 86400)}j`
 }
 
-const statusConfig = {
-  en_attente: { label: 'En attente', bg: '#EEF0FF', color: '#5B6BF5', icon: '⏳' },
-  en_cours:   { label: 'En cours',   bg: '#FFF4E0', color: '#F59E0B', icon: '⚡' },
-  terminé:    { label: 'Terminé',    bg: '#E6FBF0', color: '#22C55E', icon: '✅' },
+function expirationInfo(expiresAt) {
+  if (!expiresAt) return null
+  const diff = new Date(expiresAt) - Date.now()
+  if (diff <= 0) return { label: 'Expiré', color: '#EF4444' }
+  const hours = Math.floor(diff / 3600000)
+  const minutes = Math.floor((diff % 3600000) / 60000)
+  const label = hours > 0 ? `Expire dans ${hours}h ${minutes}min` : `Expire dans ${minutes}min`
+  const color = hours < 6 ? '#EF4444' : hours < 24 ? '#F59E0B' : '#22C55E'
+  return { label, color }
 }
 
-function StatCard({ count, label, icon, bg, color }) {
+function ConfirmModal({ open, onClose, title, description, price, buttonLabel, onConfirm, loading }) {
+  if (!open) return null
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex-1 rounded-2xl p-3.5"
-      style={{ background: bg }}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-lg">{icon}</span>
-        <span className="text-2xl font-bold" style={{ color }}>{count}</span>
-      </div>
-      <p className="text-[11px] font-semibold" style={{ color }}>{label}</p>
-    </motion.div>
+    <>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose} className="fixed inset-0 bg-black/40 z-[900]" />
+      <motion.div
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4"
+      >
+        <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+        <h2 className="text-lg font-bold text-[#1A1A2E] mb-2">{title}</h2>
+        <p className="text-sm text-[#8A8A9A] mb-1">{description}</p>
+        <p className="text-base font-bold text-[#1A1A2E] mb-5">{price}</p>
+        <button
+          onClick={onConfirm}
+          disabled={loading}
+          className="w-full h-12 rounded-full text-white font-bold text-sm"
+          style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+        >
+          {loading ? 'Traitement...' : buttonLabel}
+        </button>
+        <button onClick={onClose} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">Annuler</button>
+      </motion.div>
+    </>
   )
 }
 
-function RecentWishCard({ wish, onClick }) {
+function WishCard({ wish, onExtend, onMakeUrgent }) {
+  const navigate = useNavigate()
+  const statusLabel = { en_attente: 'En attente', en_cours: 'En cours', terminé: 'Terminé', annule: 'Annulé' }
+  const statusStyle = {
+    en_attente: { bg: '#EEF0FF', color: '#5B6BF5' },
+    en_cours:   { bg: '#FFF4E0', color: '#F59E0B' },
+    terminé:    { bg: '#E6FBF0', color: '#22C55E' },
+    annule:     { bg: '#FFF0F0', color: '#EF4444' },
+  }
+  const s = statusStyle[wish.statut] || statusStyle.en_attente
+  const exp = expirationInfo(wish.expires_at)
+  const isActive = wish.statut === 'en_attente' || wish.statut === 'en_cours'
   const coverUrl = wish.images?.[0]?.url || null
-  const s = statusConfig[wish.statut] || statusConfig.en_attente
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 16 }}
-      animate={{ opacity: 1, x: 0 }}
-      onClick={onClick}
-      className="flex-shrink-0 w-[260px] bg-white rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] active:scale-[0.98] transition-transform cursor-pointer"
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      className="bg-white rounded-[20px] overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
     >
-      {/* Cover */}
-      <div className="relative h-[120px] bg-[#F0F0F5]">
-        {coverUrl ? (
-          <img src={coverUrl} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }}>
-            <span className="text-4xl opacity-50">✨</span>
+      <div onClick={() => navigate(`/maker/wish/${wish.id}?owner=1`)} className="active:scale-[0.99] transition-transform cursor-pointer">
+        {/* Photo de couverture */}
+        {coverUrl && (
+          <div className="relative h-[140px] bg-[#F0F0F5]">
+            <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+            <span className="absolute top-2.5 right-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full"
+              style={{ background: s.bg, color: s.color }}>
+              {statusLabel[wish.statut]}
+            </span>
+            {wish.is_urgent && (
+              <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-1 rounded-full"
+                style={{ background: '#FFF4E0', color: '#F59E0B' }}>
+                ⚡ URGENT
+              </span>
+            )}
           </div>
         )}
-        {/* Status badge */}
-        <span className="absolute top-2.5 right-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full"
-          style={{ background: s.bg, color: s.color }}>
-          {s.label}
-        </span>
-      </div>
-      {/* Contenu */}
-      <div className="p-3.5">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="font-bold text-[#1A1A2E] text-[13px] leading-snug truncate flex-1 mr-2">{wish.titre}</h3>
-          <span className="text-[10px] text-[#8A8A9A] flex-shrink-0">{timeAgo(wish.created_at)}</span>
+        <div className="p-4">
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <h3 className="font-bold text-[#1A1A2E] text-sm leading-snug flex-1">{wish.titre}</h3>
+          {!coverUrl && (
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {wish.is_urgent && (
+                <span className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: '#FFF4E0', color: '#F59E0B' }}>
+                  ⚡ URGENT
+                </span>
+              )}
+              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                style={{ background: s.bg, color: s.color }}>
+                {statusLabel[wish.statut]}
+              </span>
+            </div>
+          )}
         </div>
-        <p className="text-[#8A8A9A] text-[11px] leading-relaxed line-clamp-2 mb-2">{wish.description}</p>
-        <div className="flex items-center gap-1 text-[11px] text-[#8A8A9A]">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="#8A8A9A">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-          </svg>
-          <span className="truncate">{wish.adresse}</span>
+
+        <p className="text-[#8A8A9A] text-xs leading-relaxed line-clamp-2 mb-3">{wish.description}</p>
+
+        {exp && isActive && (
+          <div className="flex items-center gap-1.5 mb-3">
+            <span className="w-2 h-2 rounded-full" style={{ background: exp.color }} />
+            <span className="text-xs font-semibold" style={{ color: exp.color }}>{exp.label}</span>
+          </div>
+        )}
+
+        {wish.type_recompense && (
+          <div className="mb-3">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
+              style={wish.type_recompense === 'argent'
+                ? { background: '#ECFDF5', color: '#059669' }
+                : { background: '#EFF6FF', color: '#3B82F6' }
+              }>
+              {wish.type_recompense === 'argent'
+                ? `💰 ${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
+                : '🤝 Bon procédé'}
+            </span>
+          </div>
+        )}
+
+        {wish.tags?.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {wish.tags.map((tag) => (
+              <span key={tag} className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
+                style={{ background: '#EEF0FF', color: '#5B6BF5' }}>
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between text-xs text-[#8A8A9A]">
+          <div className="flex items-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#8A8A9A">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+            </svg>
+            {wish.adresse}
+          </div>
+          <span>{timeAgo(wish.created_at)}</span>
+        </div>
         </div>
       </div>
+
+      {isActive && (
+        <div className="flex gap-2 mx-4 pb-4 pt-3 border-t border-[#F0F0F0]">
+          {!wish.is_extended && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onExtend(wish) }}
+              className="flex-1 h-9 rounded-full text-xs font-semibold border border-[#E0E0E0] text-[#1A1A2E] bg-white"
+            >
+              ⏱ Prolonger
+            </button>
+          )}
+          {!wish.is_urgent && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onMakeUrgent(wish) }}
+              className="flex-1 h-9 rounded-full text-xs font-bold text-white"
+              style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}
+            >
+              ⚡ Mettre en Urgent
+            </button>
+          )}
+        </div>
+      )}
     </motion.div>
   )
 }
@@ -87,9 +198,12 @@ export default function WisherHome() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.profile)
-  const { getMyWishes } = useWishes()
+  const { getMyWishes, extendWish, makeUrgent } = useWishes()
   const [wishes, setWishes] = useState([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('en_attente')
+  const [modal, setModal] = useState(null)
+  const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
     getMyWishes()
@@ -105,15 +219,44 @@ export default function WisherHome() {
     )
   }
 
-  const stats = {
-    en_attente: wishes.filter((w) => w.statut === 'en_attente').length,
-    en_cours: wishes.filter((w) => w.statut === 'en_cours').length,
-    terminé: wishes.filter((w) => w.statut === 'terminé').length,
+  const tabCounts = {
+    en_attente: wishes.filter((w) => STATUS_MAP[w.statut] === 'en_attente').length,
+    realise: wishes.filter((w) => STATUS_MAP[w.statut] === 'realise').length,
+    annule: wishes.filter((w) => STATUS_MAP[w.statut] === 'annule').length,
   }
 
-  const recentWishes = wishes.slice(0, 5)
+  const filtered = wishes.filter((w) => STATUS_MAP[w.statut] === activeTab)
+
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
+
+  async function handleExtend() {
+    if (!modal?.wish) return
+    setActionLoading(true)
+    try {
+      await extendWish(modal.wish.id)
+      toast.success('Vœu prolongé avec succès !')
+      const updated = await getMyWishes()
+      setWishes(updated)
+      setModal(null)
+    } catch (err) {
+      toast.error(err.message || 'Erreur')
+    } finally { setActionLoading(false) }
+  }
+
+  async function handleMakeUrgent() {
+    if (!modal?.wish) return
+    setActionLoading(true)
+    try {
+      await makeUrgent(modal.wish.id)
+      toast.success('Vœu mis en urgent !')
+      const updated = await getMyWishes()
+      setWishes(updated)
+      setModal(null)
+    } catch (err) {
+      toast.error(err.message || 'Erreur')
+    } finally { setActionLoading(false) }
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
@@ -158,10 +301,8 @@ export default function WisherHome() {
             className="w-full rounded-[20px] p-5 text-left relative overflow-hidden"
             style={{ background: 'linear-gradient(135deg,#5B6BF5 0%,#9B59F5 100%)' }}
           >
-            {/* Cercles décoratifs */}
             <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10" />
             <div className="absolute -bottom-4 -right-10 w-20 h-20 rounded-full bg-white/5" />
-
             <div className="relative z-10">
               <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mb-3">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -174,81 +315,8 @@ export default function WisherHome() {
           </motion.button>
         </div>
 
-        {/* Stats */}
+        {/* Astuce */}
         <div className="px-5 mb-5">
-          <div className="flex gap-2.5">
-            <StatCard
-              count={stats.en_attente}
-              label="En attente"
-              icon="⏳"
-              bg="#EEF0FF"
-              color="#5B6BF5"
-            />
-            <StatCard
-              count={stats.en_cours}
-              label="En cours"
-              icon="⚡"
-              bg="#FFF4E0"
-              color="#F59E0B"
-            />
-            <StatCard
-              count={stats.terminé}
-              label="Terminés"
-              icon="✅"
-              bg="#E6FBF0"
-              color="#22C55E"
-            />
-          </div>
-        </div>
-
-        {/* Mes vœux récents */}
-        <div className="mb-5">
-          <div className="flex items-center justify-between px-5 mb-3">
-            <h2 className="font-bold text-[#1A1A2E] text-base">Mes vœux récents</h2>
-            {wishes.length > 0 && (
-              <button onClick={() => navigate('/wisher/mes-voeux')}
-                className="text-xs font-semibold text-[#5B6BF5]">
-                Voir tout
-              </button>
-            )}
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <div className="w-6 h-6 rounded-full border-3 border-[#5B6BF5] border-t-transparent animate-spin" />
-            </div>
-          ) : recentWishes.length > 0 ? (
-            <DragScroll className="flex gap-3 px-5 pb-2">
-              {recentWishes.map((wish) => (
-                <RecentWishCard
-                  key={wish.id}
-                  wish={wish}
-                  onClick={() => navigate(`/maker/wish/${wish.id}?owner=1`)}
-                />
-              ))}
-            </DragScroll>
-          ) : (
-            <div className="mx-5 py-10 flex flex-col items-center gap-3 bg-white rounded-2xl border border-[#F0F0F0]">
-              <div className="w-16 h-16 rounded-full bg-[#EEF0FF] flex items-center justify-center">
-                <span className="text-3xl">✨</span>
-              </div>
-              <p className="text-sm font-bold text-[#1A1A2E]">Aucun vœu pour le moment</p>
-              <p className="text-xs text-[#8A8A9A] text-center max-w-[220px]">
-                Crée ton premier vœu et laisse la magie opérer !
-              </p>
-              <button
-                onClick={() => navigate('/wisher/create/1')}
-                className="mt-1 px-6 h-10 rounded-full text-sm font-semibold text-white"
-                style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
-              >
-                Créer un vœu
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Tip / aide rapide */}
-        <div className="px-5">
           <div className="rounded-2xl bg-white border border-[#F0F0F0] p-4 flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#FFF4E0] flex items-center justify-center flex-shrink-0">
               <span className="text-lg">💡</span>
@@ -262,7 +330,114 @@ export default function WisherHome() {
           </div>
         </div>
 
+        {/* Section Mes vœux */}
+        <div className="px-5">
+          <h2 className="font-bold text-[#1A1A2E] text-base mb-3">Mes vœux</h2>
+
+          {/* Onglets */}
+          <div className="flex bg-[#F5F5F7] rounded-full p-1 mb-4">
+            {TABS.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className="flex-1 py-2.5 rounded-full text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
+                style={activeTab === tab
+                  ? { background: 'white', color: '#5B6BF5', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }
+                  : { color: '#8A8A9A' }
+                }
+              >
+                {TAB_LABELS[tab]}
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px]"
+                  style={activeTab === tab
+                    ? { background: '#EEF0FF', color: '#5B6BF5' }
+                    : { background: '#E8E8E8', color: '#8A8A9A' }
+                  }>
+                  {tabCounts[tab]}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Liste des vœux filtrés */}
+          <div className="flex flex-col gap-3">
+            <AnimatePresence mode="popLayout">
+              {loading ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="w-6 h-6 rounded-full border-3 border-[#5B6BF5] border-t-transparent animate-spin" />
+                </div>
+              ) : filtered.length > 0 ? (
+                filtered.map((wish) => (
+                  <WishCard
+                    key={wish.id}
+                    wish={wish}
+                    onExtend={(w) => setModal({ type: 'extend', wish: w })}
+                    onMakeUrgent={(w) => setModal({ type: 'urgent', wish: w })}
+                  />
+                ))
+              ) : (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-center justify-center py-16 gap-3"
+                >
+                  <div className="w-16 h-16 rounded-full bg-[#EEF0FF] flex items-center justify-center">
+                    <span className="text-3xl">
+                      {activeTab === 'en_attente' ? '✨' : activeTab === 'realise' ? '🎉' : '📭'}
+                    </span>
+                  </div>
+                  <p className="text-[#1A1A2E] font-bold text-sm">Aucun vœu ici pour le moment</p>
+                  <p className="text-[#8A8A9A] text-xs text-center max-w-[220px]">
+                    {activeTab === 'en_attente'
+                      ? 'Crée ton premier vœu et laisse la magie opérer !'
+                      : activeTab === 'realise'
+                        ? 'Tes vœux réalisés apparaîtront ici.'
+                        : 'Tes vœux annulés apparaîtront ici.'}
+                  </p>
+                  {activeTab === 'en_attente' && (
+                    <button
+                      onClick={() => navigate('/wisher/create/1')}
+                      className="mt-1 px-6 h-10 rounded-full text-sm font-semibold text-white"
+                      style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+                    >
+                      Créer un vœu
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
       </div>
+
+      {/* Modals */}
+      <AnimatePresence>
+        {modal?.type === 'extend' && (
+          <ConfirmModal
+            open
+            onClose={() => setModal(null)}
+            title="⏱ Prolonger mon vœu"
+            description="Prolongez votre vœu de 72h supplémentaires."
+            price="2,99€"
+            buttonLabel="Payer et prolonger"
+            onConfirm={handleExtend}
+            loading={actionLoading}
+          />
+        )}
+        {modal?.type === 'urgent' && (
+          <ConfirmModal
+            open
+            onClose={() => setModal(null)}
+            title="⚡ Mettre en Urgent"
+            description="Votre vœu sera mis en avant pendant 24h."
+            price="4,99€"
+            buttonLabel="Payer et activer"
+            onConfirm={handleMakeUrgent}
+            loading={actionLoading}
+          />
+        )}
+      </AnimatePresence>
 
       <BottomTabBar />
     </div>

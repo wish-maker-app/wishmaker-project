@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useTranslation } from 'react-i18next'
+import toast from 'react-hot-toast'
 import Header from '../../components/layout/Header'
 import Button from '../../components/ui/Button'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
+import { supabase } from '../../lib/supabase'
 import { useWishes } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
 
@@ -77,6 +79,17 @@ function distanceKm(lat1, lng1, lat2, lng2) {
   return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(1)
 }
 
+function expirationInfo(expiresAt) {
+  if (!expiresAt) return null
+  const diff = new Date(expiresAt) - Date.now()
+  if (diff <= 0) return { label: 'Expiré', color: '#EF4444' }
+  const hours = Math.floor(diff / 3600000)
+  const minutes = Math.floor((diff % 3600000) / 60000)
+  const label = hours > 0 ? `Expire dans ${hours}h ${minutes}min` : `Expire dans ${minutes}min`
+  const color = hours < 6 ? '#EF4444' : hours < 24 ? '#F59E0B' : '#22C55E'
+  return { label, color }
+}
+
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000
   if (diff < 60)    return 'à l\'instant'
@@ -89,6 +102,78 @@ function openGoogleMaps(lat, lng) {
   window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank')
 }
 
+const REPORT_REASONS_WISH = ['Contenu inapproprié', 'Arnaque potentielle', 'Doublon', 'Autre']
+const REPORT_REASONS_PROFILE = ['Faux profil', 'Comportement inapproprié', 'Spam', 'Autre']
+
+function ReportModal({ open, onClose, type, reasons, onSubmit }) {
+  const [selectedReason, setSelectedReason] = useState('')
+  const [otherText, setOtherText] = useState('')
+  const [sending, setSending] = useState(false)
+
+  if (!open) return null
+
+  async function handleSubmit() {
+    const raison = selectedReason === 'Autre' ? otherText : selectedReason
+    if (!raison.trim()) return
+    setSending(true)
+    await onSubmit(raison)
+    setSending(false)
+    onClose()
+  }
+
+  return (
+    <>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose} className="fixed inset-0 bg-black/40 z-[900]" />
+      <motion.div
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 max-h-[80vh] overflow-y-auto"
+      >
+        <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+        <h2 className="text-lg font-bold text-[#1A1A2E] mb-4">
+          🚩 Signaler ce {type === 'voeu' ? 'vœu' : 'profil'}
+        </h2>
+        <div className="flex flex-col gap-2 mb-4">
+          {reasons.map((reason) => (
+            <button
+              key={reason}
+              onClick={() => setSelectedReason(reason)}
+              className="flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left"
+              style={selectedReason === reason
+                ? { borderColor: '#5B6BF5', background: '#EEF0FF' }
+                : { borderColor: '#F0F0F0' }
+              }
+            >
+              <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedReason === reason ? 'border-[#5B6BF5]' : 'border-[#D0D0D0]'}`}>
+                {selectedReason === reason && <span className="w-2 h-2 rounded-full bg-[#5B6BF5]" />}
+              </span>
+              <span className="text-sm text-[#1A1A2E]">{reason}</span>
+            </button>
+          ))}
+        </div>
+        {selectedReason === 'Autre' && (
+          <textarea
+            value={otherText}
+            onChange={(e) => setOtherText(e.target.value)}
+            placeholder="Décrivez la raison..."
+            rows={3}
+            className="w-full bg-[#F7F8FC] rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] outline-none resize-none mb-4"
+          />
+        )}
+        <button
+          onClick={handleSubmit}
+          disabled={sending || (!selectedReason || (selectedReason === 'Autre' && !otherText.trim()))}
+          className="w-full h-12 rounded-full text-white font-bold text-sm disabled:opacity-50"
+          style={{ background: 'linear-gradient(135deg,#EF4444,#DC2626)' }}
+        >
+          {sending ? 'Envoi...' : 'Envoyer le signalement'}
+        </button>
+      </motion.div>
+    </>
+  )
+}
+
 export default function WishDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -98,6 +183,9 @@ export default function WishDetail() {
   const { getWishById, loading } = useWishes()
   const { createConversation } = useMessages()
   const [wish, setWish] = useState(null)
+  const [showMenu, setShowMenu] = useState(false)
+  const [showReportWish, setShowReportWish] = useState(false)
+  const [showReportProfile, setShowReportProfile] = useState(false)
 
   useEffect(() => {
     getWishById(id).then(setWish).catch(() => {})
@@ -139,13 +227,34 @@ export default function WishDetail() {
           <div className="w-full h-full"
             style={{ background: 'linear-gradient(160deg,#5B6BF5 0%,#9B59F5 100%)' }} />
         )}
-        <Header transparent onBack={() => navigate(-1)}
+        <Header transparent onBack={() => {
+            const fromView = searchParams.get('from')
+            if (fromView) {
+              navigate(`/maker?view=${fromView}`)
+            } else {
+              navigate(-1)
+            }
+          }}
           rightAction={
-            <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-              </svg>
-            </button>
+            <div className="relative">
+              <button onClick={() => setShowMenu(!showMenu)} className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                  <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                </svg>
+              </button>
+              {showMenu && (
+                <div className="absolute right-0 top-12 bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.15)] py-2 min-w-[200px] z-50">
+                  <button onClick={() => { setShowMenu(false); setShowReportWish(true) }}
+                    className="w-full px-4 py-3 text-left text-sm text-[#1A1A2E] hover:bg-[#F5F5F7] flex items-center gap-2">
+                    🚩 Signaler ce vœu
+                  </button>
+                  <button onClick={() => { setShowMenu(false); setShowReportProfile(true) }}
+                    className="w-full px-4 py-3 text-left text-sm text-[#1A1A2E] hover:bg-[#F5F5F7] flex items-center gap-2">
+                    🚩 Signaler ce profil
+                  </button>
+                </div>
+              )}
+            </div>
           }
         />
 {/* Rating badge désactivé pour l'instant
@@ -195,6 +304,31 @@ export default function WishDetail() {
               </span>
             )}
           </div>
+          {/* Expiration */}
+          {(() => {
+            const exp = expirationInfo(wish.expires_at)
+            if (!exp) return null
+            return (
+              <div className="flex items-center gap-1.5 mt-2">
+                <span className="w-2 h-2 rounded-full" style={{ background: exp.color }} />
+                <span className="text-xs font-semibold" style={{ color: exp.color }}>{exp.label}</span>
+              </div>
+            )
+          })()}
+          {/* Badge récompense */}
+          {wish.type_recompense && (
+            <div className="mt-2">
+              <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full"
+                style={wish.type_recompense === 'argent'
+                  ? { background: '#ECFDF5', color: '#059669' }
+                  : { background: '#EFF6FF', color: '#3B82F6' }
+                }>
+                {wish.type_recompense === 'argent'
+                  ? `💰 ${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
+                  : '🤝 Bon procédé'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Description */}
@@ -205,7 +339,9 @@ export default function WishDetail() {
           <Avatar user={wish.wisher} />
           <div className="flex-1 min-w-0">
             <p className="font-bold text-[#1A1A2E] text-sm">{wish.wisher.prenom} {wish.wisher.nom}</p>
-            <p className="text-xs text-[#8A8A9A]">Utilisateur</p>
+            <p className="text-xs text-[#8A8A9A]">
+              {wish.wisher.pseudo ? `@${wish.wisher.pseudo}` : `@user_${(wish.wisher.id || '0000').slice(0, 4)}`}
+            </p>
           </div>
           <button
             onClick={handleMessage}
@@ -286,6 +422,45 @@ export default function WishDetail() {
           </div>
         )}
       </motion.div>
+
+      {/* Modals signalement */}
+      <AnimatePresence>
+        {showReportWish && (
+          <ReportModal
+            open
+            type="voeu"
+            reasons={REPORT_REASONS_WISH}
+            onClose={() => setShowReportWish(false)}
+            onSubmit={async (raison) => {
+              await supabase.from('reports').insert({
+                reporter_id: profile.id,
+                reported_wish_id: wish.id,
+                reported_user_id: wish.wisher.id,
+                type: 'voeu',
+                raison,
+              })
+              toast.success('Signalement envoyé, merci !')
+            }}
+          />
+        )}
+        {showReportProfile && (
+          <ReportModal
+            open
+            type="profil"
+            reasons={REPORT_REASONS_PROFILE}
+            onClose={() => setShowReportProfile(false)}
+            onSubmit={async (raison) => {
+              await supabase.from('reports').insert({
+                reporter_id: profile.id,
+                reported_user_id: wish.wisher.id,
+                type: 'profil',
+                raison,
+              })
+              toast.success('Signalement envoyé, merci !')
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <BottomTabBar />
     </div>

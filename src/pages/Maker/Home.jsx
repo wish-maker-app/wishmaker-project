@@ -1,14 +1,16 @@
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion, AnimatePresence } from 'framer-motion'
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
+import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion'
+import toast from 'react-hot-toast'
+import { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import DragScroll from '../../components/ui/DragScroll'
 import useAuthStore from '../../store/authStore'
 import { useWishes } from '../../hooks/useWishes'
+import { useMessages } from '../../hooks/useMessages'
 
 // Fix default marker icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -37,12 +39,35 @@ function createAvatarIcon(initials, rating) {
   })
 }
 
+// Point bleu position utilisateur
+const userLocationIcon = L.divIcon({
+  className: '',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+  html: `
+    <div style="position:relative;width:20px;height:20px;">
+      <div style="position:absolute;inset:0;border-radius:50%;background:rgba(91,107,245,0.2);animation:pulse-ring 1.5s ease-out infinite;"></div>
+      <div style="position:absolute;top:4px;left:4px;width:12px;height:12px;border-radius:50%;background:#5B6BF5;border:2.5px solid white;box-shadow:0 1px 6px rgba(91,107,245,0.5);"></div>
+    </div>
+    <style>@keyframes pulse-ring{0%{transform:scale(1);opacity:1}100%{transform:scale(2.5);opacity:0}}</style>
+  `,
+})
+
 // Force le map à se resize quand il est rendu
 function MapResizer() {
   const map = useMap()
   useEffect(() => {
     setTimeout(() => map.invalidateSize(), 100)
   }, [map])
+  return null
+}
+
+// Centre la carte sur la position passée
+function MapCenterUpdater({ center }) {
+  const map = useMap()
+  useEffect(() => {
+    if (center) map.setView(center, map.getZoom())
+  }, [center])
   return null
 }
 
@@ -256,15 +281,129 @@ function WishPreviewCard({ wish, userLat, userLng, onViewMore, onMessage }) {
   )
 }
 
+function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop }) {
+  const x = useMotionValue(0)
+  const rotate = useTransform(x, [-200, 200], [-15, 15])
+  const opacityLeft = useTransform(x, [-150, -50, 0], [1, 0.5, 0])
+  const opacityRight = useTransform(x, [0, 50, 150], [0, 0.5, 1])
+
+  const coverUrl = wish.images?.[0]?.url || null
+  const dist = distanceLabel(userLat, userLng, wish.latitude, wish.longitude)
+
+  function handleDragEnd(_, info) {
+    if (info.offset.x > 120) onSwipeRight()
+    else if (info.offset.x < -120) onSwipeLeft()
+  }
+
+  return (
+    <motion.div
+      style={{ x, rotate, position: 'absolute', width: '100%' }}
+      drag={isTop ? 'x' : false}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.8}
+      onDragEnd={handleDragEnd}
+      initial={{ scale: isTop ? 1 : 0.95, opacity: isTop ? 1 : 0.7 }}
+      animate={{ scale: isTop ? 1 : 0.95, opacity: isTop ? 1 : 0.7 }}
+      exit={{ x: 300, opacity: 0, transition: { duration: 0.3 } }}
+      className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.12)] cursor-grab active:cursor-grabbing"
+    >
+      {/* Overlays swipe */}
+      {isTop && (
+        <>
+          <motion.div style={{ opacity: opacityRight }}
+            className="absolute inset-0 z-10 flex items-center justify-center bg-green-500/20 rounded-[24px]">
+            <span className="text-6xl">✓</span>
+          </motion.div>
+          <motion.div style={{ opacity: opacityLeft }}
+            className="absolute inset-0 z-10 flex items-center justify-center bg-red-500/20 rounded-[24px]">
+            <span className="text-6xl">✕</span>
+          </motion.div>
+        </>
+      )}
+
+      {/* Image */}
+      <div className="relative h-[220px] bg-[#F0F0F5]">
+        {coverUrl ? (
+          <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full" style={{ background: 'linear-gradient(160deg,#5B6BF5 0%,#9B59F5 100%)' }} />
+        )}
+        {wish.is_urgent && (
+          <span className="absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full"
+            style={{ background: '#FFF4E0', color: '#F59E0B' }}>
+            ⚡ URGENT
+          </span>
+        )}
+      </div>
+
+      {/* Contenu */}
+      <div className="p-5">
+        <h3 className="font-extrabold text-[#1A1A2E] text-xl mb-2">{wish.titre}</h3>
+        <p className="text-[#8A8A9A] text-sm leading-relaxed line-clamp-3 mb-4">{wish.description}</p>
+
+        <div className="flex items-center gap-4 mb-3">
+          <div className="flex items-center gap-1 text-sm text-[#5B6BF5] font-semibold">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#5B6BF5">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+            </svg>
+            {dist}
+          </div>
+          {wish.type_recompense && (
+            <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full"
+              style={wish.type_recompense === 'argent'
+                ? { background: '#ECFDF5', color: '#059669' }
+                : { background: '#EFF6FF', color: '#3B82F6' }
+              }>
+              {wish.type_recompense === 'argent'
+                ? `💰 ${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
+                : '🤝 Bon procédé'}
+            </span>
+          )}
+        </div>
+
+        {/* Wisher info */}
+        <div className="flex items-center gap-2">
+          <SmallAvatar user={wish.wisher} size={28} />
+          <span className="text-sm font-semibold text-[#1A1A2E]">
+            {wish.wisher.pseudo ? `@${wish.wisher.pseudo}` : wish.wisher.prenom}
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 export default function MakerHome() {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const [view, setView] = useState('carte')
+  const [searchParams] = useSearchParams()
+  const [view, setView] = useState(searchParams.get('view') || 'carte')
   const [search, setSearch] = useState('')
   const [selectedWish, setSelectedWish] = useState(null)
+  const [swipeIndex, setSwipeIndex] = useState(0)
+  const [skippedIds, setSkippedIds] = useState(new Set())
+  const [acceptedWish, setAcceptedWish] = useState(null)
+  const [acceptMessage, setAcceptMessage] = useState('')
+  const [acceptConvId, setAcceptConvId] = useState(null)
   const profile = useAuthStore((s) => s.profile)
   const { getAvailableWishes, loading } = useWishes()
+  const { createConversation, sendMessage } = useMessages()
   const [wishes, setWishes] = useState([])
+  const [userLocation, setUserLocation] = useState(null)
+  const mapRef = useRef(null)
+
+  // Géolocalisation en temps réel
+  useEffect(() => {
+    if (!navigator.geolocation) return
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        setUserLocation([pos.coords.latitude, pos.coords.longitude])
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    )
+    return () => navigator.geolocation.clearWatch(watchId)
+  }, [])
 
   useEffect(() => {
     getAvailableWishes().then(setWishes).catch(() => {})
@@ -276,11 +415,53 @@ export default function MakerHome() {
     (w.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()))
   )
 
-  const sponsored = filtered.filter((w) => w.is_sponsored)
-  const nonSponsored = filtered.filter((w) => !w.is_sponsored)
+  const sponsored = filtered.filter((w) => w.is_sponsored || (w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now()))
+  const nonSponsored = filtered
+    .filter((w) => !w.is_sponsored && !(w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now()))
+    .sort((a, b) => {
+      // Urgents en premier
+      const aUrgent = a.is_urgent && a.urgent_until && new Date(a.urgent_until) > Date.now()
+      const bUrgent = b.is_urgent && b.urgent_until && new Date(b.urgent_until) > Date.now()
+      if (aUrgent && !bUrgent) return -1
+      if (!aUrgent && bUrgent) return 1
+      return 0
+    })
 
-  // Fallback Toulouse si profil sans localisation
-  const center = [
+  // Vœux pour le mode swipe : exclure ses propres vœux + les refusés
+  const swipeWishes = filtered.filter((w) =>
+    w.wisher_id !== profile?.id && !skippedIds.has(w.id)
+  )
+
+  async function handleSwipeAccept(wish) {
+    try {
+      const convId = await createConversation(wish.id, wish.wisher_id)
+      setAcceptConvId(convId)
+      setAcceptedWish(wish)
+      setAcceptMessage('')
+      setSkippedIds((prev) => new Set(prev).add(wish.id))
+    } catch (err) {
+      console.error(err)
+      toast.error('Erreur lors de la mise en relation')
+    }
+  }
+
+  function handleSwipeSkip(wishId) {
+    setSkippedIds((prev) => new Set(prev).add(wishId))
+    setSwipeIndex((prev) => prev + 1)
+  }
+
+  async function handleSendAcceptMessage() {
+    if (acceptMessage.trim() && acceptConvId) {
+      await sendMessage(acceptConvId, acceptMessage.trim())
+    }
+    toast.success('Vœu accepté ! 🎉')
+    setAcceptedWish(null)
+    setAcceptConvId(null)
+    setAcceptMessage('')
+  }
+
+  // Position : géoloc temps réel > profil > fallback Toulouse
+  const center = userLocation || [
     profile?.latitude || 43.6047,
     profile?.longitude || 1.4442,
   ]
@@ -309,32 +490,26 @@ export default function MakerHome() {
           </button>
         </div>
 
-        {/* Toggle Liste / Carte */}
+        {/* Toggle Liste / Carte / Swipe */}
         <div className="flex bg-white rounded-full p-1 shadow-sm border border-[#F0F0F0] pointer-events-auto">
-          <button
-            onClick={() => setView('liste')}
-            className="flex-1 h-10 rounded-full text-sm font-semibold transition-all"
-            style={view === 'liste'
-              ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
-              : { color: '#8A8A9A' }}
-          >
-            Liste
-          </button>
-          <button
-            onClick={() => setView('carte')}
-            className="flex-1 h-10 rounded-full text-sm font-semibold transition-all"
-            style={view === 'carte'
-              ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
-              : { color: '#8A8A9A' }}
-          >
-            Carte
-          </button>
+          {['liste', 'carte', 'swipe'].map((v) => (
+            <button
+              key={v}
+              onClick={() => { setView(v); if (v === 'swipe') setSwipeIndex(0) }}
+              className="flex-1 h-10 rounded-full text-sm font-semibold transition-all"
+              style={view === v
+                ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
+                : { color: '#8A8A9A' }}
+            >
+              {v === 'liste' ? 'Liste' : v === 'carte' ? 'Carte' : 'Swipe'}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Contenu — même conteneur flex-1 pour les deux vues */}
       <div className="flex-1 relative z-0 overflow-hidden">
-        {view === 'carte' ? (
+        {view === 'carte' ? (  /* VUE CARTE */
           <>
             <MapContainer
               center={center}
@@ -342,6 +517,7 @@ export default function MakerHome() {
               scrollWheelZoom
               style={{ width: '100%', height: '100%' }}
               zoomControl={false}
+              ref={mapRef}
             >
               <MapResizer />
               <TileLayer
@@ -349,6 +525,13 @@ export default function MakerHome() {
                 url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
               />
               <MapClickHandler onMapClick={() => setSelectedWish(null)} />
+              {/* Point bleu position utilisateur */}
+              {userLocation && (
+                <>
+                  <Circle center={userLocation} radius={60} pathOptions={{ color: '#5B6BF5', fillColor: '#5B6BF5', fillOpacity: 0.08, weight: 0 }} />
+                  <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />
+                </>
+              )}
               {filtered.map((wish) => (
                 <Marker
                   key={wish.id}
@@ -361,6 +544,28 @@ export default function MakerHome() {
                 />
               ))}
             </MapContainer>
+
+            {/* Bouton recentrer sur moi */}
+            <button
+              onClick={() => {
+                if (userLocation && mapRef.current) {
+                  mapRef.current.setView(userLocation, 15, { animate: true })
+                } else if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition((pos) => {
+                    const loc = [pos.coords.latitude, pos.coords.longitude]
+                    setUserLocation(loc)
+                    mapRef.current?.setView(loc, 15, { animate: true })
+                  })
+                }
+              }}
+              className="absolute bottom-24 right-4 z-[500] w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center border border-[#E8E8E8] active:scale-95 transition-transform"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="3" fill="#5B6BF5"/>
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="#5B6BF5" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="12" cy="12" r="8" stroke="#5B6BF5" strokeWidth="1.5" fill="none"/>
+              </svg>
+            </button>
 
             {/* Overlay aperçu vœu */}
             <AnimatePresence>
@@ -376,14 +581,14 @@ export default function MakerHome() {
                     wish={selectedWish}
                     userLat={center[0]}
                     userLng={center[1]}
-                    onViewMore={() => navigate(`/maker/wish/${selectedWish.id}`)}
-                    onMessage={() => navigate(`/maker/wish/${selectedWish.id}`)}
+                    onViewMore={() => navigate(`/maker/wish/${selectedWish.id}?from=${view}`)}
+                    onMessage={() => navigate(`/maker/wish/${selectedWish.id}?from=${view}`)}
                   />
                 </motion.div>
               )}
             </AnimatePresence>
           </>
-        ) : (
+        ) : view === 'liste' ? (
           <div className="h-full px-4 pt-2 pb-24 overflow-y-auto bg-[#F7F8FC]">
             {/* Section sponsorisés */}
             {sponsored.length > 0 && (
@@ -403,7 +608,7 @@ export default function MakerHome() {
                     <SponsoredCard
                       key={wish.id}
                       wish={wish}
-                      onClick={() => navigate(`/maker/wish/${wish.id}`)}
+                      onClick={() => navigate(`/maker/wish/${wish.id}?from=${view}`)}
                       userLat={center[0]}
                       userLng={center[1]}
                     />
@@ -424,7 +629,7 @@ export default function MakerHome() {
                     <WishGridCard
                       key={wish.id}
                       wish={wish}
-                      onClick={() => navigate(`/maker/wish/${wish.id}`)}
+                      onClick={() => navigate(`/maker/wish/${wish.id}?from=${view}`)}
                       userLat={center[0]}
                       userLng={center[1]}
                     />
@@ -441,8 +646,97 @@ export default function MakerHome() {
               )}
             </AnimatePresence>
           </div>
-        )}
+        ) : view === 'swipe' ? (
+          <div className="h-full flex flex-col items-center justify-center px-6 py-4 bg-[#F7F8FC]">
+            {swipeWishes.length > 0 ? (
+              <>
+                <p className="text-xs text-[#8A8A9A] font-medium mb-3">
+                  {swipeWishes.length} vœux disponibles
+                </p>
+                <div className="relative w-full flex-1 max-h-[520px]">
+                  <AnimatePresence>
+                    {swipeWishes.slice(0, 2).reverse().map((wish, i, arr) => (
+                      <SwipeCard
+                        key={wish.id}
+                        wish={wish}
+                        userLat={center[0]}
+                        userLng={center[1]}
+                        isTop={i === arr.length - 1}
+                        onSwipeRight={() => handleSwipeAccept(wish)}
+                        onSwipeLeft={() => handleSwipeSkip(wish.id)}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
+                <div className="flex items-center gap-8 mt-4 pb-4">
+                  <button
+                    onClick={() => { if (swipeWishes[0]) handleSwipeSkip(swipeWishes[0].id) }}
+                    className="w-16 h-16 rounded-full bg-white border-2 border-red-400 flex items-center justify-center shadow-lg"
+                  >
+                    <span className="text-red-500 text-2xl font-bold">✕</span>
+                  </button>
+                  <button
+                    onClick={() => { if (swipeWishes[0]) handleSwipeAccept(swipeWishes[0]) }}
+                    className="w-16 h-16 rounded-full bg-white border-2 border-green-400 flex items-center justify-center shadow-lg"
+                  >
+                    <span className="text-green-500 text-2xl font-bold">✓</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <span className="text-5xl">🌟</span>
+                <p className="text-[#1A1A2E] font-bold text-sm">Plus de vœux disponibles</p>
+                <p className="text-[#8A8A9A] text-xs text-center">Reviens plus tard pour découvrir de nouveaux vœux !</p>
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
+
+      {/* Modal message après acceptation swipe */}
+      <AnimatePresence>
+        {acceptedWish && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-[900]" />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4"
+            >
+              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+              <h2 className="text-lg font-bold text-[#1A1A2E] mb-1">Vous souhaitez réaliser ce vœu !</h2>
+              <p className="text-sm text-[#8A8A9A] mb-4">
+                Envoyez un message à <span className="font-semibold text-[#5B6BF5]">
+                  {acceptedWish.wisher?.pseudo ? `@${acceptedWish.wisher.pseudo}` : acceptedWish.wisher?.prenom}
+                </span> pour vous présenter.
+              </p>
+              <p className="text-xs font-semibold text-[#1A1A2E] mb-2">💬 {acceptedWish.titre}</p>
+              <textarea
+                value={acceptMessage}
+                onChange={(e) => setAcceptMessage(e.target.value)}
+                placeholder="Bonjour, je suis intéressé par votre vœu..."
+                rows={4}
+                className="w-full bg-[#F7F8FC] rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] outline-none resize-none mb-4"
+              />
+              <button
+                onClick={handleSendAcceptMessage}
+                className="w-full h-12 rounded-full text-white font-bold text-sm"
+                style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+              >
+                {acceptMessage.trim() ? 'Envoyer et continuer' : 'Continuer sans message'}
+              </button>
+              <button
+                onClick={() => navigate(`/messages/${acceptConvId}`)}
+                className="w-full mt-3 text-sm text-[#5B6BF5] font-semibold text-center"
+              >
+                Ouvrir la conversation
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <BottomTabBar />
     </div>

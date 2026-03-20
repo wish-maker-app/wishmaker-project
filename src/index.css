@@ -74,6 +74,11 @@ input:focus, textarea:focus {
   outline: none;
 }
 
+/* ─── Anti-zoom iOS sur les champs de saisie ─── */
+input, textarea, select {
+  font-size: 16px;
+}
+
 /* ─── Gradient text utilitaire ─── */
 .text-gradient {
   background: var(--gradient);

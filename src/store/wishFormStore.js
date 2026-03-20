@@ -12,16 +12,23 @@ const useWishFormStore = create((set) => ({
   adresse: '',
   // Étape 4
   tags: [],
+  // Récompense
+  type_recompense: 'bon_procede',
+  montant_recompense: null,
+  description_bon_procede: '',
 
   setStep1: (titre, description) => set({ titre, description }),
   setImages: (images) => set({ images }),
   setLocation: (latitude, longitude, adresse) =>
     set({ latitude, longitude, adresse }),
   setTags: (tags) => set({ tags }),
+  setRecompense: (type_recompense, montant_recompense, description_bon_procede) =>
+    set({ type_recompense, montant_recompense, description_bon_procede }),
 
   reset: () => set({
     titre: '', description: '', images: [],
     latitude: null, longitude: null, adresse: '', tags: [],
+    type_recompense: 'bon_procede', montant_recompense: null, description_bon_procede: '',
   }),
 }))
 

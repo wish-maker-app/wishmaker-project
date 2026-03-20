@@ -1,34 +1,133 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import toast from 'react-hot-toast'
 import useAuthStore from '../../store/authStore'
 import { useMessages } from '../../hooks/useMessages'
+import { useWishes } from '../../hooks/useWishes'
+
+function RatingModal({ open, onClose, onSubmit, interlocuteurName, loading }) {
+  const [note, setNote] = useState(0)
+  const [hovered, setHovered] = useState(0)
+  const [commentaire, setCommentaire] = useState('')
+
+  if (!open) return null
+
+  return (
+    <>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/40 z-[900]" />
+      <motion.div
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4"
+      >
+        <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+        <div className="text-center mb-5">
+          <span className="text-4xl mb-2 block">⭐</span>
+          <h2 className="text-lg font-bold text-[#1A1A2E] mb-1">Notez {interlocuteurName}</h2>
+          <p className="text-sm text-[#8A8A9A]">Comment s'est passée cette expérience ?</p>
+        </div>
+
+        {/* Étoiles */}
+        <div className="flex items-center justify-center gap-3 mb-5">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              onClick={() => setNote(star)}
+              onMouseEnter={() => setHovered(star)}
+              onMouseLeave={() => setHovered(0)}
+              className="transition-transform active:scale-90"
+            >
+              <svg width="40" height="40" viewBox="0 0 24 24"
+                fill={(hovered || note) >= star ? '#F5C542' : '#E0E0E0'}
+              >
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </button>
+          ))}
+        </div>
+
+        {/* Labels */}
+        {note > 0 && (
+          <p className="text-center text-sm font-semibold mb-4" style={{ color: '#F5C542' }}>
+            {note === 1 ? 'Décevant' : note === 2 ? 'Moyen' : note === 3 ? 'Bien' : note === 4 ? 'Très bien' : 'Excellent !'}
+          </p>
+        )}
+
+        {/* Commentaire optionnel */}
+        <textarea
+          value={commentaire}
+          onChange={(e) => setCommentaire(e.target.value)}
+          placeholder="Laissez un commentaire (optionnel)"
+          rows={3}
+          className="w-full bg-[#F7F8FC] rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] outline-none resize-none mb-4"
+        />
+
+        <button
+          onClick={() => onSubmit(note, commentaire)}
+          disabled={note === 0 || loading}
+          className="w-full h-12 rounded-full text-white font-bold text-sm disabled:opacity-50"
+          style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+        >
+          {loading ? 'Envoi...' : 'Envoyer ma note'}
+        </button>
+        <button onClick={onClose} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">
+          Plus tard
+        </button>
+      </motion.div>
+    </>
+  )
+}
 
 export default function Chat() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
+  const fromTab = searchParams.get('tab') || 'missions'
   const [input, setInput] = useState('')
   const scrollRef = useRef(null)
   const userId = useAuthStore((s) => s.user?.id)
   const { messages, loadMessages, sendMessage, loadConversations, conversations, loading } = useMessages()
-  const [interlocuteur, setInterlocuteur] = useState({ prenom: 'Utilisateur', nom: '', is_online: false })
+  const { markWishRealized, submitRating, getUserRating } = useWishes()
+  const [interlocuteur, setInterlocuteur] = useState({ prenom: 'Utilisateur', nom: '', pseudo: null, is_online: false })
+  const [wishTitre, setWishTitre] = useState('')
+  const [convData, setConvData] = useState(null)
+  const [isWisher, setIsWisher] = useState(false)
+  const [wishStatut, setWishStatut] = useState('')
+  const [showRating, setShowRating] = useState(false)
+  const [alreadyRated, setAlreadyRated] = useState(false)
+  const [ratingLoading, setRatingLoading] = useState(false)
+  const [showConfirmRealise, setShowConfirmRealise] = useState(false)
 
   useEffect(() => {
     loadMessages(id)
-    // Load conversation info for header
     loadConversations().then(() => {})
   }, [id])
 
   useEffect(() => {
-    // Find interlocuteur from conversations
     const conv = conversations.find((c) => c.id === id)
     if (conv) {
-      const isWisher = conv.wisher_id === userId
-      setInterlocuteur(isWisher ? conv.maker : conv.wisher)
+      const wisher = conv.wisher_id === userId
+      setIsWisher(wisher)
+      setInterlocuteur(wisher ? conv.maker : conv.wisher)
+      setWishTitre(conv.wish?.titre || '')
+      setWishStatut(conv.wish?.statut || '')
+      setConvData(conv)
+
+      // Vérifier si l'utilisateur a déjà noté
+      const wid = conv.wish_id || conv.wish?.id
+      if (wid) {
+        getUserRating(wid, userId).then((r) => {
+          if (r) setAlreadyRated(true)
+        })
+      }
     }
   }, [conversations, id, userId])
+
+  // Ne PAS ouvrir automatiquement la modal — l'utilisateur clique sur "Noter" s'il veut noter
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -41,12 +140,50 @@ export default function Chat() {
     setInput('')
   }
 
+  async function handleMarkRealized() {
+    try {
+      await markWishRealized(convData.wish_id || convData.wish?.id)
+      setWishStatut('realise')
+      setShowConfirmRealise(false)
+      toast.success('Vœu marqué comme réalisé ! 🎉')
+      // Montrer directement la modal de notation
+      setShowRating(true)
+    } catch (err) {
+      toast.error(err.message || 'Erreur')
+    }
+  }
+
+  async function handleSubmitRating(note, commentaire) {
+    if (!convData) return
+    setRatingLoading(true)
+    try {
+      const wishId = convData.wish_id || convData.wish?.id
+      const toUser = isWisher ? convData.maker_id : convData.wisher_id
+      await submitRating({ wishId, fromUser: userId, toUser, note, commentaire })
+      toast.success('Merci pour votre note ! ⭐')
+      setShowRating(false)
+      setAlreadyRated(true)
+    } catch (err) {
+      if (err.message?.includes('duplicate') || err.code === '23505') {
+        toast.error('Vous avez déjà noté cette personne')
+        setShowRating(false)
+        setAlreadyRated(true)
+      } else {
+        toast.error(err.message || 'Erreur')
+      }
+    } finally {
+      setRatingLoading(false)
+    }
+  }
+
+  const interlocuteurName = interlocuteur.pseudo ? `@${interlocuteur.pseudo}` : interlocuteur.prenom
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
 
       {/* Header */}
       <div className="bg-white px-4 pt-14 pb-3 flex items-center gap-3 border-b border-[#F0F0F0]">
-        <button onClick={() => navigate('/messages')} className="p-1">
+        <button onClick={() => navigate(`/messages?tab=${fromTab}`)} className="p-1">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M15 18l-6-6 6-6" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -62,8 +199,11 @@ export default function Chat() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[15px] font-bold text-[#1A1A2E] truncate">
-            {interlocuteur.prenom} {interlocuteur.nom}
+            {interlocuteur.pseudo ? `@${interlocuteur.pseudo}` : `@user_${(interlocuteur.id || '0000').slice(0, 4)}`}
           </p>
+          {wishTitre && (
+            <p className="text-[11px] text-[#8A8A9A] italic truncate">{wishTitre}</p>
+          )}
           <p className="text-[11px] text-[#8A8A9A]">
             {interlocuteur.is_online ? 'En ligne' : 'Hors ligne'}
           </p>
@@ -76,6 +216,36 @@ export default function Chat() {
           </svg>
         </button>
       </div>
+
+      {/* Bannière statut réalisé */}
+      {wishStatut === 'realise' && (
+        <div className="bg-[#ECFDF5] px-4 py-2.5 flex items-center justify-center gap-2">
+          <span className="text-lg">🎉</span>
+          <span className="text-xs font-semibold text-[#059669]">Ce vœu a été réalisé !</span>
+          {!alreadyRated && (
+            <button
+              onClick={() => setShowRating(true)}
+              className="ml-2 text-[11px] font-bold text-white px-3 py-1 rounded-full"
+              style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+            >
+              Noter
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Bouton "Marquer comme réalisé" pour le Wisher */}
+      {isWisher && wishStatut === 'en_attente' && (
+        <div className="bg-white px-4 py-3 border-b border-[#F0F0F0]">
+          <button
+            onClick={() => setShowConfirmRealise(true)}
+            className="w-full h-11 rounded-full text-sm font-bold text-white"
+            style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}
+          >
+            ✅ Marquer comme réalisé
+          </button>
+        </div>
+      )}
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
@@ -127,6 +297,53 @@ export default function Chat() {
           </svg>
         </button>
       </form>
+
+      {/* Modal confirmation "Marquer comme réalisé" */}
+      <AnimatePresence>
+        {showConfirmRealise && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowConfirmRealise(false)}
+              className="fixed inset-0 bg-black/40 z-[900]" />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4"
+            >
+              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+              <div className="text-center mb-5">
+                <span className="text-4xl mb-2 block">✅</span>
+                <h2 className="text-lg font-bold text-[#1A1A2E] mb-1">Confirmer la réalisation</h2>
+                <p className="text-sm text-[#8A8A9A]">
+                  Confirmez-vous que <span className="font-semibold text-[#5B6BF5]">{interlocuteurName}</span> a bien réalisé votre vœu ?
+                </p>
+              </div>
+              <button
+                onClick={handleMarkRealized}
+                className="w-full h-12 rounded-full text-white font-bold text-sm"
+                style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}
+              >
+                Oui, le vœu est réalisé !
+              </button>
+              <button onClick={() => setShowConfirmRealise(false)}
+                className="w-full mt-3 text-sm text-[#8A8A9A] text-center">
+                Annuler
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Modal notation */}
+      <AnimatePresence>
+        <RatingModal
+          open={showRating}
+          onClose={() => setShowRating(false)}
+          onSubmit={handleSubmitRating}
+          interlocuteurName={interlocuteurName}
+          loading={ratingLoading}
+        />
+      </AnimatePresence>
     </div>
   )
 }

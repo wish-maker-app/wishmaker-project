@@ -127,7 +127,16 @@ export default function Profile() {
         </div>
         <div>
           <p className="text-lg font-bold text-[#1A1A2E]">{profile.prenom} {profile.nom}</p>
-          <p className="text-[13px] text-[#8A8A9A]">@{profile.prenom}{profile.nom}</p>
+          <p className="text-[13px] text-[#5B6BF5] font-medium">
+            {profile.pseudo ? `@${profile.pseudo}` : `@user_${(profile.id || '0000').slice(0, 4)}`}
+          </p>
+          <span className="inline-block mt-1 text-[11px] font-bold px-3 py-1 rounded-full"
+            style={profile.type_compte === 'pro'
+              ? { background: 'linear-gradient(135deg, #5B6BF5, #9B59F5)', color: '#fff' }
+              : { background: '#F0F0F0', color: '#8A8A9A' }
+            }>
+            {profile.type_compte === 'pro' ? 'Pro' : 'Particulier'}
+          </span>
         </div>
       </div>
 

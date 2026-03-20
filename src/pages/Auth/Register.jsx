@@ -15,6 +15,10 @@ import SuccessModal from '../../components/ui/SuccessModal'
 const schema = z.object({
   prenom: z.string().min(2, 'Prénom requis'),
   nom: z.string().min(2, 'Nom requis'),
+  pseudo: z.string()
+    .min(3, 'Minimum 3 caractères')
+    .max(20, 'Maximum 20 caractères')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Lettres, chiffres et _ uniquement'),
   email: z.string().email('Email invalide'),
   password: z.string().min(8, 'Minimum 8 caractères'),
   confirm: z.string(),
@@ -29,6 +33,7 @@ export default function Register() {
   const emailFromState = location.state?.email || ''
   const [showSuccess, setShowSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [typeCompte, setTypeCompte] = useState('particulier')
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
@@ -43,7 +48,7 @@ export default function Register() {
         email: data.email,
         password: data.password,
         options: {
-          data: { prenom: data.prenom, nom: data.nom },
+          data: { prenom: data.prenom, nom: data.nom, pseudo: data.pseudo, type_compte: typeCompte },
         },
       })
       if (signUpErr) throw signUpErr
@@ -57,7 +62,7 @@ export default function Register() {
         // Met à jour le profil (le trigger l'a créé, on s'assure que prenom/nom sont corrects)
         await supabase
           .from('users')
-          .update({ prenom: data.prenom, nom: data.nom })
+          .update({ prenom: data.prenom, nom: data.nom, pseudo: data.pseudo, type_compte: typeCompte })
           .eq('id', user.id)
         const { data: profile } = await supabase
           .from('users')
@@ -93,6 +98,38 @@ export default function Register() {
             {...register('prenom')} error={errors.prenom?.message} />
           <Input label="Nom" placeholder="Votre nom"
             {...register('nom')} error={errors.nom?.message} />
+          <Input label="Pseudo" placeholder="Votre pseudo (ex: wish_maker42)"
+            {...register('pseudo')} error={errors.pseudo?.message} />
+
+          {/* Type de compte */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-[#1A1A2E]">Type de compte</label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setTypeCompte('particulier')}
+                className="flex-1 py-3 rounded-full text-sm font-semibold transition-all"
+                style={typeCompte === 'particulier'
+                  ? { background: 'linear-gradient(135deg, #5B6BF5, #9B59F5)', color: '#fff' }
+                  : { border: '1.5px solid #D1D5DB', color: '#8A8A9A', background: 'transparent' }
+                }
+              >
+                Particulier
+              </button>
+              <button
+                type="button"
+                onClick={() => setTypeCompte('pro')}
+                className="flex-1 py-3 rounded-full text-sm font-semibold transition-all"
+                style={typeCompte === 'pro'
+                  ? { background: 'linear-gradient(135deg, #5B6BF5, #9B59F5)', color: '#fff' }
+                  : { border: '1.5px solid #D1D5DB', color: '#8A8A9A', background: 'transparent' }
+                }
+              >
+                Professionnel
+              </button>
+            </div>
+          </div>
+
           <Input label="E-mail" type="email" placeholder="Email"
             disabled={!!emailFromState}
             {...register('email')} error={errors.email?.message} />

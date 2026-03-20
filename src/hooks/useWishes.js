@@ -21,7 +21,7 @@ export function useWishes() {
     setLoading(true)
     let query = supabase
       .from('wishes')
-      .select(`*, wish_images(url, is_cover), wish_tags(tag), wisher:users!wisher_id(id, prenom, nom, rating, is_online, avatar_url)`)
+      .select(`*, wish_images(url, is_cover), wish_tags(tag), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
       .eq('wisher_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -37,7 +37,7 @@ export function useWishes() {
     setLoading(true)
     const { data, error } = await supabase
       .from('wishes')
-      .select(`*, wish_images(url, is_cover), wish_tags(tag), wisher:users!wisher_id(id, prenom, nom, rating, is_online, avatar_url)`)
+      .select(`*, wish_images(url, is_cover), wish_tags(tag), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
       .eq('statut', 'en_attente')
       .order('created_at', { ascending: false })
 
@@ -50,7 +50,7 @@ export function useWishes() {
     setLoading(true)
     const { data, error } = await supabase
       .from('wishes')
-      .select(`*, wish_images(url, is_cover), wish_tags(tag), wisher:users!wisher_id(id, prenom, nom, rating, is_online, avatar_url)`)
+      .select(`*, wish_images(url, is_cover), wish_tags(tag), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
       .eq('id', id)
       .single()
 
@@ -59,11 +59,11 @@ export function useWishes() {
     return normalizeWish(data)
   }
 
-  async function createWish({ titre, description, latitude, longitude, adresse, tags, images }) {
+  async function createWish({ titre, description, latitude, longitude, adresse, tags, images, type_recompense, montant_recompense }) {
     setLoading(true)
     const { data: wish, error } = await supabase
       .from('wishes')
-      .insert({ titre, description, latitude, longitude, adresse, wisher_id: user.id })
+      .insert({ titre, description, latitude, longitude, adresse, wisher_id: user.id, type_recompense, montant_recompense })
       .select()
       .single()
 
@@ -111,5 +111,45 @@ export function useWishes() {
     if (error) throw error
   }
 
-  return { loading, getMyWishes, getAvailableWishes, getWishById, createWish, updateWishStatus }
+  async function extendWish(wishId) {
+    // Utilise la fonction SQL qui fait expires_at = expires_at + 72h
+    const { error } = await supabase.rpc('extend_wish', { wish_id: wishId })
+    if (error) throw error
+  }
+
+  async function makeUrgent(wishId) {
+    const { error } = await supabase
+      .from('wishes')
+      .update({ is_urgent: true, urgent_until: new Date(Date.now() + 24 * 3600000).toISOString() })
+      .eq('id', wishId)
+      .eq('wisher_id', user.id)
+    if (error) throw error
+  }
+
+  async function markWishRealized(wishId) {
+    const { error } = await supabase
+      .from('wishes')
+      .update({ statut: 'realise' })
+      .eq('id', wishId)
+    if (error) throw error
+  }
+
+  async function submitRating({ wishId, fromUser, toUser, note, commentaire }) {
+    const { error } = await supabase
+      .from('ratings')
+      .insert({ wish_id: wishId, from_user: fromUser, to_user: toUser, note, commentaire })
+    if (error) throw error
+  }
+
+  async function getUserRating(wishId, fromUser) {
+    const { data } = await supabase
+      .from('ratings')
+      .select('*')
+      .eq('wish_id', wishId)
+      .eq('from_user', fromUser)
+      .single()
+    return data || null
+  }
+
+  return { loading, getMyWishes, getAvailableWishes, getWishById, createWish, updateWishStatus, extendWish, makeUrgent, markWishRealized, submitRating, getUserRating }
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import BottomTabBar from '../../components/layout/BottomTabBar'
@@ -37,8 +37,11 @@ function ConversationItem({ conv, onClick }) {
       <Avatar user={conv.interlocuteur} />
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-bold text-[#1A1A2E] truncate">
-          {conv.interlocuteur.prenom} {conv.interlocuteur.nom}
+          {conv.interlocuteur.pseudo ? `@${conv.interlocuteur.pseudo}` : `@user_${(conv.interlocuteur.id || '0000').slice(0, 4)}`}
         </p>
+        {conv.wish_titre && (
+          <p className="text-[12px] text-[#8A8A9A] italic truncate">{conv.wish_titre}</p>
+        )}
         <p className="text-[13px] text-[#8A8A9A] truncate">{conv.dernier_message}</p>
       </div>
       <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
@@ -66,7 +69,8 @@ function transformConversation(conv, userId) {
     id: conv.id,
     type: isWisher ? 'voeu' : 'mission',
     wish: conv.wish,
-    interlocuteur: interlocuteur || { prenom: '?', nom: '?', is_online: false, avatar_url: null },
+    wish_titre: conv.wish?.titre || '',
+    interlocuteur: interlocuteur || { prenom: '?', nom: '?', pseudo: null, is_online: false, avatar_url: null },
     dernier_message: lastMsg?.contenu || '',
     heure: lastMsg ? new Date(lastMsg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '',
     non_lus: nonLus,
@@ -76,7 +80,8 @@ function transformConversation(conv, userId) {
 export default function Inbox() {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const [tab, setTab] = useState('missions')
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState(searchParams.get('tab') || 'missions')
   const [search, setSearch] = useState('')
   const userId = useAuthStore((s) => s.user?.id)
   const { loadConversations, conversations, loading } = useMessages()
@@ -91,7 +96,9 @@ export default function Inbox() {
     .filter(c => tab === 'missions' ? c.type === 'mission' : c.type === 'voeu')
     .filter(c =>
       !search ||
+      (c.interlocuteur.pseudo || '').toLowerCase().includes(search.toLowerCase()) ||
       `${c.interlocuteur.prenom} ${c.interlocuteur.nom}`.toLowerCase().includes(search.toLowerCase()) ||
+      (c.wish_titre || '').toLowerCase().includes(search.toLowerCase()) ||
       c.dernier_message.toLowerCase().includes(search.toLowerCase())
     )
 
@@ -155,7 +162,7 @@ export default function Inbox() {
             <ConversationItem
               key={conv.id}
               conv={conv}
-              onClick={() => navigate(`/messages/${conv.id}`)}
+              onClick={() => navigate(`/messages/${conv.id}?tab=${tab}`)}
             />
           ))
         ) : (
