@@ -10,7 +10,7 @@ export default function OnboardingStep1() {
       style={{ background: 'radial-gradient(ellipse at 50% 30%, #9E9E9E 0%, #424242 60%, #1A1A1A 100%)' }}>
 
       {/* Barre de progression */}
-      <div className="flex gap-2 px-6 pt-14">
+      <div className="flex gap-2 px-6 pt-8">
         {[true, false, false].map((active, i) => (
           <div key={i} className="h-1 flex-1 rounded-full overflow-hidden bg-white/20">
             {active && <div className="h-full rounded-full" style={{ background: 'linear-gradient(135deg, #5B6BF5, #9B59F5)' }} />}

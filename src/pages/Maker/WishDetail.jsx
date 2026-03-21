@@ -124,11 +124,11 @@ function ReportModal({ open, onClose, type, reasons, onSubmit }) {
   return (
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose} className="fixed inset-0 bg-black/40 z-[900]" />
+        onClick={onClose} className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop" />
       <motion.div
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 max-h-[80vh] overflow-y-auto"
+        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 max-h-[80vh] overflow-y-auto bottom-sheet"
       >
         <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
         <h2 className="text-lg font-bold text-[#1A1A2E] mb-4">
@@ -180,12 +180,14 @@ export default function WishDetail() {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const profile = useAuthStore((s) => s.profile)
-  const { getWishById, loading } = useWishes()
+  const { getWishById, deleteWish, loading } = useWishes()
   const { createConversation } = useMessages()
   const [wish, setWish] = useState(null)
   const [showMenu, setShowMenu] = useState(false)
   const [showReportWish, setShowReportWish] = useState(false)
   const [showReportProfile, setShowReportProfile] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     getWishById(id).then(setWish).catch(() => {})
@@ -206,6 +208,17 @@ export default function WishDetail() {
   const isOwner = searchParams.get('owner') === '1' || wish.wisher_id === profile?.id
 
   const heroImage = wish.images?.[0]?.url || null
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await deleteWish(wish.id)
+      toast.success('Vœu supprimé')
+      navigate(-1)
+    } catch (err) {
+      toast.error(err.message || 'Erreur lors de la suppression')
+    } finally { setDeleting(false) }
+  }
 
   async function handleMessage() {
     try {
@@ -243,15 +256,36 @@ export default function WishDetail() {
                 </svg>
               </button>
               {showMenu && (
-                <div className="absolute right-0 top-12 bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.15)] py-2 min-w-[200px] z-50">
-                  <button onClick={() => { setShowMenu(false); setShowReportWish(true) }}
-                    className="w-full px-4 py-3 text-left text-sm text-[#1A1A2E] hover:bg-[#F5F5F7] flex items-center gap-2">
-                    🚩 Signaler ce vœu
-                  </button>
-                  <button onClick={() => { setShowMenu(false); setShowReportProfile(true) }}
-                    className="w-full px-4 py-3 text-left text-sm text-[#1A1A2E] hover:bg-[#F5F5F7] flex items-center gap-2">
-                    🚩 Signaler ce profil
-                  </button>
+                <div className="absolute right-0 top-12 bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] py-1 min-w-[200px] z-50 overflow-hidden">
+                  {isOwner ? (
+                    <button onClick={() => { setShowMenu(false); setShowDeleteConfirm(true) }}
+                      className="w-full px-4 py-3 text-left text-sm text-red-500 active:bg-red-50/60 flex items-center gap-2.5 transition-colors">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Supprimer ce vœu
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => { setShowMenu(false); setShowReportWish(true) }}
+                        className="w-full px-4 py-3 text-left text-sm text-[#1A1A2E] active:bg-black/5 flex items-center gap-2.5 transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          <line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                        </svg>
+                        Signaler ce vœu
+                      </button>
+                      <div className="mx-3 h-px bg-black/5" />
+                      <button onClick={() => { setShowMenu(false); setShowReportProfile(true) }}
+                        className="w-full px-4 py-3 text-left text-sm text-[#1A1A2E] active:bg-black/5 flex items-center gap-2.5 transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          <line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                        </svg>
+                        Signaler ce profil
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -422,6 +456,34 @@ export default function WishDetail() {
           </div>
         )}
       </motion.div>
+
+      {/* Modal suppression */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteConfirm(false)} className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop" />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
+            >
+              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+              <h2 className="text-lg font-bold text-[#1A1A2E] mb-2">Supprimer ce vœu ?</h2>
+              <p className="text-sm text-[#8A8A9A] mb-5">Cette action est irréversible. Le vœu et toutes ses données seront supprimés définitivement.</p>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="w-full h-12 rounded-full text-white font-bold text-sm disabled:opacity-50"
+                style={{ background: '#EF4444' }}
+              >
+                {deleting ? 'Suppression...' : 'Supprimer'}
+              </button>
+              <button onClick={() => setShowDeleteConfirm(false)} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">Annuler</button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Modals signalement */}
       <AnimatePresence>

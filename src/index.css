@@ -48,6 +48,14 @@ body {
   overflow-x: hidden;
 }
 
+/* ─── Overlays : contraints dans le shell 430px ─── */
+.overlay-backdrop,
+.bottom-sheet {
+  max-width: 430px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* ─── Scrollbar discrète ─── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

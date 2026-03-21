@@ -42,11 +42,11 @@ function ConfirmModal({ open, onClose, title, description, price, buttonLabel, o
   return (
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose} className="fixed inset-0 bg-black/40 z-[900]" />
+        onClick={onClose} className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop" />
       <motion.div
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4"
+        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
       >
         <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
         <h2 className="text-lg font-bold text-[#1A1A2E] mb-2">{title}</h2>
@@ -262,7 +262,7 @@ export default function WisherHome() {
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
 
       {/* Header */}
-      <div className="px-5 pt-14 pb-4 flex items-center justify-between">
+      <div className="px-5 pt-8 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
             {user.avatar_url ? (
@@ -279,15 +279,6 @@ export default function WisherHome() {
             <p className="text-[16px] font-bold text-[#1A1A2E]">{user.prenom} {user.nom}</p>
           </div>
         </div>
-        <button
-          onClick={() => navigate('/messages')}
-          className="w-11 h-11 rounded-full border border-[#E8E8E8] flex items-center justify-center relative bg-white"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"
-              stroke="#1A1A2E" strokeWidth="1.8" strokeLinejoin="round"/>
-          </svg>
-        </button>
       </div>
 
       {/* Contenu scrollable */}

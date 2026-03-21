@@ -151,5 +151,17 @@ export function useWishes() {
     return data || null
   }
 
-  return { loading, getMyWishes, getAvailableWishes, getWishById, createWish, updateWishStatus, extendWish, makeUrgent, markWishRealized, submitRating, getUserRating }
+  async function deleteWish(wishId) {
+    // Supprimer les tags et images liés d'abord, puis le vœu
+    await supabase.from('wish_tags').delete().eq('wish_id', wishId)
+    await supabase.from('wish_images').delete().eq('wish_id', wishId)
+    const { error } = await supabase
+      .from('wishes')
+      .delete()
+      .eq('id', wishId)
+      .eq('wisher_id', user.id)
+    if (error) throw error
+  }
+
+  return { loading, getMyWishes, getAvailableWishes, getWishById, createWish, updateWishStatus, extendWish, makeUrgent, markWishRealized, submitRating, getUserRating, deleteWish }
 }

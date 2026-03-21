@@ -46,7 +46,7 @@ export default function OnboardingStep3() {
       <div className="absolute inset-0 bg-black/40" />
 
       {/* Barre de progression */}
-      <div className="relative z-10 flex gap-2 px-6 pt-14">
+      <div className="relative z-10 flex gap-2 px-6 pt-8">
         {[false, false, true].map((active, i) => (
           <div key={i} className="h-1 flex-1 rounded-full overflow-hidden bg-white/30">
             {active && <div className="h-full rounded-full" style={{ background: 'linear-gradient(135deg, #5B6BF5, #9B59F5)' }} />}

@@ -35,26 +35,26 @@ function expirationInfo(expiresAt) {
   return { label, color }
 }
 
-function ConfirmModal({ open, onClose, title, description, price, buttonLabel, onConfirm, loading }) {
+function ConfirmModal({ open, onClose, title, description, price, buttonLabel, onConfirm, loading, danger }) {
   if (!open) return null
   return (
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose} className="fixed inset-0 bg-black/40 z-[900]" />
+        onClick={onClose} className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop" />
       <motion.div
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4"
+        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
       >
         <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
         <h2 className="text-lg font-bold text-[#1A1A2E] mb-2">{title}</h2>
         <p className="text-sm text-[#8A8A9A] mb-1">{description}</p>
-        <p className="text-base font-bold text-[#1A1A2E] mb-5">{price}</p>
+        {price && <p className="text-base font-bold text-[#1A1A2E] mb-5">{price}</p>}
         <button
           onClick={onConfirm}
           disabled={loading}
-          className="w-full h-12 rounded-full text-white font-bold text-sm"
-          style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+          className={`w-full h-12 rounded-full text-white font-bold text-sm ${!price ? 'mt-4' : ''}`}
+          style={{ background: danger ? '#EF4444' : 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
         >
           {loading ? 'Traitement...' : buttonLabel}
         </button>
@@ -64,7 +64,7 @@ function ConfirmModal({ open, onClose, title, description, price, buttonLabel, o
   )
 }
 
-function WishCard({ wish, onExtend, onMakeUrgent }) {
+function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
   const navigate = useNavigate()
   const statusLabel = { en_attente: 'En attente', en_cours: 'En cours', terminé: 'Terminé', annule: 'Annulé' }
   const statusStyle = {
@@ -85,7 +85,7 @@ function WishCard({ wish, onExtend, onMakeUrgent }) {
       exit={{ opacity: 0, y: -8 }}
       className="bg-white rounded-[20px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
     >
-      <div onClick={() => navigate(`/maker/wish/${wish.id}`)} className="active:scale-[0.99] transition-transform cursor-pointer">
+      <div onClick={() => navigate(`/maker/wish/${wish.id}?owner=1`)} className="active:scale-[0.99] transition-transform cursor-pointer">
         <div className="flex items-start justify-between gap-3 mb-2">
           <h3 className="font-bold text-[#1A1A2E] text-sm leading-snug flex-1">{wish.titre}</h3>
           <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -148,26 +148,36 @@ function WishCard({ wish, onExtend, onMakeUrgent }) {
         </div>
       </div>
 
-      {/* Boutons options payantes */}
-      {isActive && (
-        <div className="flex gap-2 mt-3 pt-3 border-t border-[#F0F0F0]">
-          <button
-            onClick={(e) => { e.stopPropagation(); onExtend(wish) }}
-            className="flex-1 h-9 rounded-full text-xs font-semibold border border-[#E0E0E0] text-[#1A1A2E] bg-white"
-          >
-            ⏱ Prolonger
-          </button>
-          {!wish.is_urgent && (
+      {/* Boutons actions */}
+      <div className="flex gap-2 mt-3 pt-3 border-t border-[#F0F0F0]">
+        {isActive && (
+          <>
             <button
-              onClick={(e) => { e.stopPropagation(); onMakeUrgent(wish) }}
-              className="flex-1 h-9 rounded-full text-xs font-bold text-white"
-              style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}
+              onClick={(e) => { e.stopPropagation(); onExtend(wish) }}
+              className="flex-1 h-9 rounded-full text-xs font-semibold border border-[#E0E0E0] text-[#1A1A2E] bg-white"
             >
-              ⚡ Mettre en Urgent
+              ⏱ Prolonger
             </button>
-          )}
-        </div>
-      )}
+            {!wish.is_urgent && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onMakeUrgent(wish) }}
+                className="flex-1 h-9 rounded-full text-xs font-bold text-white"
+                style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}
+              >
+                ⚡ Mettre en Urgent
+              </button>
+            )}
+          </>
+        )}
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(wish) }}
+          className="w-9 h-9 rounded-full flex items-center justify-center border border-red-200 bg-red-50 flex-shrink-0"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="#EF4444" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      </div>
     </motion.div>
   )
 }
@@ -175,7 +185,7 @@ function WishCard({ wish, onExtend, onMakeUrgent }) {
 export default function MesVoeux() {
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState('en_cours')
-  const { getMyWishes, extendWish, makeUrgent, loading } = useWishes()
+  const { getMyWishes, extendWish, makeUrgent, deleteWish, loading } = useWishes()
   const [wishes, setWishes] = useState([])
   const [modal, setModal] = useState(null) // { type: 'extend' | 'urgent', wish }
   const [actionLoading, setActionLoading] = useState(false)
@@ -208,6 +218,19 @@ export default function MesVoeux() {
       toast.success('Vœu mis en urgent !')
       const updated = await getMyWishes()
       setWishes(updated)
+      setModal(null)
+    } catch (err) {
+      toast.error(err.message || 'Erreur')
+    } finally { setActionLoading(false) }
+  }
+
+  async function handleDelete() {
+    if (!modal?.wish) return
+    setActionLoading(true)
+    try {
+      await deleteWish(modal.wish.id)
+      toast.success('Vœu supprimé')
+      setWishes((prev) => prev.filter((w) => w.id !== modal.wish.id))
       setModal(null)
     } catch (err) {
       toast.error(err.message || 'Erreur')
@@ -247,6 +270,7 @@ export default function MesVoeux() {
                 wish={wish}
                 onExtend={(w) => setModal({ type: 'extend', wish: w })}
                 onMakeUrgent={(w) => setModal({ type: 'urgent', wish: w })}
+                onDelete={(w) => setModal({ type: 'delete', wish: w })}
               />
             ))
           ) : (
@@ -290,6 +314,19 @@ export default function MesVoeux() {
             buttonLabel="Payer et activer"
             onConfirm={handleMakeUrgent}
             loading={actionLoading}
+          />
+        )}
+        {modal?.type === 'delete' && (
+          <ConfirmModal
+            open
+            onClose={() => setModal(null)}
+            title="Supprimer ce vœu ?"
+            description="Cette action est irréversible. Le vœu et toutes ses données seront supprimés définitivement."
+            price=""
+            buttonLabel="Supprimer"
+            onConfirm={handleDelete}
+            loading={actionLoading}
+            danger
           />
         )}
       </AnimatePresence>

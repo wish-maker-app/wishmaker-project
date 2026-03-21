@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -16,7 +16,7 @@ function PhotoModal({ open, onClose, onPickGallery, onDelete, hasPhoto }) {
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 z-[900]"
+            className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -61,33 +61,31 @@ function PhotoModal({ open, onClose, onPickGallery, onDelete, hasPhoto }) {
   )
 }
 
-// ── Champ formulaire style maquette (bordure arrondie) ──
-function FormField({ label, value, onChange, type = 'text', placeholder = '', disabled = false, multiline = false }) {
+// ── Champ formulaire ──
+function FormField({ label, value, onChange, type = 'text', placeholder = '', disabled = false }) {
   const baseClass = 'w-full bg-white rounded-2xl px-4 text-sm text-[#1A1A2E] outline-none border border-[#E0E0E0] focus:border-[#5B6BF5] transition-colors'
   return (
     <div className="mb-4">
       <label className="text-[13px] font-medium text-[#8A8A9A] mb-1.5 block">{label}</label>
-      {multiline ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          disabled={disabled}
-          rows={3}
-          className={`${baseClass} py-3 resize-none disabled:opacity-50`}
-        />
-      ) : (
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          disabled={disabled}
-          className={`${baseClass} h-12 disabled:opacity-50`}
-        />
-      )}
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+        className={`${baseClass} h-12 disabled:opacity-50`}
+      />
     </div>
   )
+}
+
+// ── Debounce helper ──
+function debounce(fn, delay) {
+  let timer
+  return (...args) => {
+    clearTimeout(timer)
+    timer = setTimeout(() => fn(...args), delay)
+  }
 }
 
 export default function EditProfile() {
@@ -96,28 +94,50 @@ export default function EditProfile() {
   const setProfile = useAuthStore((s) => s.setProfile)
 
   const avatarInputRef = useRef(null)
-  const bannerInputRef = useRef(null)
 
   const [nom, setNom] = useState(profile?.nom || '')
   const [prenom, setPrenom] = useState(profile?.prenom || '')
-  const [dateNaissance, setDateNaissance] = useState(profile?.date_naissance || '')
-  const [genre, setGenre] = useState(profile?.genre || '')
+  const [pseudo, setPseudo] = useState(profile?.pseudo || '')
   const [localisation, setLocalisation] = useState(profile?.ville || '')
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [photoModal, setPhotoModal] = useState(false)
 
-  // Preview local pour banner
-  const [bannerPreview, setBannerPreview] = useState(profile?.banner_url || null)
   const [avatarPreview, setAvatarPreview] = useState(profile?.avatar_url || null)
+
+  // ── Location autocomplete ──
+  const [citySuggestions, setCitySuggestions] = useState([])
+  const [cityLoading, setCityLoading] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+  const searchCities = useCallback(
+    debounce(async (q) => {
+      if (q.length < 2) { setCitySuggestions([]); return }
+      setCityLoading(true)
+      try {
+        const isPostalCode = /^\d{2,5}$/.test(q.trim())
+        const url = isPostalCode
+          ? `https://geo.api.gouv.fr/communes?codePostal=${encodeURIComponent(q.trim())}&fields=nom,codesPostaux,departement&limit=10`
+          : `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(q)}&fields=nom,codesPostaux,departement&boost=population&limit=6`
+        const res = await fetch(url)
+        const data = await res.json()
+        setCitySuggestions(data)
+        setShowSuggestions(true)
+      } catch {
+        setCitySuggestions([])
+      } finally {
+        setCityLoading(false)
+      }
+    }, 300),
+    []
+  )
 
   if (!profile) return null
 
   const hasChanges =
     nom !== (profile.nom || '') ||
     prenom !== (profile.prenom || '') ||
-    dateNaissance !== (profile.date_naissance || '') ||
-    genre !== (profile.genre || '') ||
+    pseudo !== (profile.pseudo || '') ||
     localisation !== (profile.ville || '')
 
   // ── Upload image helper ──
@@ -167,37 +187,19 @@ export default function EditProfile() {
     } finally { setUploading(false) }
   }
 
-  // ── Banner ──
-  async function handleBannerPick(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 5 * 1024 * 1024) { toast.error('Max 5 MB'); return }
-
-    setUploading(true)
-    try {
-      const ext = file.name.split('.').pop()
-      const url = await uploadImage(file, `${profile.id}/banner.${ext}`)
-
-      await supabase.from('users').update({ banner_url: url }).eq('id', profile.id)
-      setProfile({ ...profile, banner_url: url })
-      setBannerPreview(url)
-      toast.success('Bannière mise à jour !')
-    } catch (err) {
-      console.error(err)
-      toast.error('Erreur lors de l\'upload')
-    } finally { setUploading(false) }
-  }
-
   // ── Save form ──
   async function handleSave() {
     if (!nom.trim() || !prenom.trim()) { toast.error('Nom et prénom obligatoires'); return }
+    if (pseudo && !/^[a-zA-Z0-9_]{3,20}$/.test(pseudo)) {
+      toast.error('Pseudo : 3-20 caractères (lettres, chiffres, _)')
+      return
+    }
     setSaving(true)
     try {
       const updates = {
         nom: nom.trim(),
         prenom: prenom.trim(),
-        date_naissance: dateNaissance || null,
-        genre: genre || null,
+        pseudo: pseudo.trim() || null,
         ville: localisation.trim() || null,
       }
       const { error } = await supabase.from('users').update(updates).eq('id', profile.id)
@@ -206,8 +208,12 @@ export default function EditProfile() {
       toast.success('Profil mis à jour !')
       navigate(-1)
     } catch (err) {
-      console.error(err)
-      toast.error('Erreur lors de la sauvegarde')
+      console.error('Save error:', err)
+      if (err.code === '23505' || err.message?.includes('unique') || err.message?.includes('pseudo')) {
+        toast.error('Ce pseudo est déjà pris')
+      } else {
+        toast.error(err.message || 'Erreur lors de la sauvegarde')
+      }
     } finally { setSaving(false) }
   }
 
@@ -216,104 +222,124 @@ export default function EditProfile() {
       <Header title="Profil" onBack={() => navigate(-1)} />
 
       <div className="flex-1 overflow-y-auto pb-10">
-        {/* Banner + Avatar */}
-        <div className="relative mx-5 mb-14">
-          {/* Banner */}
-          <div className="relative h-[140px] rounded-2xl overflow-hidden bg-[#E8EAFF]">
-            {bannerPreview ? (
-              <img src={bannerPreview} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#7EB6FF,#5B6BF5)' }} />
-            )}
-            {/* Bouton edit banner */}
+        {/* Avatar centré */}
+        <div className="flex justify-center pt-4 pb-6">
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-[#F0F0F0] shadow-md">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center font-bold text-white text-2xl"
+                  style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>
+                  {profile.prenom[0]}{profile.nom[0]}
+                </div>
+              )}
+              {uploading && (
+                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                </div>
+              )}
+            </div>
             <button
-              onClick={() => bannerInputRef.current?.click()}
-              className="absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-md"
+              onClick={() => setPhotoModal(true)}
+              className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center shadow-md"
               style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                 <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
-            <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerPick} />
-          </div>
-
-          {/* Avatar centré, chevauchant la bannière */}
-          <div className="absolute left-1/2 -translate-x-1/2 -bottom-10">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md">
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center font-bold text-white text-xl"
-                    style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>
-                    {profile.prenom[0]}{profile.nom[0]}
-                  </div>
-                )}
-                {uploading && (
-                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
-                    <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                  </div>
-                )}
-              </div>
-              {/* Bouton edit avatar */}
-              <button
-                onClick={() => setPhotoModal(true)}
-                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center shadow-md"
-                style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            </div>
           </div>
         </div>
 
         {/* Formulaire */}
-        <div className="px-5 pt-2">
-          <FormField label="Nom" value={nom} onChange={setNom} placeholder="Votre nom" />
+        <div className="px-5">
           <FormField label="Prénom" value={prenom} onChange={setPrenom} placeholder="Votre prénom" />
+          <FormField label="Nom" value={nom} onChange={setNom} placeholder="Votre nom" />
+          <FormField label="Pseudo" value={pseudo} onChange={(v) => setPseudo(v.replace(/[^a-zA-Z0-9_]/g, ''))} placeholder="Votre pseudo (ex: john_doe)" />
           <FormField label="E-mail" value={profile.email || ''} onChange={() => {}} disabled placeholder="E-mail" />
-          <FormField label="Date de naissance" value={dateNaissance} onChange={setDateNaissance} type="date" />
 
-          {/* Genre */}
-          <div className="mb-4">
-            <label className="text-[13px] font-medium text-[#8A8A9A] mb-1.5 block">Genre</label>
-            <div className="flex gap-3">
-              {[
-                { id: 'male', label: 'Male' },
-                { id: 'female', label: 'Female' },
-              ].map((g) => {
-                const isActive = genre === g.id
-                return (
-                  <button
-                    key={g.id}
-                    onClick={() => setGenre(g.id)}
-                    className="flex-1 h-12 rounded-2xl flex items-center justify-center gap-2 border-2 transition-all text-sm font-semibold"
-                    style={isActive
-                      ? { borderColor: '#5B6BF5', background: '#EEF0FF', color: '#5B6BF5' }
-                      : { borderColor: '#E0E0E0', color: '#1A1A2E' }
-                    }
-                  >
-                    <div
-                      className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                      style={{ borderColor: isActive ? '#5B6BF5' : '#D0D0D0' }}
-                    >
-                      {isActive && <div className="w-2.5 h-2.5 rounded-full bg-[#5B6BF5]" />}
-                    </div>
-                    {g.label}
-                  </button>
-                )
-              })}
+          {/* Localisation avec autocomplétion */}
+          <div className="mb-4 relative">
+            <label className="text-[13px] font-medium text-[#8A8A9A] mb-1.5 block">Localisation</label>
+            <div className="relative flex items-center">
+              <svg className="absolute left-4 text-[#8A8A9A]" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <input
+                type="text"
+                value={localisation}
+                onChange={(e) => {
+                  setLocalisation(e.target.value)
+                  searchCities(e.target.value)
+                }}
+                onFocus={() => citySuggestions.length > 0 && setShowSuggestions(true)}
+                placeholder="Rechercher une ville..."
+                className="w-full h-12 bg-white rounded-2xl pl-11 pr-4 text-sm text-[#1A1A2E] outline-none border border-[#E0E0E0] focus:border-[#5B6BF5] transition-colors"
+              />
+              {cityLoading && (
+                <span className="absolute right-4">
+                  <svg className="animate-spin h-4 w-4 text-[#5B6BF5]" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                </span>
+              )}
             </div>
-          </div>
 
-          <FormField label="Location" value={localisation} onChange={setLocalisation} placeholder="Votre ville ou adresse" multiline />
+            {/* Suggestions dropdown */}
+            <AnimatePresence>
+              {showSuggestions && citySuggestions.length > 0 && (
+                <motion.ul
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl shadow-lg border border-[#E0E0E0] overflow-hidden z-10"
+                >
+                  {citySuggestions.map((city, i) => {
+                    const cp = city.codesPostaux?.[0] || ''
+                    const dep = city.departement?.nom || ''
+                    return (
+                      <motion.li
+                        key={city.code || i}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1, transition: { delay: i * 0.03 } }}
+                      >
+                        <button
+                          onClick={() => {
+                            setLocalisation(`${city.nom} (${cp})`)
+                            setShowSuggestions(false)
+                            setCitySuggestions([])
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#F5F5F7] active:bg-[#F0F0F0] transition-colors text-left"
+                        >
+                          <span className="text-[#5B6BF5] flex-shrink-0">
+                            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[#1A1A2E]">{city.nom}</p>
+                            <p className="text-xs text-[#8A8A9A]">{cp} - {dep}</p>
+                          </div>
+                        </button>
+                      </motion.li>
+                    )
+                  })}
+                </motion.ul>
+              )}
+            </AnimatePresence>
+          </div>
 
           <div className="mt-4">
             <Button onClick={handleSave} loading={saving} disabled={!hasChanges && !saving}>
-              Save Changes
+              Sauvegarder
             </Button>
           </div>
         </div>
