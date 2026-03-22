@@ -10,17 +10,28 @@ import useWishFormStore from '../../../store/wishFormStore'
 function StepProgress({ current, total = 4 }) {
   return (
     <div className="flex gap-2 px-5 pb-4">
-      {Array.from({ length: total }).map((_, i) => (
-        <div key={i} className="flex-1 h-1 rounded-full overflow-hidden bg-[#F0F0F0]">
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: 'linear-gradient(90deg,#5B6BF5,#9B59F5)' }}
-            initial={{ width: 0 }}
-            animate={{ width: i < current ? '100%' : '0%' }}
-            transition={{ duration: 0.3, delay: i * 0.05 }}
-          />
-        </div>
-      ))}
+      {Array.from({ length: total }).map((_, i) => {
+        const isCompleted = i < current - 1
+        const isCurrent = i === current - 1
+        return (
+          <div key={i} className="flex-1 h-1 rounded-full overflow-hidden bg-[#F0F0F0]">
+            {isCompleted ? (
+              <div
+                className="h-full w-full rounded-full"
+                style={{ background: 'linear-gradient(90deg,#5B6BF5,#9B59F5)' }}
+              />
+            ) : (
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: 'linear-gradient(90deg,#5B6BF5,#9B59F5)' }}
+                initial={{ width: 0 }}
+                animate={{ width: isCurrent ? '100%' : '0%' }}
+                transition={{ duration: 0.3 }}
+              />
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

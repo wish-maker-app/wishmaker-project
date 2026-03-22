@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -36,19 +36,39 @@ function MapClickHandler({ onMapClick }) {
   return null
 }
 
+function MapFlyTo({ center, zoom }) {
+  const map = useMap()
+  useEffect(() => {
+    if (center) map.flyTo(center, zoom || 15, { duration: 0.8 })
+  }, [center, zoom, map])
+  return null
+}
+
 function StepProgress({ current, total = 4 }) {
   return (
     <div className="flex gap-2 px-5 pb-2">
-      {Array.from({ length: total }).map((_, i) => (
-        <div key={i} className="flex-1 h-1 rounded-full overflow-hidden bg-[#F0F0F0]">
-          <motion.div className="h-full rounded-full"
-            style={{ background: 'linear-gradient(90deg,#5B6BF5,#9B59F5)' }}
-            initial={{ width: 0 }}
-            animate={{ width: i < current ? '100%' : '0%' }}
-            transition={{ duration: 0.3, delay: i * 0.05 }}
-          />
-        </div>
-      ))}
+      {Array.from({ length: total }).map((_, i) => {
+        const isCompleted = i < current - 1
+        const isCurrent = i === current - 1
+        return (
+          <div key={i} className="flex-1 h-1 rounded-full overflow-hidden bg-[#F0F0F0]">
+            {isCompleted ? (
+              <div
+                className="h-full w-full rounded-full"
+                style={{ background: 'linear-gradient(90deg,#5B6BF5,#9B59F5)' }}
+              />
+            ) : (
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: 'linear-gradient(90deg,#5B6BF5,#9B59F5)' }}
+                initial={{ width: 0 }}
+                animate={{ width: isCurrent ? '100%' : '0%' }}
+                transition={{ duration: 0.3 }}
+              />
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -64,7 +84,13 @@ export default function Step3() {
 
   const [pin, setPin] = useState(savedLat ? { lat: savedLat, lng: savedLng } : null)
   const [adresse, setAdresse] = useState(savedAdresse || '')
+  const [searchQuery, setSearchQuery] = useState(savedAdresse || '')
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [geoLoading, setGeoLoading] = useState(false)
+  const [flyTarget, setFlyTarget] = useState(null)
+  const searchTimeout = useRef(null)
+  const inputRef = useRef(null)
 
   const reverseGeocode = useCallback(async (lat, lng) => {
     try {
@@ -73,16 +99,77 @@ export default function Step3() {
         { headers: { 'Accept-Language': 'fr' } }
       )
       const data = await res.json()
-      return data.address?.city || data.address?.town || data.address?.village
-        || data.display_name.split(',')[0]
+      const city = data.address?.city || data.address?.town || data.address?.village || ''
+      const postcode = data.address?.postcode || ''
+      const road = data.address?.road || ''
+      if (road && city && postcode) return `${road}, ${city} (${postcode})`
+      if (city && postcode) return `${city} (${postcode})`
+      return city || data.display_name.split(',')[0]
     } catch { return `${lat.toFixed(4)}, ${lng.toFixed(4)}` }
   }, [])
+
+  // Recherche d'adresse via Nominatim
+  const searchAddress = useCallback(async (query) => {
+    if (query.length < 3) { setSuggestions([]); return }
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=fr`,
+        { headers: { 'Accept-Language': 'fr' } }
+      )
+      const data = await res.json()
+      setSuggestions(data.map(item => ({
+        display: item.display_name,
+        city: item.address?.city || item.address?.town || item.address?.village || '',
+        postcode: item.address?.postcode || '',
+        road: item.address?.road || '',
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lon),
+      })))
+      setShowSuggestions(true)
+    } catch {
+      setSuggestions([])
+    }
+  }, [])
+
+  function handleSearchChange(e) {
+    const value = e.target.value
+    setSearchQuery(value)
+    if (searchTimeout.current) clearTimeout(searchTimeout.current)
+    searchTimeout.current = setTimeout(() => searchAddress(value), 300)
+  }
+
+  function handleSelectSuggestion(suggestion) {
+    const label = suggestion.road && suggestion.city && suggestion.postcode
+      ? `${suggestion.road}, ${suggestion.city} (${suggestion.postcode})`
+      : suggestion.city && suggestion.postcode
+        ? `${suggestion.city} (${suggestion.postcode})`
+        : suggestion.display.split(',').slice(0, 2).join(',')
+
+    setPin({ lat: suggestion.lat, lng: suggestion.lng })
+    setAdresse(label)
+    setSearchQuery(label)
+    setLocation(suggestion.lat, suggestion.lng, label)
+    setShowSuggestions(false)
+    setSuggestions([])
+    setFlyTarget([suggestion.lat, suggestion.lng])
+  }
+
+  function clearSearch() {
+    setSearchQuery('')
+    setSuggestions([])
+    setShowSuggestions(false)
+    setPin(null)
+    setAdresse('')
+    inputRef.current?.focus()
+  }
 
   const handleMapClick = useCallback(async (e) => {
     const { lat, lng } = e.latlng
     setPin({ lat, lng })
+    setShowSuggestions(false)
     const addr = await reverseGeocode(lat, lng)
     setAdresse(addr)
+    setSearchQuery(addr)
     setLocation(lat, lng, addr)
   }, [reverseGeocode, setLocation])
 
@@ -93,9 +180,12 @@ export default function Step3() {
       async ({ coords }) => {
         const { latitude: lat, longitude: lng } = coords
         setPin({ lat, lng })
+        setShowSuggestions(false)
         const addr = await reverseGeocode(lat, lng)
         setAdresse(addr)
+        setSearchQuery(addr)
         setLocation(lat, lng, addr)
+        setFlyTarget([lat, lng])
         setGeoLoading(false)
       },
       () => { toast.error('Impossible de récupérer ta position'); setGeoLoading(false) }
@@ -107,29 +197,88 @@ export default function Step3() {
       <Header title={t('wisher.create.step3_titre')} onBack={() => navigate('/wisher/create/2')} />
       <StepProgress current={3} />
 
-      {/* Bouton position actuelle */}
-      <div className="px-5 pb-3">
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={handleGeolocate}
-          disabled={geoLoading}
-          className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-[#E0E0E0] bg-[#F5F5F7]"
-        >
-          <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>
+      {/* Info */}
+      <p className="px-5 pb-3 text-xs text-[#8A8A9A]">
+        Renseignez votre adresse exacte, celle-ci n'apparaitra jamais sur votre annonce.
+      </p>
+
+      {/* Champ de recherche adresse */}
+      <div className="px-5 pb-3 relative z-[500]">
+        <label className="text-sm font-semibold text-[#1A1A2E] mb-1.5 block">Adresse *</label>
+        <div className="flex items-center gap-2">
+          {/* Bouton géolocalisation */}
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={handleGeolocate}
+            disabled={geoLoading}
+            className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm"
+            style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+          >
             {geoLoading ? (
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"/>
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="3"/>
                 <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8H4z"/>
               </svg>
             ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
               </svg>
             )}
+          </motion.button>
+
+          {/* Input adresse */}
+          <div className="flex-1 relative">
+            <input
+              ref={inputRef}
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+              placeholder="Saisissez votre adresse..."
+              className={`w-full h-11 px-4 pr-10 rounded-2xl text-sm transition-colors focus:outline-none ${
+                pin
+                  ? 'border-2 border-[#5B6BF5] bg-[#EEF0FF] text-[#5B6BF5] font-medium'
+                  : 'border border-[#E0E0E0] bg-[#F5F5F7] text-[#1A1A2E] placeholder:text-[#B0B0B0] focus:border-[#5B6BF5] focus:ring-1 focus:ring-[#5B6BF5]/20'
+              }`}
+            />
+            {searchQuery && (
+              <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={pin ? '#5B6BF5' : '#8A8A9A'} strokeWidth="2" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M15 9l-6 6M9 9l6 6"/>
+                </svg>
+              </button>
+            )}
           </div>
-          <span className="text-sm font-medium text-[#1A1A2E]">{t('wisher.create.position_actuelle')}</span>
-        </motion.button>
+        </div>
+
+        {/* Suggestions dropdown */}
+        <AnimatePresence>
+          {showSuggestions && suggestions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="absolute left-5 right-5 mt-1 bg-white rounded-xl border border-[#E0E0E0] shadow-lg overflow-hidden"
+            >
+              {suggestions.map((s, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSelectSuggestion(s)}
+                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-[#F5F5F7] transition-colors text-left border-b border-[#F0F0F0] last:border-b-0"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A9A" strokeWidth="2" className="flex-shrink-0 mt-0.5">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                    <circle cx="12" cy="9" r="2.5"/>
+                  </svg>
+                  <span className="text-sm text-[#1A1A2E] line-clamp-2">{s.display}</span>
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       </div>
 
       {/* Carte */}
@@ -142,31 +291,21 @@ export default function Step3() {
           zoomControl={false}
         >
           <MapResizer />
-          <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" attribution='© CARTO' />
+          <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" attribution='&copy; CARTO' />
           <MapClickHandler onMapClick={handleMapClick} />
           {pin && <Marker position={[pin.lat, pin.lng]} icon={customIcon} />}
+          {flyTarget && <MapFlyTo center={flyTarget} zoom={15} />}
         </MapContainer>
 
         {!pin && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[400] bg-white/90 backdrop-blur rounded-full px-3 py-1.5 shadow-sm">
-            <p className="text-xs font-medium text-[#1A1A2E] whitespace-nowrap">Clique sur la carte 📍</p>
+            <p className="text-xs font-medium text-[#1A1A2E] whitespace-nowrap">Cliquez sur la carte ou saisissez une adresse</p>
           </div>
         )}
       </div>
 
-      {/* Adresse + bouton */}
-      <div className="px-5 pb-8 flex flex-col gap-3">
-        <AnimatePresence>
-          {pin && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-3 p-3 rounded-2xl bg-[#EEF0FF]">
-              <svg width="16" height="16" fill="#5B6BF5" viewBox="0 0 24 24">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-              </svg>
-              <p className="text-sm font-medium text-[#5B6BF5] truncate">{adresse}</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* Bouton continuer */}
+      <div className="px-5 pb-8">
         <Button onClick={() => navigate('/wisher/create/4')} disabled={!pin}>
           {t('common.continuer')}
         </Button>
