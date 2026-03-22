@@ -21,9 +21,9 @@ const STATUS_MAP = {
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000
   if (diff < 60)    return "à l'instant"
-  if (diff < 3600)  return `${Math.floor(diff / 60)}min`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`
-  return `${Math.floor(diff / 86400)}j`
+  if (diff < 3600)  return `il y a ${Math.floor(diff / 60)}min`
+  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)}h`
+  return `il y a ${Math.floor(diff / 86400)}j`
 }
 
 function expirationInfo(expiresAt) {
@@ -66,8 +66,9 @@ function ConfirmModal({ open, onClose, title, description, price, buttonLabel, o
   )
 }
 
-function WishCard({ wish, onExtend, onMakeUrgent }) {
+function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
   const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
   const statusLabel = { en_attente: 'En attente', en_cours: 'En cours', terminé: 'Terminé', annule: 'Annulé' }
   const statusStyle = {
     en_attente: { bg: '#EEF0FF', color: '#5B6BF5' },
@@ -86,33 +87,45 @@ function WishCard({ wish, onExtend, onMakeUrgent }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      className="bg-white rounded-[20px] overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+      className="bg-white rounded-[20px] overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] relative"
     >
+      {/* Menu 3 points — toujours en haut à droite par-dessus tout */}
+      <button
+        onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
+        className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center bg-white/80 backdrop-blur-sm shadow-sm"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#1A1A2E">
+          <circle cx="12" cy="5" r="2"/>
+          <circle cx="12" cy="12" r="2"/>
+          <circle cx="12" cy="19" r="2"/>
+        </svg>
+      </button>
+
       <div onClick={() => navigate(`/maker/wish/${wish.id}?owner=1`)} className="active:scale-[0.99] transition-transform cursor-pointer">
         {/* Photo de couverture */}
         {coverUrl && (
           <div className="relative h-[140px] bg-[#F0F0F5]">
             <img src={coverUrl} alt="" className="w-full h-full object-cover" />
-            <span className="absolute top-2.5 right-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full"
+            <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full"
               style={{ background: s.bg, color: s.color }}>
               {statusLabel[wish.statut]}
             </span>
             {wish.is_urgent && (
-              <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-1 rounded-full"
+              <span className="absolute top-11 left-2.5 text-[10px] font-bold px-2 py-1 rounded-full"
                 style={{ background: '#FFF4E0', color: '#F59E0B' }}>
-                ⚡ URGENT
+                URGENT
               </span>
             )}
           </div>
         )}
         <div className="p-4">
         <div className="flex items-start justify-between gap-3 mb-2">
-          <h3 className="font-bold text-[#1A1A2E] text-sm leading-snug flex-1">{wish.titre}</h3>
+          <h3 className="font-bold text-[#1A1A2E] text-base leading-snug flex-1">{wish.titre}</h3>
           {!coverUrl && (
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {wish.is_urgent && (
                 <span className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: '#FFF4E0', color: '#F59E0B' }}>
-                  ⚡ URGENT
+                  URGENT
                 </span>
               )}
               <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
@@ -169,27 +182,64 @@ function WishCard({ wish, onExtend, onMakeUrgent }) {
         </div>
       </div>
 
-      {isActive && (
-        <div className="flex gap-2 mx-4 pb-4 pt-3 border-t border-[#F0F0F0]">
-          {!wish.is_extended && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onExtend(wish) }}
-              className="flex-1 h-9 rounded-full text-xs font-semibold border border-[#E0E0E0] text-[#1A1A2E] bg-white"
+      {/* Menu déroulant 3 points */}
+      <AnimatePresence>
+        {menuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[50]"
+              onClick={() => setMenuOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-4 top-12 bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] z-[51] overflow-hidden min-w-[180px]"
             >
-              ⏱ Prolonger
-            </button>
-          )}
-          {!wish.is_urgent && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onMakeUrgent(wish) }}
-              className="flex-1 h-9 rounded-full text-xs font-bold text-white"
-              style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}
-            >
-              ⚡ Mettre en Urgent
-            </button>
-          )}
-        </div>
-      )}
+              {isActive && (
+                <>
+                  {!wish.is_extended && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onExtend(wish) }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#1A1A2E] hover:bg-[#F5F5F7] transition-colors"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="9" stroke="#8A8A9A" strokeWidth="1.8"/>
+                        <path d="M12 7v5l3 3" stroke="#8A8A9A" strokeWidth="1.8" strokeLinecap="round"/>
+                      </svg>
+                      Prolonger
+                    </button>
+                  )}
+                  {!wish.is_urgent && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMakeUrgent(wish) }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#F59E0B] hover:bg-[#F5F5F7] transition-colors"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Mettre en Urgent
+                    </button>
+                  )}
+                </>
+              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(wish) }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#EF4444] hover:bg-red-50 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="#EF4444" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Supprimer
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
@@ -198,7 +248,7 @@ export default function WisherHome() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.profile)
-  const { getMyWishes, extendWish, makeUrgent } = useWishes()
+  const { getMyWishes, extendWish, makeUrgent, deleteWish } = useWishes()
   const [wishes, setWishes] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('en_attente')
@@ -258,13 +308,26 @@ export default function WisherHome() {
     } finally { setActionLoading(false) }
   }
 
+  async function handleDelete() {
+    if (!modal?.wish) return
+    setActionLoading(true)
+    try {
+      await deleteWish(modal.wish.id)
+      toast.success('Vœu supprimé')
+      setWishes((prev) => prev.filter((w) => w.id !== modal.wish.id))
+      setModal(null)
+    } catch (err) {
+      toast.error(err.message || 'Erreur')
+    } finally { setActionLoading(false) }
+  }
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
 
       {/* Header */}
       <div className="px-5 pt-8 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+          <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-[#E8E8E8]">
             {user.avatar_url ? (
               <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -363,6 +426,7 @@ export default function WisherHome() {
                     wish={wish}
                     onExtend={(w) => setModal({ type: 'extend', wish: w })}
                     onMakeUrgent={(w) => setModal({ type: 'urgent', wish: w })}
+                    onDelete={(w) => setModal({ type: 'delete', wish: w })}
                   />
                 ))
               ) : (
@@ -408,7 +472,7 @@ export default function WisherHome() {
           <ConfirmModal
             open
             onClose={() => setModal(null)}
-            title="⏱ Prolonger mon vœu"
+            title="Prolonger mon vœu"
             description="Prolongez votre vœu de 72h supplémentaires."
             price="2,99€"
             buttonLabel="Payer et prolonger"
@@ -420,12 +484,25 @@ export default function WisherHome() {
           <ConfirmModal
             open
             onClose={() => setModal(null)}
-            title="⚡ Mettre en Urgent"
+            title="Mettre en Urgent"
             description="Votre vœu sera mis en avant pendant 24h."
             price="4,99€"
             buttonLabel="Payer et activer"
             onConfirm={handleMakeUrgent}
             loading={actionLoading}
+          />
+        )}
+        {modal?.type === 'delete' && (
+          <ConfirmModal
+            open
+            onClose={() => setModal(null)}
+            title="Supprimer ce vœu ?"
+            description="Cette action est irréversible. Le vœu et toutes ses données seront supprimés définitivement."
+            price=""
+            buttonLabel="Supprimer"
+            onConfirm={handleDelete}
+            loading={actionLoading}
+            danger
           />
         )}
       </AnimatePresence>

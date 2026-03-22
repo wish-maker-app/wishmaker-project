@@ -181,13 +181,16 @@ export default function WishDetail() {
   const [searchParams] = useSearchParams()
   const profile = useAuthStore((s) => s.profile)
   const { getWishById, deleteWish, loading } = useWishes()
-  const { createConversation } = useMessages()
+  const { createConversation, sendMessage } = useMessages()
   const [wish, setWish] = useState(null)
   const [showMenu, setShowMenu] = useState(false)
   const [showReportWish, setShowReportWish] = useState(false)
   const [showReportProfile, setShowReportProfile] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showProposal, setShowProposal] = useState(false)
+  const [proposalMsg, setProposalMsg] = useState('')
+  const [sendingProposal, setSendingProposal] = useState(false)
 
   useEffect(() => {
     getWishById(id).then(setWish).catch(() => {})
@@ -374,7 +377,7 @@ export default function WishDetail() {
           <div className="flex-1 min-w-0">
             <p className="font-bold text-[#1A1A2E] text-sm">{wish.wisher.prenom} {wish.wisher.nom}</p>
             <p className="text-xs text-[#8A8A9A]">
-              {wish.wisher.pseudo ? `@${wish.wisher.pseudo}` : `@user_${(wish.wisher.id || '0000').slice(0, 4)}`}
+              {wish.wisher.pseudo || `user_${(wish.wisher.id || '0000').slice(0, 4)}`}
             </p>
           </div>
           <button
@@ -450,12 +453,104 @@ export default function WishDetail() {
         {/* CTA — masqué si c'est ton propre vœu */}
         {!isOwner && (
           <div className="pt-2 pb-6">
-            <Button onClick={() => navigate('/maker/success')}>
+            <Button onClick={() => setShowProposal(true)}>
               {t('maker.detail.realiser')}
             </Button>
           </div>
         )}
       </motion.div>
+
+      {/* Bottom sheet — Proposer de réaliser */}
+      <AnimatePresence>
+        {showProposal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowProposal(false)} className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop" />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
+            >
+              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-5" />
+
+              {/* Récap du voeu */}
+              <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#F7F8FC] mb-5">
+                {wish.images?.[0]?.url ? (
+                  <img src={wish.images[0].url} alt="" className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>
+                    <span className="text-white text-lg">✨</span>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-[#1A1A2E] text-sm truncate">{wish.titre}</p>
+                  <p className="text-xs text-[#8A8A9A] mt-0.5">{wish.adresse}</p>
+                  {wish.type_recompense && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1"
+                      style={wish.type_recompense === 'argent'
+                        ? { background: '#ECFDF5', color: '#059669' }
+                        : { background: '#EFF6FF', color: '#3B82F6' }
+                      }>
+                      {wish.type_recompense === 'argent'
+                        ? `💰 ${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
+                        : '🤝 Bon procédé'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Destinataire */}
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                  {wish.wisher?.avatar_url ? (
+                    <img src={wish.wisher.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold"
+                      style={{ background: 'linear-gradient(135deg,#8A8A9A,#B0B0B0)' }}>
+                      {wish.wisher?.prenom?.[0]}{wish.wisher?.nom?.[0]}
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-[#8A8A9A]">
+                  Message à <span className="font-semibold text-[#1A1A2E]">{wish.wisher?.prenom}</span>
+                </p>
+              </div>
+
+              {/* Champ message */}
+              <textarea
+                value={proposalMsg}
+                onChange={(e) => setProposalMsg(e.target.value)}
+                placeholder={`Bonjour ${wish.wisher?.prenom || ''}, je serais ravi(e) de réaliser votre vœu ! Quand est-ce que cela vous arrangerait ?`}
+                rows={4}
+                className="w-full bg-[#F7F8FC] rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] outline-none resize-none mb-5 placeholder:text-[#B0B0B0]"
+              />
+
+              {/* Boutons */}
+              <button
+                onClick={async () => {
+                  setSendingProposal(true)
+                  try {
+                    const message = proposalMsg.trim() || `Bonjour ${wish.wisher?.prenom || ''}, je serais ravi(e) de réaliser votre vœu !`
+                    const convId = await createConversation(wish.id, wish.wisher_id)
+                    await sendMessage(convId, message)
+                    toast.success('Proposition envoyée !')
+                    navigate(`/messages/${convId}`)
+                  } catch (err) {
+                    toast.error(err.message || 'Erreur')
+                  } finally { setSendingProposal(false) }
+                }}
+                disabled={sendingProposal}
+                className="w-full h-12 rounded-full text-white font-bold text-sm disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+              >
+                {sendingProposal ? 'Envoi...' : 'Envoyer ma proposition'}
+              </button>
+              <button onClick={() => setShowProposal(false)} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">Annuler</button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Modal suppression */}
       <AnimatePresence>

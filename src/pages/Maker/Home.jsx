@@ -365,7 +365,7 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
         <div className="flex items-center gap-2">
           <SmallAvatar user={wish.wisher} size={28} />
           <span className="text-sm font-semibold text-[#1A1A2E]">
-            {wish.wisher.pseudo ? `@${wish.wisher.pseudo}` : wish.wisher.prenom}
+            {wish.wisher.pseudo || wish.wisher.prenom}
           </span>
         </div>
       </div>
@@ -709,7 +709,7 @@ export default function MakerHome() {
               <h2 className="text-lg font-bold text-[#1A1A2E] mb-1">Vous souhaitez réaliser ce vœu !</h2>
               <p className="text-sm text-[#8A8A9A] mb-4">
                 Envoyez un message à <span className="font-semibold text-[#5B6BF5]">
-                  {acceptedWish.wisher?.pseudo ? `@${acceptedWish.wisher.pseudo}` : acceptedWish.wisher?.prenom}
+                  {acceptedWish.wisher?.pseudo || acceptedWish.wisher?.prenom}
                 </span> pour vous présenter.
               </p>
               <p className="text-xs font-semibold text-[#1A1A2E] mb-2">💬 {acceptedWish.titre}</p>

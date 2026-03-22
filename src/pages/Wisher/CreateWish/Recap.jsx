@@ -113,15 +113,15 @@ export default function Recap() {
               </div>
               <div className="flex items-center gap-1.5">
                 {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                  <img src={profile.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover border border-[#E8E8E8]" />
                 ) : (
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white"
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white border border-[#E8E8E8]"
                     style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>
                     {initials}
                   </div>
                 )}
                 <span className="text-[11px] font-medium text-[#1A1A2E]">
-                  {profile?.pseudo ? `@${profile.pseudo}` : profile?.prenom}
+                  {profile?.pseudo || profile?.prenom}
                 </span>
               </div>
             </div>

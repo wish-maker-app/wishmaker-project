@@ -11,7 +11,7 @@ function Avatar({ user, size = 52 }) {
   return (
     <div className="relative flex-shrink-0">
       <div
-        className="rounded-full flex items-center justify-center font-bold text-white overflow-hidden"
+        className="rounded-full flex items-center justify-center font-bold text-white overflow-hidden border border-[#E8E8E8]"
         style={{ width: size, height: size, background: 'linear-gradient(135deg,#8A8A9A,#B0B0B0)' }}
       >
         {user.avatar_url ? (
@@ -27,22 +27,41 @@ function Avatar({ user, size = 52 }) {
   )
 }
 
+function WishThumb({ wish, size = 52 }) {
+  const coverUrl = wish?.wish_images?.[0]?.url
+  return (
+    <div
+      className="rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center bg-[#EEF0FF]"
+      style={{ width: size, height: size }}
+    >
+      {coverUrl ? (
+        <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-lg">✨</span>
+      )}
+    </div>
+  )
+}
+
 function ConversationItem({ conv, onClick }) {
+  const isMission = conv.type === 'mission'
+
   return (
     <motion.button
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className="flex items-center gap-3 w-full px-5 py-3 text-left"
     >
-      <Avatar user={conv.interlocuteur} />
+      <WishThumb wish={conv.wish} />
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-bold text-[#1A1A2E] truncate">
-          {conv.interlocuteur.pseudo ? `@${conv.interlocuteur.pseudo}` : `@user_${(conv.interlocuteur.id || '0000').slice(0, 4)}`}
+          {conv.wish_titre || 'Vœu'}
         </p>
-        {conv.wish_titre && (
-          <p className="text-[12px] text-[#8A8A9A] italic truncate">{conv.wish_titre}</p>
-        )}
-        <p className="text-[13px] text-[#8A8A9A] truncate">{conv.dernier_message}</p>
+        <p className="text-[13px] font-medium text-[#4A4A5A] truncate">{conv.dernier_message}</p>
+        <p className="text-[12px] text-[#B0B0B0] truncate">
+          {conv.interlocuteur.pseudo || conv.interlocuteur.prenom}
+          {conv.date && <span className="ml-1">· {conv.date}</span>}
+        </p>
       </div>
       <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
         <span className="text-[12px] text-[#8A8A9A]">{conv.heure}</span>
@@ -73,6 +92,7 @@ function transformConversation(conv, userId) {
     interlocuteur: interlocuteur || { prenom: '?', nom: '?', pseudo: null, is_online: false, avatar_url: null },
     dernier_message: lastMsg?.contenu || '',
     heure: lastMsg ? new Date(lastMsg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '',
+    date: lastMsg ? new Date(lastMsg.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '',
     non_lus: nonLus,
   }
 }

@@ -26,7 +26,6 @@ const ChooseLocationMap = lazy(() => import('../pages/Setup/ChooseLocationMap'))
 
 // Wisher
 const WisherHome    = lazy(() => import('../pages/Wisher/Home'))
-const MesVoeux      = lazy(() => import('../pages/Wisher/MesVoeux'))
 const CreateStep1   = lazy(() => import('../pages/Wisher/CreateWish/Step1'))
 const CreateStep2   = lazy(() => import('../pages/Wisher/CreateWish/Step2'))
 const CreateStep3   = lazy(() => import('../pages/Wisher/CreateWish/Step3'))
@@ -135,7 +134,6 @@ const router = createBrowserRouter([
     children: [
       // Wisher
       { path: '/wisher',               element: <Suspense fallback={<PageLoader />}><WisherHome /></Suspense> },
-      { path: '/wisher/mes-voeux',     element: <Navigate to="/wisher" replace /> },
       { path: '/wisher/create/1',      element: <Suspense fallback={<PageLoader />}><CreateStep1 /></Suspense> },
       { path: '/wisher/create/2',      element: <Suspense fallback={<PageLoader />}><CreateStep2 /></Suspense> },
       { path: '/wisher/create/3',      element: <Suspense fallback={<PageLoader />}><CreateStep3 /></Suspense> },

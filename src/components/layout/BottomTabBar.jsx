@@ -13,7 +13,6 @@ function IconWisher({ active }) {
         fill={active ? 'url(#gwfill)' : 'none'}
         fillOpacity={active ? 0.2 : 0}
       />
-      {active && <path d="M9 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>}
       <defs>
         <linearGradient id="gw" x1="0" y1="0" x2="1" y2="1">
           <stop stopColor="#5B6BF5" /><stop offset="1" stopColor="#9B59F5" />

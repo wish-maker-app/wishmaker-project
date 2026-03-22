@@ -115,7 +115,7 @@ export default function Profile() {
 
       {/* Header profil — aligné à gauche comme la maquette */}
       <div className="px-5 pt-8 pb-2 flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
+        <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border border-[#E8E8E8]">
           {profile.avatar_url ? (
             <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
           ) : (
@@ -128,7 +128,7 @@ export default function Profile() {
         <div>
           <p className="text-lg font-bold text-[#1A1A2E]">{profile.prenom} {profile.nom}</p>
           <p className="text-[13px] text-[#5B6BF5] font-medium">
-            {profile.pseudo ? `@${profile.pseudo}` : `@user_${(profile.id || '0000').slice(0, 4)}`}
+            {profile.pseudo || `user_${(profile.id || '0000').slice(0, 4)}`}
           </p>
           <span className="inline-block mt-1 text-[11px] font-bold px-3 py-1 rounded-full"
             style={profile.type_compte === 'pro'
@@ -188,15 +188,30 @@ export default function Profile() {
       <EditModal open={editModal === 'langue'} onClose={() => setEditModal(null)} title="Choisir la langue">
         <div className="flex flex-col gap-2">
           {[
-            { code: 'fr', label: 'Français', flag: '🇫🇷' },
-            { code: 'en', label: 'English', flag: '🇬🇧' },
+            { code: 'fr', label: 'Français', flag: (
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 24" width="32" height="22" className="rounded-sm">
+                <rect width="12" height="24" fill="#002395"/>
+                <rect x="12" width="12" height="24" fill="#FFF"/>
+                <rect x="24" width="12" height="24" fill="#ED2939"/>
+              </svg>
+            )},
+            { code: 'en', label: 'English', flag: (
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 30" width="32" height="22" className="rounded-sm">
+                <rect width="60" height="30" fill="#012169"/>
+                <path d="M0,0 L60,30 M60,0 L0,30" stroke="#FFF" strokeWidth="6"/>
+                <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" strokeWidth="4" clipPath="url(#t)"/>
+                <clipPath id="t"><path d="M30,0 V15 H60 V0zM30,30 V15 H0 V30z"/></clipPath>
+                <path d="M30,0 V30 M0,15 H60" stroke="#FFF" strokeWidth="10"/>
+                <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" strokeWidth="6"/>
+              </svg>
+            )},
           ].map((lang) => {
             const isActive = i18n.language?.startsWith(lang.code)
             return (
               <button key={lang.code} onClick={() => handleLanguageChange(lang.code)}
                 className="flex items-center gap-3 px-4 py-4 rounded-2xl transition-all border-2"
                 style={isActive ? { borderColor: '#5B6BF5', background: '#EEF0FF' } : { borderColor: '#F0F0F0' }}>
-                <span className="text-2xl">{lang.flag}</span>
+                <span className="flex-shrink-0">{lang.flag}</span>
                 <span className={`text-sm font-semibold ${isActive ? 'text-[#5B6BF5]' : 'text-[#1A1A2E]'}`}>{lang.label}</span>
                 {isActive && (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="ml-auto">

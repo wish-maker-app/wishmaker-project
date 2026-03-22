@@ -17,9 +17,9 @@ export function useMessages(conversationId = null) {
       .from('conversations')
       .select(`
         *,
-        wish:wishes(id, titre, statut),
-        wisher:users!wisher_id(id, prenom, nom, pseudo, avatar_url, is_online),
-        maker:users!maker_id(id, prenom, nom, pseudo, avatar_url, is_online),
+        wish:wishes(id, titre, statut, type_recompense, montant_recompense, wish_images(url, is_cover)),
+        wisher:users!wisher_id(id, prenom, nom, pseudo, avatar_url, is_online, rating),
+        maker:users!maker_id(id, prenom, nom, pseudo, avatar_url, is_online, rating),
         messages(contenu, created_at, is_read, sender_id)
       `)
       .or(`wisher_id.eq.${user.id},maker_id.eq.${user.id}`)

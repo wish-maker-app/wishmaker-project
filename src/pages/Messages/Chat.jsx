@@ -176,7 +176,7 @@ export default function Chat() {
     }
   }
 
-  const interlocuteurName = interlocuteur.pseudo ? `@${interlocuteur.pseudo}` : interlocuteur.prenom
+  const interlocuteurName = interlocuteur.pseudo || interlocuteur.prenom
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
@@ -189,7 +189,7 @@ export default function Chat() {
           </svg>
         </button>
         <div className="relative flex-shrink-0">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs"
+          <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs border border-[#E8E8E8]"
             style={{ background: 'linear-gradient(135deg,#8A8A9A,#B0B0B0)' }}>
             {interlocuteur?.prenom?.[0]}{interlocuteur?.nom?.[0]}
           </div>
@@ -198,12 +198,19 @@ export default function Chat() {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-bold text-[#1A1A2E] truncate">
-            {interlocuteur.pseudo ? `@${interlocuteur.pseudo}` : `@user_${(interlocuteur.id || '0000').slice(0, 4)}`}
-          </p>
-          {wishTitre && (
-            <p className="text-[11px] text-[#8A8A9A] italic truncate">{wishTitre}</p>
-          )}
+          <div className="flex items-center gap-1.5">
+            <p className="text-[15px] font-bold text-[#1A1A2E] truncate">
+              {interlocuteur.pseudo || `user_${(interlocuteur.id || '0000').slice(0, 4)}`}
+            </p>
+            {interlocuteur.rating > 0 && (
+              <span className="flex items-center gap-0.5 text-xs font-semibold text-[#F59E0B]">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                {Number(interlocuteur.rating).toFixed(1)}
+              </span>
+            )}
+          </div>
           <p className="text-[11px] text-[#8A8A9A]">
             {interlocuteur.is_online ? 'En ligne' : 'Hors ligne'}
           </p>
@@ -216,6 +223,37 @@ export default function Chat() {
           </svg>
         </button>
       </div>
+
+      {/* Encart récap du voeu */}
+      {convData?.wish && (
+        <div
+          onClick={() => navigate(`/maker/wish/${convData.wish.id}${isWisher ? '?owner=1' : ''}`)}
+          className="bg-white px-4 py-3 border-b border-[#F0F0F0] flex items-center gap-3 cursor-pointer active:bg-[#F9F9FB] transition-colors"
+        >
+          {convData.wish.wish_images?.[0]?.url ? (
+            <img src={convData.wish.wish_images[0].url} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+          ) : (
+            <div className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center bg-[#EEF0FF]">
+              <span className="text-lg">✨</span>
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-[#1A1A2E] truncate">{convData.wish.titre}</p>
+            {convData.wish.type_recompense && (
+              <p className="text-xs font-bold mt-0.5" style={{
+                color: convData.wish.type_recompense === 'argent' ? '#059669' : '#3B82F6'
+              }}>
+                {convData.wish.type_recompense === 'argent'
+                  ? `${convData.wish.montant_recompense ? convData.wish.montant_recompense + ' €' : 'Argent'}`
+                  : 'Bon procédé'}
+              </p>
+            )}
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
+            <path d="M9 18l6-6-6-6" stroke="#8A8A9A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      )}
 
       {/* Bannière statut réalisé */}
       {wishStatut === 'realise' && (
