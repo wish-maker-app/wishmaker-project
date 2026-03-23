@@ -30,17 +30,16 @@ html, body, #root {
 }
 
 /* ─── PWA standalone mode (iOS safe areas) ─── */
-@supports (padding-top: env(safe-area-inset-top)) {
-  body {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-}
-
 @media all and (display-mode: standalone) {
-  html, body, #root {
-    min-height: 100dvh;
-    height: auto;
+  html, body {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  #root {
+    height: 100dvh;
+    min-height: unset;
+    overflow-y: auto;
   }
 
   /* Fix h-screen sur iOS PWA — utilise dvh au lieu de vh */
@@ -69,6 +68,9 @@ body {
   background: white;
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.15);
   overflow-x: hidden;
+  /* Safe area top sur #root (fond blanc = invisible, contrairement à body gris) */
+  padding-top: env(safe-area-inset-top, 0px);
+  box-sizing: border-box;
 }
 
 /* ─── Overlays : contraints dans le shell 430px ─── */
