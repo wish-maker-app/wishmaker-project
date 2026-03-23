@@ -46,6 +46,20 @@ export function useWishes() {
     return (data || []).map(normalizeWish)
   }
 
+  async function getWishesByUser(userId) {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('wishes')
+      .select(`*, wish_images(url, is_cover), wish_tags(tag), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
+      .eq('wisher_id', userId)
+      .eq('statut', 'en_attente')
+      .order('created_at', { ascending: false })
+
+    setLoading(false)
+    if (error) throw error
+    return (data || []).map(normalizeWish)
+  }
+
   async function getWishById(id) {
     setLoading(true)
     const { data, error } = await supabase
@@ -163,5 +177,5 @@ export function useWishes() {
     if (error) throw error
   }
 
-  return { loading, getMyWishes, getAvailableWishes, getWishById, createWish, updateWishStatus, extendWish, makeUrgent, markWishRealized, submitRating, getUserRating, deleteWish }
+  return { loading, getMyWishes, getAvailableWishes, getWishesByUser, getWishById, createWish, updateWishStatus, extendWish, makeUrgent, markWishRealized, submitRating, getUserRating, deleteWish }
 }

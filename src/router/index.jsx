@@ -38,6 +38,7 @@ const MakerHome   = lazy(() => import('../pages/Maker/Home'))
 const MakerSearch = lazy(() => import('../pages/Maker/Search'))
 const MakerFilters = lazy(() => import('../pages/Maker/Filters'))
 const WishDetail  = lazy(() => import('../pages/Maker/WishDetail'))
+const UserWishes  = lazy(() => import('../pages/Maker/UserWishes'))
 const MakerSuccess = lazy(() => import('../pages/Maker/Success'))
 
 // Messages
@@ -146,6 +147,7 @@ const router = createBrowserRouter([
       { path: '/maker/search',        element: <Suspense fallback={<PageLoader />}><MakerSearch /></Suspense> },
       { path: '/maker/filters',       element: <Suspense fallback={<PageLoader />}><MakerFilters /></Suspense> },
       { path: '/maker/wish/:id',      element: <Suspense fallback={<PageLoader />}><WishDetail /></Suspense> },
+      { path: '/maker/user/:userId',  element: <Suspense fallback={<PageLoader />}><UserWishes /></Suspense> },
       { path: '/maker/success',       element: <Suspense fallback={<PageLoader />}><MakerSuccess /></Suspense> },
 
       // Messages

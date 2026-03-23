@@ -372,31 +372,28 @@ export default function WishDetail() {
         <p className="text-[#4A4A5A] text-sm leading-relaxed">{wish.description}</p>
 
         {/* Wisher */}
-        <div className="flex items-center gap-3 p-4 rounded-2xl bg-[#F7F8FC]">
+        <div
+          onClick={() => !isOwner && navigate(`/maker/user/${wish.wisher.id}`)}
+          className={`flex items-center gap-3 p-4 rounded-2xl bg-[#F7F8FC] ${!isOwner ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}`}
+        >
           <Avatar user={wish.wisher} />
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-[#1A1A2E] text-sm">{wish.wisher.prenom} {wish.wisher.nom}</p>
+            <p className="font-bold text-[#1A1A2E] text-sm">{wish.wisher.prenom}</p>
             <p className="text-xs text-[#8A8A9A]">
               {wish.wisher.pseudo || `user_${(wish.wisher.id || '0000').slice(0, 4)}`}
             </p>
           </div>
-          <button
-            onClick={handleMessage}
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: '#EEF0FF' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"
-                stroke="#5B6BF5" strokeWidth="2" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          <button
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: '#E6FBF0' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.86 9.5a19.79 19.79 0 01-3.07-8.67A2 2 0 012.77 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.14a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 15.16z"
-                stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
+          {!isOwner && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleMessage() }}
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ background: '#EEF0FF' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"
+                    stroke="#5B6BF5" strokeWidth="2" strokeLinejoin="round"/>
+                </svg>
+              </button>
+          )}
         </div>
 
         {/* Mots clefs */}
@@ -513,7 +510,7 @@ export default function WishDetail() {
                   )}
                 </div>
                 <p className="text-sm text-[#8A8A9A]">
-                  Message à <span className="font-semibold text-[#1A1A2E]">{wish.wisher?.prenom}</span>
+                  Message à <span className="font-semibold text-[#5B6BF5]">{wish.wisher?.pseudo || `user_${(wish.wisher?.id || '0000').slice(0, 4)}`}</span>
                 </p>
               </div>
 

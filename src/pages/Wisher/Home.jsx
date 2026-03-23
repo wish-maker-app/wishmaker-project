@@ -106,12 +106,8 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
         {coverUrl && (
           <div className="relative h-[140px] bg-[#F0F0F5]">
             <img src={coverUrl} alt="" className="w-full h-full object-cover" />
-            <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full"
-              style={{ background: s.bg, color: s.color }}>
-              {statusLabel[wish.statut]}
-            </span>
             {wish.is_urgent && (
-              <span className="absolute top-11 left-2.5 text-[10px] font-bold px-2 py-1 rounded-full"
+              <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-1 rounded-full"
                 style={{ background: '#FFF4E0', color: '#F59E0B' }}>
                 URGENT
               </span>
@@ -145,40 +141,6 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
           </div>
         )}
 
-        {wish.type_recompense && (
-          <div className="mb-3">
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
-              style={wish.type_recompense === 'argent'
-                ? { background: '#ECFDF5', color: '#059669' }
-                : { background: '#EFF6FF', color: '#3B82F6' }
-              }>
-              {wish.type_recompense === 'argent'
-                ? `💰 ${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
-                : '🤝 Bon procédé'}
-            </span>
-          </div>
-        )}
-
-        {wish.tags?.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {wish.tags.map((tag) => (
-              <span key={tag} className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
-                style={{ background: '#EEF0FF', color: '#5B6BF5' }}>
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between text-xs text-[#8A8A9A]">
-          <div className="flex items-center gap-1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="#8A8A9A">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-            </svg>
-            {wish.adresse}
-          </div>
-          <span>{timeAgo(wish.created_at)}</span>
-        </div>
         </div>
       </div>
 

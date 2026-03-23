@@ -98,6 +98,7 @@ export default function EditProfile() {
   const [nom, setNom] = useState(profile?.nom || '')
   const [prenom, setPrenom] = useState(profile?.prenom || '')
   const [pseudo, setPseudo] = useState(profile?.pseudo || '')
+  const [typeCompte, setTypeCompte] = useState(profile?.type_compte || 'particulier')
   const [localisation, setLocalisation] = useState(profile?.ville || '')
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -138,6 +139,7 @@ export default function EditProfile() {
     nom !== (profile.nom || '') ||
     prenom !== (profile.prenom || '') ||
     pseudo !== (profile.pseudo || '') ||
+    typeCompte !== (profile.type_compte || 'particulier') ||
     localisation !== (profile.ville || '')
 
   // ── Upload image helper ──
@@ -200,6 +202,7 @@ export default function EditProfile() {
         nom: nom.trim(),
         prenom: prenom.trim(),
         pseudo: pseudo.trim() || null,
+        type_compte: typeCompte,
         ville: localisation.trim() || null,
       }
       const { error } = await supabase.from('users').update(updates).eq('id', profile.id)
@@ -257,6 +260,29 @@ export default function EditProfile() {
           <FormField label="Prénom" value={prenom} onChange={setPrenom} placeholder="Votre prénom" />
           <FormField label="Nom" value={nom} onChange={setNom} placeholder="Votre nom" />
           <FormField label="Pseudo" value={pseudo} onChange={(v) => setPseudo(v.replace(/[^a-zA-Z0-9_]/g, ''))} placeholder="Votre pseudo (ex: john_doe)" />
+
+          {/* Toggle type de compte */}
+          <div className="mb-4">
+            <label className="text-[13px] font-medium text-[#8A8A9A] mb-1.5 block">Type de compte</label>
+            <div className="flex bg-[#F0F0F5] rounded-full p-1">
+              {['particulier', 'pro'].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setTypeCompte(type)}
+                  className="flex-1 py-2.5 rounded-full text-sm font-semibold transition-all"
+                  style={typeCompte === type
+                    ? type === 'pro'
+                      ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
+                      : { background: '#fff', color: '#1A1A2E', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }
+                    : { color: '#8A8A9A' }
+                  }
+                >
+                  {type === 'pro' ? 'Professionnel' : 'Particulier'}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <FormField label="E-mail" value={profile.email || ''} onChange={() => {}} disabled placeholder="E-mail" />
 
           {/* Localisation avec autocomplétion */}

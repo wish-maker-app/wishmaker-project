@@ -29,6 +29,29 @@ html, body, #root {
   padding: 0;
 }
 
+/* ─── PWA standalone mode (iOS safe areas) ─── */
+@supports (padding-top: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media all and (display-mode: standalone) {
+  html, body, #root {
+    min-height: 100dvh;
+    height: auto;
+  }
+
+  /* Fix h-screen sur iOS PWA — utilise dvh au lieu de vh */
+  .h-screen {
+    height: 100dvh !important;
+  }
+  .min-h-screen {
+    min-height: 100dvh !important;
+  }
+}
+
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   background: #F0F0F0;
@@ -54,6 +77,10 @@ body {
   max-width: 430px;
   margin-left: auto;
   margin-right: auto;
+}
+
+.bottom-sheet {
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 /* ─── Scrollbar discrète ─── */
