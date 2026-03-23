@@ -1,5 +1,24 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+
+// Fix iOS PWA : empêche la navigation de sortir du mode standalone
+if ('standalone' in navigator && navigator.standalone) {
+  document.addEventListener('click', (e) => {
+    let node = e.target
+    while (node) {
+      if (node.nodeName === 'A' && node.href) {
+        const url = new URL(node.href)
+        if (url.origin === window.location.origin) {
+          e.preventDefault()
+          history.pushState(null, '', url.pathname + url.search + url.hash)
+          window.dispatchEvent(new PopStateEvent('popstate'))
+        }
+        break
+      }
+      node = node.parentNode
+    }
+  }, false)
+}
 import { RouterProvider } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import router from './router'
