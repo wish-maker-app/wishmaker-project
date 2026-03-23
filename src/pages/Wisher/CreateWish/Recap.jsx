@@ -91,8 +91,8 @@ export default function Recap() {
                     : { background: '#EFF6FF', color: '#3B82F6' }
                   }>
                   {recompenseType === 'argent'
-                    ? `💰 ${montant ? montant + '€' : 'Argent'}`
-                    : '🤝 Bon procédé'}
+                    ? `${montant ? montant + '€' : 'Argent'}`
+                    : 'Bon procédé'}
                 </span>
               )}
               {tags.map((tag) => (
@@ -141,7 +141,7 @@ export default function Recap() {
                     : { border: '1.5px solid #E8E8E8', color: '#8A8A9A' }
                   }
                 >
-                  {type === 'argent' ? '💰 Argent' : '🤝 Bon procédé'}
+                  {type === 'argent' ? 'Argent' : 'Bon procédé'}
                 </button>
               ))}
             </div>

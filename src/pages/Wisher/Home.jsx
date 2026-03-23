@@ -69,14 +69,6 @@ function ConfirmModal({ open, onClose, title, description, price, buttonLabel, o
 function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
-  const statusLabel = { en_attente: 'En attente', en_cours: 'En cours', terminé: 'Terminé', annule: 'Annulé' }
-  const statusStyle = {
-    en_attente: { bg: '#EEF0FF', color: '#5B6BF5' },
-    en_cours:   { bg: '#FFF4E0', color: '#F59E0B' },
-    terminé:    { bg: '#E6FBF0', color: '#22C55E' },
-    annule:     { bg: '#FFF0F0', color: '#EF4444' },
-  }
-  const s = statusStyle[wish.statut] || statusStyle.en_attente
   const exp = expirationInfo(wish.expires_at)
   const isActive = wish.statut === 'en_attente' || wish.statut === 'en_cours'
   const coverUrl = wish.images?.[0]?.url || null
@@ -89,7 +81,7 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
       exit={{ opacity: 0, y: -8 }}
       className="bg-white rounded-[20px] overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] relative"
     >
-      {/* Menu 3 points — toujours en haut à droite par-dessus tout */}
+      {/* Menu 3 points */}
       <button
         onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
         className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center bg-white/80 backdrop-blur-sm shadow-sm"
@@ -100,6 +92,33 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
           <circle cx="12" cy="19" r="2"/>
         </svg>
       </button>
+
+      {/* Menu déroulant */}
+      <AnimatePresence>
+        {menuOpen && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[50]" onClick={() => setMenuOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-4 top-12 bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] z-[51] overflow-hidden min-w-[160px]"
+            >
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(wish) }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#EF4444] hover:bg-red-50 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="#EF4444" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Supprimer
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <div onClick={() => navigate(`/maker/wish/${wish.id}?owner=1`)} className="active:scale-[0.99] transition-transform cursor-pointer">
         {/* Photo de couverture */}
@@ -115,93 +134,40 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
           </div>
         )}
         <div className="p-4">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <h3 className="font-bold text-[#1A1A2E] text-base leading-snug flex-1">{wish.titre}</h3>
-          {!coverUrl && (
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {wish.is_urgent && (
-                <span className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: '#FFF4E0', color: '#F59E0B' }}>
-                  URGENT
-                </span>
-              )}
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                style={{ background: s.bg, color: s.color }}>
-                {statusLabel[wish.statut]}
-              </span>
+          <h3 className="font-bold text-[#1A1A2E] text-base leading-snug mb-1">{wish.titre}</h3>
+          <p className="text-[#8A8A9A] text-xs leading-relaxed line-clamp-2 mb-3">{wish.description}</p>
+
+          {exp && isActive && (
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: exp.color }} />
+              <span className="text-xs font-semibold" style={{ color: exp.color }}>{exp.label}</span>
             </div>
           )}
         </div>
-
-        <p className="text-[#8A8A9A] text-xs leading-relaxed line-clamp-2 mb-3">{wish.description}</p>
-
-        {exp && isActive && (
-          <div className="flex items-center gap-1.5 mb-3">
-            <span className="w-2 h-2 rounded-full" style={{ background: exp.color }} />
-            <span className="text-xs font-semibold" style={{ color: exp.color }}>{exp.label}</span>
-          </div>
-        )}
-
-        </div>
       </div>
 
-      {/* Menu déroulant 3 points */}
-      <AnimatePresence>
-        {menuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[50]"
-              onClick={() => setMenuOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: -4 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: -4 }}
-              transition={{ duration: 0.15 }}
-              className="absolute right-4 top-12 bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] z-[51] overflow-hidden min-w-[180px]"
+      {/* CTA Buttons — visibles en bas de la carte */}
+      {isActive && (
+        <div className="px-4 pb-4 flex items-center gap-2">
+          {!wish.is_extended && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onExtend(wish) }}
+              className="flex-1 h-10 rounded-full text-xs font-bold flex items-center justify-center border border-[#5B6BF5] text-[#5B6BF5] active:scale-[0.97] transition-transform"
             >
-              {isActive && (
-                <>
-                  {!wish.is_extended && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onExtend(wish) }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#1A1A2E] hover:bg-[#F5F5F7] transition-colors"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="9" stroke="#8A8A9A" strokeWidth="1.8"/>
-                        <path d="M12 7v5l3 3" stroke="#8A8A9A" strokeWidth="1.8" strokeLinecap="round"/>
-                      </svg>
-                      Prolonger
-                    </button>
-                  )}
-                  {!wish.is_urgent && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMakeUrgent(wish) }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#F59E0B] hover:bg-[#F5F5F7] transition-colors"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      Mettre en Urgent
-                    </button>
-                  )}
-                </>
-              )}
-              <button
-                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(wish) }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#EF4444] hover:bg-red-50 transition-colors"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="#EF4444" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Supprimer
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              Prolonger
+            </button>
+          )}
+          {!wish.is_urgent && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onMakeUrgent(wish) }}
+              className="flex-1 h-10 rounded-full text-xs font-bold flex items-center justify-center text-white active:scale-[0.97] transition-transform"
+              style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}
+            >
+              Mettre en Urgent
+            </button>
+          )}
+        </div>
+      )}
     </motion.div>
   )
 }

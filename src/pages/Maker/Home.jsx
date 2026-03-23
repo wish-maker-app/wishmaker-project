@@ -331,7 +331,7 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
         {wish.is_urgent && (
           <span className="absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full"
             style={{ background: '#FFF4E0', color: '#F59E0B' }}>
-            ⚡ URGENT
+            URGENT
           </span>
         )}
       </div>
@@ -355,8 +355,8 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
                 : { background: '#EFF6FF', color: '#3B82F6' }
               }>
               {wish.type_recompense === 'argent'
-                ? `💰 ${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
-                : '🤝 Bon procédé'}
+                ? `${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
+                : 'Bon procédé'}
             </span>
           )}
         </div>

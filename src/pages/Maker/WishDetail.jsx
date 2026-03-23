@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Circle, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useTranslation } from 'react-i18next'
@@ -22,13 +22,30 @@ L.Icon.Default.mergeOptions({
 })
 
 const pinIcon = L.divIcon({
-  html: `<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#5B6BF5,#9B59F5);border:3px solid white;box-shadow:0 2px 8px rgba(91,107,245,0.5);"></div>`,
+  html: `<div style="width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#5B6BF5,#9B59F5);border:2px solid white;box-shadow:0 2px 6px rgba(91,107,245,0.4);"></div>`,
   className: '',
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
 })
 
-function StaticMap({ lat, lng }) {
+// Génère des coordonnées floues déterministes basées sur l'ID du vœu
+function seededRandom(seed) {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) {
+    h = ((h << 5) - h + seed.charCodeAt(i)) | 0
+  }
+  return ((h & 0x7fffffff) % 10000) / 10000
+}
+
+function fuzzyCoordinates(lat, lng, id, radiusMeters = 400) {
+  const latOffset = (seededRandom(id + 'lat') - 0.5) * (radiusMeters / 111320)
+  const lngOffset = (seededRandom(id + 'lng') - 0.5) * (radiusMeters / (111320 * Math.cos(lat * Math.PI / 180)))
+  return [lat + latOffset, lng + lngOffset]
+}
+
+function StaticMap({ lat, lng, wishId }) {
+  const [fuzzyLat, fuzzyLng] = fuzzyCoordinates(lat, lng, wishId)
+
   function MapSetup() {
     const map = useMap()
     useEffect(() => {
@@ -43,15 +60,20 @@ function StaticMap({ lat, lng }) {
 
   return (
     <MapContainer
-      center={[lat, lng]}
-      zoom={14}
+      center={[fuzzyLat, fuzzyLng]}
+      zoom={13}
       zoomControl={false}
       style={{ width: '100%', height: '100%' }}
       attributionControl={false}
     >
       <MapSetup />
       <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
-      <Marker position={[lat, lng]} icon={pinIcon} />
+      <Circle
+        center={[fuzzyLat, fuzzyLng]}
+        radius={400}
+        pathOptions={{ color: '#5B6BF5', fillColor: '#5B6BF5', fillOpacity: 0.12, weight: 2 }}
+      />
+      <Marker position={[fuzzyLat, fuzzyLng]} icon={pinIcon} />
     </MapContainer>
   )
 }
@@ -189,6 +211,7 @@ export default function WishDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showProposal, setShowProposal] = useState(false)
+  const [showFullMap, setShowFullMap] = useState(false)
   const [proposalMsg, setProposalMsg] = useState('')
   const [sendingProposal, setSendingProposal] = useState(false)
 
@@ -361,8 +384,8 @@ export default function WishDetail() {
                   : { background: '#EFF6FF', color: '#3B82F6' }
                 }>
                 {wish.type_recompense === 'argent'
-                  ? `💰 ${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
-                  : '🤝 Bon procédé'}
+                  ? `${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
+                  : 'Bon procédé'}
               </span>
             </div>
           )}
@@ -429,22 +452,23 @@ export default function WishDetail() {
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-bold text-[#1A1A2E]">Localisation</p>
             <button
-              onClick={() => openGoogleMaps(wish.latitude, wish.longitude)}
+              onClick={() => {
+                const [fLat, fLng] = fuzzyCoordinates(wish.latitude, wish.longitude, wish.id, 300)
+                window.open(`https://www.google.com/maps?q=${fLat},${fLng}`, '_blank')
+              }}
               className="text-xs font-semibold text-[#5B6BF5]">
-              {t('maker.detail.ouvrir_map')}
+              Ouvrir dans Maps
             </button>
           </div>
 
-          <div className="rounded-2xl overflow-hidden border border-[#E8E8E8]" style={{ height: 160 }}>
-            <StaticMap lat={wish.latitude} lng={wish.longitude} />
+          <div
+            onClick={() => setShowFullMap(true)}
+            className="rounded-2xl overflow-hidden border border-[#E8E8E8] cursor-pointer active:scale-[0.99] transition-transform"
+            style={{ height: 160 }}>
+            <StaticMap lat={wish.latitude} lng={wish.longitude} wishId={wish.id} />
           </div>
 
-          <div className="flex items-center gap-2 mt-3">
-            <svg width="14" height="14" fill="#5B6BF5" viewBox="0 0 24 24">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-            </svg>
-            <p className="text-xs text-[#8A8A9A] font-medium">{wish.adresse}</p>
-          </div>
+          <p className="text-xs text-[#8A8A9A] font-medium mt-3">Localisation approximative · {wish.adresse}</p>
         </div>
 
         {/* CTA — masqué si c'est ton propre vœu */}
@@ -490,8 +514,8 @@ export default function WishDetail() {
                         : { background: '#EFF6FF', color: '#3B82F6' }
                       }>
                       {wish.type_recompense === 'argent'
-                        ? `💰 ${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
-                        : '🤝 Bon procédé'}
+                        ? `${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
+                        : 'Bon procédé'}
                     </span>
                   )}
                 </div>
@@ -613,6 +637,63 @@ export default function WishDetail() {
               toast.success('Signalement envoyé, merci !')
             }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Carte plein écran */}
+      <AnimatePresence>
+        {showFullMap && wish && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-[950]"
+              onClick={() => setShowFullMap(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="fixed inset-0 z-[951] bg-white flex flex-col"
+            >
+              {/* Header carte */}
+              <div className="flex items-center justify-between px-4 pt-14 pb-3 bg-white border-b border-[#F0F0F0]">
+                <button onClick={() => setShowFullMap(false)} className="w-10 h-10 flex items-center justify-center">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <path d="M18 6L6 18M6 6l12 12" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </button>
+                <p className="text-sm font-bold text-[#1A1A2E]">Localisation approximative</p>
+                <div className="w-10" />
+              </div>
+              {/* Carte interactive */}
+              <div className="flex-1">
+                {(() => {
+                  const [fLat, fLng] = fuzzyCoordinates(wish.latitude, wish.longitude, wish.id)
+                  return (
+                    <MapContainer
+                      center={[fLat, fLng]}
+                      zoom={14}
+                      zoomControl={false}
+                      style={{ width: '100%', height: '100%' }}
+                      attributionControl={false}
+                    >
+                      <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+                      <Circle
+                        center={[fLat, fLng]}
+                        radius={400}
+                        pathOptions={{ color: '#5B6BF5', fillColor: '#5B6BF5', fillOpacity: 0.12, weight: 2 }}
+                      />
+                      <Marker position={[fLat, fLng]} icon={pinIcon} />
+                    </MapContainer>
+                  )
+                })()}
+              </div>
+              {/* Adresse en bas */}
+              <div className="px-5 py-4 bg-white border-t border-[#F0F0F0]">
+                <p className="text-sm font-medium text-[#1A1A2E]">{wish.adresse}</p>
+                <p className="text-xs text-[#8A8A9A] mt-1">Localisation approximative · Zone de ~400m</p>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 

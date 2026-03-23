@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import BottomTabBar from '../../components/layout/BottomTabBar'
@@ -23,71 +23,63 @@ function distanceLabel(lat1, lng1, lat2, lng2) {
   return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`
 }
 
-function WishCard({ wish, index, userLat, userLng, onClick }) {
+function SmallAvatar({ user, size = 24 }) {
+  const initials = `${user?.prenom?.[0] || ''}${user?.nom?.[0] || ''}`
+  if (user?.avatar_url) {
+    return (
+      <img src={user.avatar_url} alt="" className="rounded-full object-cover flex-shrink-0"
+        style={{ width: size, height: size }} />
+    )
+  }
+  return (
+    <div className="rounded-full flex items-center justify-center flex-shrink-0 font-bold text-white"
+      style={{ width: size, height: size, fontSize: size * 0.35, background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>
+      {initials}
+    </div>
+  )
+}
+
+function WishGridCard({ wish, userLat, userLng, onClick }) {
   const coverUrl = wish.images?.[0]?.url || null
   const dist = distanceLabel(userLat, userLng, wish.latitude, wish.longitude)
-  const isRealise = wish.statut === 'realise'
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08 }}
+      exit={{ opacity: 0 }}
       onClick={onClick}
-      className="bg-white rounded-[18px] overflow-hidden shadow-[0_2px_12px_rgba(30,20,60,0.07)] cursor-pointer active:scale-[0.98] transition-transform"
+      className="bg-white rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] active:scale-[0.98] transition-transform cursor-pointer"
     >
-      {/* Image */}
-      <div className="relative h-[180px] overflow-hidden bg-[#F0F0F5]">
+      {/* Cover image + avatar overlay */}
+      <div className="relative aspect-[4/3] bg-[#F0F0F5]">
         {coverUrl ? (
           <img src={coverUrl} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-[40px]"
-            style={{ background: 'linear-gradient(135deg, #E8E5FF, #D4CFFF)' }}>
-            ✨
-          </div>
+          <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }} />
         )}
-
-        {/* Tag overlay */}
-        {wish.tags?.[0] && (
-          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-[8px] px-3 py-1 rounded-full text-[11px] font-semibold text-[#5B6BF5] tracking-wide">
-            {wish.tags[0]}
-          </div>
-        )}
-
-        {/* Status réalisé */}
-        {isRealise && (
-          <div className="absolute top-3 right-3 bg-[rgba(39,174,96,0.9)] backdrop-blur-[8px] px-3 py-1 rounded-full text-[11px] font-semibold text-white">
-            Réalisé ✓
-          </div>
-        )}
-
-        {/* Gradient overlay bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-[60px]"
-          style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.35))' }} />
-
-        {/* Price badge */}
-        {wish.type_recompense && (
-          <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-[8px] px-3.5 py-1.5 rounded-full text-[15px] font-bold text-[#1A1A2E] shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
-            {wish.type_recompense === 'argent'
-              ? `${wish.montant_recompense || 0}€`
-              : '🤝'}
+        {/* Avatar + prénom en overlay */}
+        {wish.wisher && (
+          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full pr-2.5 pl-0.5 py-0.5">
+            <SmallAvatar user={wish.wisher} size={24} />
+            <span className="text-white text-[11px] font-medium">{wish.wisher.prenom}</span>
           </div>
         )}
       </div>
 
-      {/* Content */}
-      <div className="px-4 pt-3.5 pb-4">
-        <div className="flex justify-between items-start mb-1">
-          <h3 className="font-bold text-[#1A1A2E] text-[16px] leading-snug flex-1 m-0">{wish.titre}</h3>
-          <span className="text-[11px] text-[#AAA] whitespace-nowrap ml-2 mt-0.5">{timeAgo(wish.created_at)}</span>
+      {/* Contenu texte */}
+      <div className="p-3">
+        <div className="flex items-start justify-between gap-1 mb-1">
+          <h3 className="font-bold text-[#1A1A2E] text-[13px] leading-snug line-clamp-1 flex-1">{wish.titre}</h3>
+          <span className="text-[10px] text-[#8A8A9A] flex-shrink-0 pt-0.5">{timeAgo(wish.created_at)}</span>
         </div>
-        <p className="text-[13px] text-[#888] leading-relaxed line-clamp-2 mb-2.5">{wish.description}</p>
-        <div className="flex items-center gap-1.5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B6BF5" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-            <circle cx="12" cy="10" r="3" />
+        <p className="text-[#8A8A9A] text-[11px] leading-relaxed line-clamp-3 mb-2.5">{wish.description}</p>
+        <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#5B6BF5"/>
+            <circle cx="12" cy="9" r="2.5" fill="white"/>
           </svg>
-          <span className="text-[13px] font-medium text-[#5B6BF5]">{dist}</span>
+          {dist}
         </div>
       </div>
     </motion.div>
@@ -101,6 +93,18 @@ export default function UserWishes() {
   const { getWishesByUser, loading } = useWishes()
   const [wishes, setWishes] = useState([])
   const [userData, setUserData] = useState(null)
+  const [userLocation, setUserLocation] = useState(null)
+
+  // Géolocalisation en temps réel
+  useEffect(() => {
+    if (!navigator.geolocation) return
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    )
+    return () => navigator.geolocation.clearWatch(watchId)
+  }, [])
 
   useEffect(() => {
     getWishesByUser(userId).then(setWishes).catch(() => {})
@@ -108,8 +112,8 @@ export default function UserWishes() {
       .then(({ data }) => setUserData(data))
   }, [userId])
 
-  const userLat = profile?.latitude || 43.6047
-  const userLng = profile?.longitude || 1.4442
+  const userLat = userLocation?.[0] || profile?.latitude || 43.6047
+  const userLng = userLocation?.[1] || profile?.longitude || 1.4442
 
   const realiseCount = wishes.filter(w => w.statut === 'realise').length
   const activeWishes = wishes.filter(w => w.statut !== 'realise' && w.statut !== 'annule')
@@ -199,23 +203,24 @@ export default function UserWishes() {
         </h2>
       </div>
 
-      {/* Wish cards */}
-      <div className="px-5 flex flex-col gap-4">
+      {/* Wish cards — grille 2 colonnes */}
+      <div className="px-5">
         {loading ? (
           <div className="flex items-center justify-center py-10">
             <div className="w-6 h-6 rounded-full border-[3px] border-[#5B6BF5] border-t-transparent animate-spin" />
           </div>
         ) : activeWishes.length > 0 ? (
-          activeWishes.map((wish, i) => (
-            <WishCard
-              key={wish.id}
-              wish={wish}
-              index={i}
-              userLat={userLat}
-              userLng={userLng}
-              onClick={() => navigate(`/maker/wish/${wish.id}`)}
-            />
-          ))
+          <div className="grid grid-cols-2 gap-3">
+            {activeWishes.map((wish) => (
+              <WishGridCard
+                key={wish.id}
+                wish={wish}
+                userLat={userLat}
+                userLng={userLng}
+                onClick={() => navigate(`/maker/wish/${wish.id}`)}
+              />
+            ))}
+          </div>
         ) : (
           <motion.div
             initial={{ opacity: 0 }}
