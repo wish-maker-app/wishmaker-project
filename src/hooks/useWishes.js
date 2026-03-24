@@ -132,9 +132,19 @@ export function useWishes() {
   }
 
   async function makeUrgent(wishId) {
+    // Récupérer expires_at du vœu pour que urgent_until = expires_at
+    const { data: wish, error: fetchError } = await supabase
+      .from('wishes')
+      .select('expires_at')
+      .eq('id', wishId)
+      .single()
+    if (fetchError) throw fetchError
+
+    const urgentUntil = wish.expires_at || new Date(Date.now() + 72 * 3600000).toISOString()
+
     const { error } = await supabase
       .from('wishes')
-      .update({ is_urgent: true, urgent_until: new Date(Date.now() + 24 * 3600000).toISOString() })
+      .update({ is_urgent: true, urgent_until: urgentUntil })
       .eq('id', wishId)
       .eq('wisher_id', user.id)
     if (error) throw error

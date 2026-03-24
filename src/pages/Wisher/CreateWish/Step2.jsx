@@ -83,7 +83,7 @@ export default function Step2() {
         className="flex-1 flex flex-col px-5 pt-2 pb-10 gap-5"
       >
         <p className="text-sm text-[#8A8A9A]">
-          Ajoutez jusqu'à 5 photos. La première sera la photo principale.
+          Ajoutez au moins 1 photo (max 5). La première sera la photo principale.
         </p>
 
         {/* Grille de photos */}
@@ -146,15 +146,18 @@ export default function Step2() {
         <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
 
         <div className="mt-auto flex flex-col gap-3">
-          <Button onClick={() => navigate('/wisher/create/3')}>
+          <Button
+            onClick={() => {
+              if (images.length === 0) {
+                toast.error('Ajoutez au moins 1 photo')
+                return
+              }
+              navigate('/wisher/create/3')
+            }}
+            style={{ opacity: images.length === 0 ? 0.5 : 1 }}
+          >
             {t('common.continuer')}
           </Button>
-          {images.length === 0 && (
-            <button onClick={() => navigate('/wisher/create/3')}
-              className="text-sm text-[#8A8A9A] text-center">
-              Passer cette étape
-            </button>
-          )}
         </div>
       </motion.div>
     </div>
