@@ -31,21 +31,18 @@ html, body, #root {
 
 /* ─── PWA standalone mode (iOS safe areas) ─── */
 @media all and (display-mode: standalone) {
-  html {
-    height: 100dvh;
+  html, body {
+    height: 100%;
     overflow: hidden;
-  }
-
-  body {
-    height: 100dvh;
-    overflow-x: hidden;
-    overflow-y: auto;
+    background: #FFFFFF;
   }
 
   #root {
-    min-height: 100%;
-    height: auto;
-    overflow: visible;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Fix h-screen sur iOS PWA — utilise dvh au lieu de vh */
