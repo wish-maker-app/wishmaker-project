@@ -250,7 +250,7 @@ export default function WisherHome() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
+    <div className="h-screen bg-[#FAFAFA] flex flex-col overflow-hidden">
 
       {/* Header */}
       <div className="px-5 pt-8 pb-4 flex items-center justify-between">

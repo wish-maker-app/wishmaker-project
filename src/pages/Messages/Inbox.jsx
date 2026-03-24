@@ -123,7 +123,7 @@ export default function Inbox() {
     )
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col overflow-hidden">
 
       {/* Header */}
       <div className="px-5 pt-8 pb-2">

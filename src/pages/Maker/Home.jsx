@@ -470,7 +470,7 @@ export default function MakerHome() {
     <div className="h-screen bg-white flex flex-col relative overflow-hidden">
 
       {/* Search bar + toggle — toujours au-dessus */}
-      <div className="relative z-[500] px-4 pt-8 pb-2 pointer-events-none">
+      <div className="relative z-[500] px-4 pt-8 pb-2 flex-shrink-0 pointer-events-none">
         {/* Search */}
         <div className="relative flex items-center mb-3 pointer-events-auto">
           <svg className="absolute left-4" width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -507,7 +507,7 @@ export default function MakerHome() {
         </div>
       </div>
 
-      {/* Contenu — même conteneur flex-1 pour les deux vues */}
+      {/* Contenu — prend toute la hauteur */}
       <div className="flex-1 relative z-0 overflow-hidden">
         {view === 'carte' ? (  /* VUE CARTE */
           <>
