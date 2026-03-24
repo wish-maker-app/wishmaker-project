@@ -1,17 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
-import L from 'leaflet'
 import Button from '../../components/ui/Button'
-import { MOCK_WISHES } from '../../data/mock'
-
-// Pin mock pour la carte d'illustration
-const mockIcon = L.divIcon({
-  className: '',
-  html: `<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#5B6BF5,#9B59F5);border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:16px;">✦</div>`,
-  iconSize: [40, 40],
-  iconAnchor: [20, 20],
-})
 
 export default function OnboardingStep3() {
   const navigate = useNavigate()
@@ -24,23 +13,8 @@ export default function OnboardingStep3() {
   return (
     <div className="fixed inset-0 flex flex-col">
 
-      {/* Carte plein écran */}
-      <div className="absolute inset-0">
-        <MapContainer
-          center={[43.6047, 1.4442]}
-          zoom={13}
-          style={{ width: '100%', height: '100%' }}
-          zoomControl={false}
-          attributionControl={false}
-        >
-          <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
-          {MOCK_WISHES.map((w) => (
-            <Marker key={w.id} position={[w.latitude, w.longitude]} icon={mockIcon}>
-              <Popup>{w.titre}</Popup>
-            </Marker>
-          ))}
-        </MapContainer>
-      </div>
+      {/* Image de fond (placeholder pour future belle image) */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#5B6BF5] to-[#9B59F5]" />
 
       {/* Overlay sombre */}
       <div className="absolute inset-0 bg-black/40" />
