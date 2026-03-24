@@ -121,7 +121,7 @@ function WishGridCard({ wish, onClick, userLat, userLng }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       onClick={onClick}
-      className="bg-white rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] active:scale-[0.98] transition-transform cursor-pointer"
+      className="bg-white rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] cursor-pointer"
     >
       {/* Cover image + avatar overlay */}
       <div className="relative aspect-[4/3] bg-[#F0F0F5]">
@@ -169,7 +169,7 @@ function SponsoredCard({ wish, onClick, userLat, userLng }) {
   return (
     <div
       onClick={onClick}
-      className="flex-shrink-0 w-[300px] bg-white rounded-2xl overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.08)] active:scale-[0.98] transition-transform cursor-pointer flex"
+      className="flex-shrink-0 w-[300px] bg-white rounded-2xl overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.08)] cursor-pointer flex"
     >
       {/* Image côté gauche */}
       <div className="w-[120px] flex-shrink-0 bg-[#F0F0F5]">

@@ -49,7 +49,7 @@ function WishGridCard({ wish, userLat, userLng, onClick }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       onClick={onClick}
-      className="bg-white rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] active:scale-[0.98] transition-transform cursor-pointer"
+      className="bg-white rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] cursor-pointer"
     >
       {/* Cover image + avatar overlay */}
       <div className="relative aspect-[4/3] bg-[#F0F0F5]">

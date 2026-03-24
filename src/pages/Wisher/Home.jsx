@@ -120,7 +120,7 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
         )}
       </AnimatePresence>
 
-      <div onClick={() => navigate(`/maker/wish/${wish.id}?owner=1`)} className="active:scale-[0.99] transition-transform cursor-pointer">
+      <div onClick={() => navigate(`/maker/wish/${wish.id}?owner=1`)} className="cursor-pointer">
         {/* Photo de couverture */}
         {coverUrl && (
           <div className="relative h-[140px] bg-[#F0F0F5]">
