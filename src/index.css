@@ -29,31 +29,6 @@ html, body, #root {
   padding: 0;
 }
 
-/* ─── PWA standalone mode (iOS safe areas) ─── */
-@media all and (display-mode: standalone) {
-  html, body {
-    height: 100%;
-    overflow: hidden;
-    background: #FFFFFF;
-  }
-
-  #root {
-    height: 100dvh;
-    min-height: 100dvh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Fix h-screen sur iOS PWA — utilise dvh au lieu de vh */
-  .h-screen {
-    height: 100dvh !important;
-  }
-  .min-h-screen {
-    min-height: 100dvh !important;
-  }
-}
-
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   background: #F0F0F0;
@@ -74,6 +49,39 @@ body {
   /* Safe area top sur #root (fond blanc = invisible, contrairement à body gris) */
   padding-top: env(safe-area-inset-top, 0px);
   box-sizing: border-box;
+}
+
+/* ─── PWA standalone mode (iOS safe areas) ─── */
+@media all and (display-mode: standalone) {
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: #FFFFFF !important;
+  }
+
+  #root {
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: none;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Fix h-screen sur iOS PWA — utilise dvh au lieu de vh */
+  .h-screen {
+    height: 100dvh !important;
+  }
+  .min-h-screen {
+    min-height: 100dvh !important;
+  }
+
+  /* Pages fixed plein écran — couvrir les safe areas */
+  .fixed.inset-0 {
+    height: 100dvh !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 
 /* ─── Overlays : contraints dans le shell 430px ─── */
