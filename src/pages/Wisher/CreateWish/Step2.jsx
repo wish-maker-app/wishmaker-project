@@ -149,12 +149,11 @@ export default function Step2() {
           <Button
             onClick={() => {
               if (images.length === 0) {
-                toast.error('Ajoutez au moins 1 photo')
+                toast.error('Veuillez ajouter une image')
                 return
               }
               navigate('/wisher/create/3')
             }}
-            style={{ opacity: images.length === 0 ? 0.5 : 1 }}
           >
             {t('common.continuer')}
           </Button>
