@@ -39,7 +39,7 @@ export default function Landing() {
       {/* Partie haute */}
       <motion.div
         initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center justify-center px-6 pt-20 pb-10 gap-3"
+        className="flex flex-col items-center justify-center px-6 py-10 gap-3"
         style={{ minHeight: '40vh' }}
       >
         <h1 className="text-white font-bold text-3xl text-center">{t('auth.register_email.titre')}</h1>
