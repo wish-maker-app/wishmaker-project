@@ -18,8 +18,8 @@ export function useMessages(conversationId = null) {
       .select(`
         *,
         wish:wishes(id, titre, statut, type_recompense, montant_recompense, wish_images(url, is_cover)),
-        wisher:users!wisher_id(id, prenom, nom, pseudo, avatar_url, is_online, rating),
-        maker:users!maker_id(id, prenom, nom, pseudo, avatar_url, is_online, rating),
+        wisher:users!wisher_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
+        maker:users!maker_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
         messages(contenu, created_at, is_read, sender_id)
       `)
       .or(`wisher_id.eq.${user.id},maker_id.eq.${user.id}`)

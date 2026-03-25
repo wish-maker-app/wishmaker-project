@@ -31,7 +31,7 @@ export default function Header({ title = '', onBack = null, rightAction = null, 
       )}
 
       {/* Action droite */}
-      <div className="w-10">{rightAction}</div>
+      <div className="min-w-[40px] flex justify-end">{rightAction}</div>
     </div>
   )
 }

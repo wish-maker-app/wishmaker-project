@@ -1,27 +1,17 @@
 import { create } from 'zustand'
 
 const useMakerStore = create((set) => ({
-  // Vue carte ou liste
-  viewMode: 'map', // 'map' | 'list'
-
   // Filtres actifs
-  sortBy: 'pertinence',   // 'pertinence' | 'distance' | 'recent'
-  maxDistance: 25,         // km
-  selectedTags: [],
+  sortBy: null,              // null | 'urgent' | 'distance' | 'recent'
+  maxDistance: 100,           // km (défaut 100km = tout afficher)
+  selectedCategories: [],    // catégories sélectionnées
 
-  // Résultats
-  wishes: [],
-  loading: false,
-
-  setViewMode: (viewMode) => set({ viewMode }),
   setSortBy: (sortBy) => set({ sortBy }),
   setMaxDistance: (maxDistance) => set({ maxDistance }),
-  setSelectedTags: (selectedTags) => set({ selectedTags }),
-  setWishes: (wishes) => set({ wishes }),
-  setLoading: (loading) => set({ loading }),
+  setSelectedCategories: (selectedCategories) => set({ selectedCategories }),
 
   resetFilters: () =>
-    set({ sortBy: 'pertinence', maxDistance: 25, selectedTags: [] }),
+    set({ sortBy: null, maxDistance: 100, selectedCategories: [] }),
 }))
 
 export default useMakerStore

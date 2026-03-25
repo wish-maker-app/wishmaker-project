@@ -68,13 +68,13 @@ function WishGridCard({ wish, userLat, userLng, onClick }) {
       </div>
 
       {/* Contenu texte */}
-      <div className="p-3">
+      <div className="p-3 flex flex-col" style={{ minHeight: 100 }}>
         <div className="flex items-start justify-between gap-1 mb-1">
           <h3 className="font-bold text-[#1A1A2E] text-[13px] leading-snug line-clamp-1 flex-1">{wish.titre}</h3>
           <span className="text-[10px] text-[#8A8A9A] flex-shrink-0 pt-0.5">{timeAgo(wish.created_at)}</span>
         </div>
-        <p className="text-[#8A8A9A] text-[11px] leading-relaxed line-clamp-3 mb-2.5">{wish.description}</p>
-        <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold">
+        <p className="text-[#8A8A9A] text-[11px] leading-relaxed line-clamp-2">{wish.description}</p>
+        <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold mt-auto pt-2">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#5B6BF5"/>
             <circle cx="12" cy="9" r="2.5" fill="white"/>

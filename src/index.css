@@ -151,6 +151,24 @@ input, textarea, select {
   background-clip: text;
 }
 
+/* ─── Safe area iOS pour éléments fixés en bas ─── */
+.safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* ─── Bottom sheets en mode standalone ─── */
+@media all and (display-mode: standalone) {
+  .bottom-sheet {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Modals fixés en bas */
+  form[style*="safe-area"],
+  .fixed.bottom-0 {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 /* ─── Scrollable sans scrollbar visible ─── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

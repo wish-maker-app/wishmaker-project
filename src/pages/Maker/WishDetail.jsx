@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import Header from '../../components/layout/Header'
 import Button from '../../components/ui/Button'
+import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
@@ -79,13 +80,18 @@ function StaticMap({ lat, lng, wishId }) {
 }
 
 function Avatar({ user, size = 48 }) {
-  const initials = `${user.prenom[0]}${user.nom[0]}`
+  const initials = `${user.prenom?.[0] || ''}${user.nom?.[0] || ''}`
   return (
     <div className="relative flex-shrink-0">
-      <div className="rounded-full flex items-center justify-center font-bold text-white"
-        style={{ width: size, height: size, background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', fontSize: size * 0.28 }}>
-        {initials}
-      </div>
+      {user.avatar_url ? (
+        <img src={user.avatar_url} alt="" className="rounded-full object-cover"
+          style={{ width: size, height: size }} />
+      ) : (
+        <div className="rounded-full flex items-center justify-center font-bold text-white"
+          style={{ width: size, height: size, background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', fontSize: size * 0.28 }}>
+          {initials}
+        </div>
+      )}
       {user.is_online && (
         <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#22C55E] border-2 border-white" />
       )}
@@ -401,7 +407,10 @@ export default function WishDetail() {
         >
           <Avatar user={wish.wisher} />
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-[#1A1A2E] text-sm">{wish.wisher.prenom}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-[#1A1A2E] text-sm">{wish.wisher.prenom}</p>
+              <AccountTypeBadge type={wish.wisher.type_compte} />
+            </div>
             <p className="text-xs text-[#8A8A9A]">
               {wish.wisher.pseudo || `user_${(wish.wisher.id || '0000').slice(0, 4)}`}
             </p>

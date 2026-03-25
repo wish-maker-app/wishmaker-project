@@ -188,32 +188,40 @@ export default function Chat() {
             <path d="M15 18l-6-6 6-6" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div className="relative flex-shrink-0">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs border border-[#E8E8E8]"
-            style={{ background: 'linear-gradient(135deg,#8A8A9A,#B0B0B0)' }}>
-            {interlocuteur?.prenom?.[0]}{interlocuteur?.nom?.[0]}
-          </div>
-          {interlocuteur.is_online && (
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-white" />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="text-[15px] font-bold text-[#1A1A2E] truncate">
-              {interlocuteur.pseudo || `user_${(interlocuteur.id || '0000').slice(0, 4)}`}
-            </p>
-            {interlocuteur.rating > 0 && (
-              <span className="flex items-center gap-0.5 text-xs font-semibold text-[#F59E0B]">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
-                {Number(interlocuteur.rating).toFixed(1)}
-              </span>
+        <div
+          className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer active:opacity-80 transition-opacity"
+          onClick={() => {
+            const interlocuteurId = isWisher ? convData?.maker_id : convData?.wisher_id
+            if (interlocuteurId) navigate(`/maker/user/${interlocuteurId}`)
+          }}
+        >
+          <div className="relative flex-shrink-0">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs border border-[#E8E8E8]"
+              style={{ background: 'linear-gradient(135deg,#8A8A9A,#B0B0B0)' }}>
+              {interlocuteur?.prenom?.[0]}{interlocuteur?.nom?.[0]}
+            </div>
+            {interlocuteur.is_online && (
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-white" />
             )}
           </div>
-          <p className="text-[11px] text-[#8A8A9A]">
-            {interlocuteur.is_online ? 'En ligne' : 'Hors ligne'}
-          </p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-[15px] font-bold text-[#1A1A2E] truncate">
+                {interlocuteur.pseudo || `user_${(interlocuteur.id || '0000').slice(0, 4)}`}
+              </p>
+              {interlocuteur.rating > 0 && (
+                <span className="flex items-center gap-0.5 text-xs font-semibold text-[#F59E0B]">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                  {Number(interlocuteur.rating).toFixed(1)}
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-[#8A8A9A]">
+              {interlocuteur.is_online ? 'En ligne' : 'Hors ligne'}
+            </p>
+          </div>
         </div>
         <button className="p-1">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -317,7 +325,8 @@ export default function Chat() {
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSend} className="bg-white border-t border-[#F0F0F0] px-4 py-3 flex items-center gap-3">
+      <form onSubmit={handleSend} className="bg-white border-t border-[#F0F0F0] px-4 py-3 flex items-center gap-3"
+        style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}

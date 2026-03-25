@@ -6,8 +6,8 @@ export default function OnboardingStep1() {
   const navigate = useNavigate()
 
   return (
-    <div className="fixed inset-0 flex flex-col"
-      style={{ background: 'radial-gradient(ellipse at 50% 30%, #9E9E9E 0%, #424242 60%, #1A1A1A 100%)' }}>
+    <div className="absolute inset-0 flex flex-col overflow-hidden"
+      style={{ background: 'radial-gradient(ellipse at 50% 30%, #9E9E9E 0%, #424242 60%, #1A1A1A 100%)', height: '100dvh', maxHeight: '100dvh' }}>
 
       {/* Barre de progression */}
       <div className="flex gap-2 px-6 pt-8">

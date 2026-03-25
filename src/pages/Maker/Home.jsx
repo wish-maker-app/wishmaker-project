@@ -9,8 +9,10 @@ import 'leaflet/dist/leaflet.css'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import DragScroll from '../../components/ui/DragScroll'
 import useAuthStore from '../../store/authStore'
+import useMakerStore from '../../store/makerStore'
 import { useWishes } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
+import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 
 // Fix default marker icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -93,12 +95,16 @@ function SmallAvatar({ user, size = 28 }) {
   )
 }
 
-function distanceLabel(lat1, lng1, lat2, lng2) {
+function distanceKm(lat1, lng1, lat2, lng2) {
   const R = 6371
   const dLat = (lat2 - lat1) * Math.PI / 180
   const dLng = (lng2 - lng1) * Math.PI / 180
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
-  const km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function distanceLabel(lat1, lng1, lat2, lng2) {
+  const km = distanceKm(lat1, lng1, lat2, lng2)
   return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`
 }
 
@@ -138,18 +144,18 @@ function WishGridCard({ wish, onClick, userLat, userLng }) {
       </div>
 
       {/* Contenu texte */}
-      <div className="p-3">
+      <div className="p-3 flex flex-col" style={{ minHeight: 100 }}>
         {/* Titre + time */}
         <div className="flex items-start justify-between gap-1 mb-1">
           <h3 className="font-bold text-[#1A1A2E] text-[13px] leading-snug line-clamp-1 flex-1">{wish.titre}</h3>
           <span className="text-[10px] text-[#8A8A9A] flex-shrink-0 pt-0.5">{timeAgo(wish.created_at)}</span>
         </div>
 
-        {/* Description */}
-        <p className="text-[#8A8A9A] text-[11px] leading-relaxed line-clamp-3 mb-2.5">{wish.description}</p>
+        {/* Description — tronquée à 2 lignes */}
+        <p className="text-[#8A8A9A] text-[11px] leading-relaxed line-clamp-2">{wish.description}</p>
 
-        {/* Distance */}
-        <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold">
+        {/* Distance — fixée en bas */}
+        <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold mt-auto pt-2">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#5B6BF5"/>
             <circle cx="12" cy="9" r="2.5" fill="white"/>
@@ -334,8 +340,8 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
 
       {/* Contenu */}
       <div className="p-5">
-        <h3 className="font-extrabold text-[#1A1A2E] text-xl mb-2">{wish.titre}</h3>
-        <p className="text-[#8A8A9A] text-sm leading-relaxed line-clamp-3 mb-4">{wish.description}</p>
+        <h3 className="font-extrabold text-[#1A1A2E] text-lg mb-1 line-clamp-2">{wish.titre}</h3>
+        <p className="text-[#8A8A9A] text-[13px] leading-relaxed line-clamp-2 mb-3">{wish.description}</p>
 
         <div className="flex items-center gap-4 mb-3">
           <div className="flex items-center gap-1 text-sm text-[#5B6BF5] font-semibold">
@@ -364,6 +370,7 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
           <span className="text-sm font-semibold text-[#1A1A2E]">
             {wish.wisher.pseudo || wish.wisher.prenom}
           </span>
+          <AccountTypeBadge type={wish.wisher.type_compte} />
         </div>
       </div>
     </motion.div>
@@ -382,6 +389,7 @@ export default function MakerHome() {
   const [acceptedWish, setAcceptedWish] = useState(null)
   const [acceptMessage, setAcceptMessage] = useState('')
   const profile = useAuthStore((s) => s.profile)
+  const { sortBy, maxDistance } = useMakerStore()
   const { getAvailableWishes, loading } = useWishes()
   const { createConversation, sendMessage } = useMessages()
   const [wishes, setWishes] = useState([])
@@ -405,17 +413,47 @@ export default function MakerHome() {
     getAvailableWishes().then(setWishes).catch(() => {})
   }, [])
 
-  const filtered = wishes.filter((w) =>
-    w.titre.toLowerCase().includes(search.toLowerCase()) ||
+  // Position : géoloc temps réel > profil > fallback Toulouse
+  const center = userLocation || [
+    profile?.latitude || 43.6047,
+    profile?.longitude || 1.4442,
+  ]
+
+  // Filtrage textuel
+  const textFiltered = wishes.filter((w) =>
+    !search || w.titre.toLowerCase().includes(search.toLowerCase()) ||
     w.description.toLowerCase().includes(search.toLowerCase()) ||
     (w.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()))
   )
 
+  // Filtrage par rayon de distance
+  const filtered = maxDistance >= 100
+    ? textFiltered
+    : textFiltered.filter((w) => {
+        if (!w.latitude || !w.longitude) return true
+        return distanceKm(center[0], center[1], w.latitude, w.longitude) <= maxDistance
+      })
+
   const sponsored = filtered.filter((w) => w.is_sponsored || (w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now()))
-  const nonSponsored = filtered
+  const nonSponsored = [...filtered]
     .filter((w) => !w.is_sponsored && !(w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now()))
     .sort((a, b) => {
-      // Urgents en premier
+      // Tri selon filtre actif
+      if (sortBy === 'urgent') {
+        const aU = a.is_urgent && a.urgent_until && new Date(a.urgent_until) > Date.now()
+        const bU = b.is_urgent && b.urgent_until && new Date(b.urgent_until) > Date.now()
+        if (aU && !bU) return -1
+        if (!aU && bU) return 1
+      }
+      if (sortBy === 'distance') {
+        const dA = distanceKm(center[0], center[1], a.latitude, a.longitude)
+        const dB = distanceKm(center[0], center[1], b.latitude, b.longitude)
+        return dA - dB
+      }
+      if (sortBy === 'recent') {
+        return new Date(b.created_at) - new Date(a.created_at)
+      }
+      // Par défaut : urgents en premier
       const aUrgent = a.is_urgent && a.urgent_until && new Date(a.urgent_until) > Date.now()
       const bUrgent = b.is_urgent && b.urgent_until && new Date(b.urgent_until) > Date.now()
       if (aUrgent && !bUrgent) return -1
@@ -466,19 +504,13 @@ export default function MakerHome() {
     setAcceptMessage('')
   }
 
-  // Position : géoloc temps réel > profil > fallback Toulouse
-  const center = userLocation || [
-    profile?.latitude || 43.6047,
-    profile?.longitude || 1.4442,
-  ]
-
   return (
     <div className="h-screen bg-white flex flex-col relative overflow-hidden">
 
       {/* Search bar + toggle — toujours au-dessus */}
       <div className="relative z-[500] px-4 pt-4 pb-2 flex-shrink-0 pointer-events-none">
-        {/* Search */}
-        <div className="relative flex items-center mb-3 pointer-events-auto">
+        {/* Search — désactivé en mode Swipe */}
+        <div className={`relative flex items-center mb-3 transition-opacity ${view === 'swipe' ? 'opacity-40 pointer-events-none' : 'pointer-events-auto'}`}>
           <svg className="absolute left-4" width="16" height="16" viewBox="0 0 24 24" fill="none">
             <circle cx="11" cy="11" r="7" stroke="#8A8A9A" strokeWidth="2"/>
             <path d="M21 21l-3.5-3.5" stroke="#8A8A9A" strokeWidth="2" strokeLinecap="round"/>
@@ -486,14 +518,22 @@ export default function MakerHome() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Recherchez"
-            className="w-full h-12 bg-white border border-[#E8E8E8] rounded-full pl-10 pr-12 text-sm text-[#1A1A2E] placeholder-[#B0B0B0] outline-none shadow-sm"
+            placeholder={view === 'swipe' ? 'Recherche non disponible en mode Swipe' : 'Recherchez'}
+            disabled={view === 'swipe'}
+            className="w-full h-12 bg-white border border-[#E8E8E8] rounded-full pl-10 pr-12 text-sm text-[#1A1A2E] placeholder-[#B0B0B0] outline-none shadow-sm disabled:cursor-not-allowed"
           />
-          <button className="absolute right-3" onClick={() => navigate('/maker/filters')}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M4 6h16M8 12h8M11 18h2" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <button className="relative p-1" onClick={() => navigate('/maker/filters')} disabled={view === 'swipe'}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M4 6h16M8 12h8M11 18h2" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              {(sortBy || maxDistance !== 100) && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                  {(sortBy ? 1 : 0) + (maxDistance !== 100 ? 1 : 0)}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Toggle Liste / Carte / Swipe */}

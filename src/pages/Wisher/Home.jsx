@@ -7,15 +7,16 @@ import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
 import { useWishes } from '../../hooks/useWishes'
 
-const TABS = ['en_attente', 'realise', 'annule']
-const TAB_LABELS = { en_attente: 'En attente', realise: 'Réalisé', annule: 'Annulé' }
+const TABS = ['en_attente', 'realise', 'expire']
+const TAB_LABELS = { en_attente: 'En attente', realise: 'Réalisé', expire: 'Expiré' }
 
 const STATUS_MAP = {
   en_attente: 'en_attente',
   en_cours: 'en_attente',
   terminé: 'realise',
   realise: 'realise',
-  annule: 'annule',
+  annule: 'expire',
+  expire: 'expire',
 }
 
 function timeAgo(iso) {
@@ -146,6 +147,24 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
         </div>
       </div>
 
+      {/* Bannière expiration proche (<6h) */}
+      {isActive && exp && !wish.is_extended && exp.color === '#EF4444' && (
+        <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl flex items-center justify-between"
+          style={{ background: '#FFF7ED', border: '1px solid #FFEDD5' }}>
+          <div className="flex items-center gap-2">
+            <span className="text-sm">⚠️</span>
+            <span className="text-xs font-semibold text-[#EA580C]">Ce voeu expire bientot !</span>
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onExtend(wish) }}
+            className="text-[11px] font-bold text-white px-3 py-1 rounded-full"
+            style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}
+          >
+            Prolonger
+          </button>
+        </div>
+      )}
+
       {/* CTA Buttons — visibles en bas de la carte */}
       {isActive && (
         <div className="px-4 pb-4 flex items-center gap-2">
@@ -183,10 +202,18 @@ export default function WisherHome() {
   const [modal, setModal] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
 
+  const [, setTick] = useState(0)
+
   useEffect(() => {
     getMyWishes()
       .then((w) => { setWishes(w); setLoading(false) })
       .catch(() => setLoading(false))
+  }, [])
+
+  // Rafraîchir le compte à rebours toutes les minutes
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 60000)
+    return () => clearInterval(interval)
   }, [])
 
   if (!user) {
@@ -197,13 +224,22 @@ export default function WisherHome() {
     )
   }
 
-  const tabCounts = {
-    en_attente: wishes.filter((w) => STATUS_MAP[w.statut] === 'en_attente').length,
-    realise: wishes.filter((w) => STATUS_MAP[w.statut] === 'realise').length,
-    annule: wishes.filter((w) => STATUS_MAP[w.statut] === 'annule').length,
+  // Déterminer le tab effectif d'un vœu (prend en compte l'expiration côté frontend)
+  function getEffectiveTab(w) {
+    // Si expires_at est dépassé et statut encore en_attente → considérer comme expiré
+    if ((w.statut === 'en_attente' || w.statut === 'en_cours') && w.expires_at && new Date(w.expires_at) < Date.now()) {
+      return 'expire'
+    }
+    return STATUS_MAP[w.statut] || 'en_attente'
   }
 
-  const filtered = wishes.filter((w) => STATUS_MAP[w.statut] === activeTab)
+  const tabCounts = {
+    en_attente: wishes.filter((w) => getEffectiveTab(w) === 'en_attente').length,
+    realise: wishes.filter((w) => getEffectiveTab(w) === 'realise').length,
+    expire: wishes.filter((w) => getEffectiveTab(w) === 'expire').length,
+  }
+
+  const filtered = wishes.filter((w) => getEffectiveTab(w) === activeTab)
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'

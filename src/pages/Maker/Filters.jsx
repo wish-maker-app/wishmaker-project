@@ -1,14 +1,13 @@
-import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import Header from '../../components/layout/Header'
 import Button from '../../components/ui/Button'
+import useMakerStore from '../../store/makerStore'
 
 const SORT_OPTIONS = [
-  { id: 'pertinence', icon: '🎯' },
-  { id: 'distance', icon: '📍' },
-  { id: 'recent', icon: '🕐' },
+  { id: 'urgent', label: 'Urgent', icon: '⚡' },
+  { id: 'distance', label: 'Distance', icon: '📍' },
+  { id: 'recent', label: 'Plus récents', icon: '🕐' },
 ]
 
 const CATEGORIES = [
@@ -22,104 +21,103 @@ const CATEGORIES = [
 
 export default function Filters() {
   const navigate = useNavigate()
-  const { t } = useTranslation()
-  const [searchParams] = useSearchParams()
-
-  const [sort, setSort] = useState(searchParams.get('sort') || 'pertinence')
-  const [radius, setRadius] = useState(Number(searchParams.get('radius')) || 10)
-  const [selectedCategories, setSelectedCategories] = useState(
-    searchParams.get('categories')?.split(',').filter(Boolean) || []
-  )
+  const { sortBy, setSortBy, maxDistance, setMaxDistance, selectedCategories, setSelectedCategories, resetFilters } = useMakerStore()
 
   function toggleCategory(id) {
-    setSelectedCategories((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
-    )
-  }
-
-  function handleReset() {
-    setSort('pertinence')
-    setRadius(10)
-    setSelectedCategories([])
+    if (selectedCategories.includes(id)) {
+      setSelectedCategories(selectedCategories.filter((c) => c !== id))
+    } else {
+      setSelectedCategories([...selectedCategories, id])
+    }
   }
 
   function handleApply() {
-    const params = new URLSearchParams()
-    if (sort !== 'pertinence') params.set('sort', sort)
-    if (radius !== 10) params.set('radius', radius.toString())
-    if (selectedCategories.length) params.set('categories', selectedCategories.join(','))
-    navigate(`/maker?${params.toString()}`)
+    navigate(-1)
   }
+
+  function handleReset() {
+    resetFilters()
+  }
+
+  // Compteur filtres actifs
+  const activeCount = (sortBy ? 1 : 0) + (maxDistance !== 100 ? 1 : 0) + (selectedCategories.length > 0 ? 1 : 0)
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Header
-        title={t('maker.filters.titre')}
+        title="Filtres"
         onBack={() => navigate(-1)}
         rightAction={
-          <button onClick={handleReset} className="text-xs font-semibold text-[#5B6BF5]">
-            {t('maker.filters.reinitialiser')}
-          </button>
+          activeCount > 0 ? (
+            <button onClick={handleReset} className="text-xs font-semibold text-[#5B6BF5]">
+              Réinitialiser
+            </button>
+          ) : null
         }
       />
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex-1 px-5 pt-2 pb-10 flex flex-col gap-6 overflow-y-auto"
+        className="flex-1 px-5 pt-4 pb-10 flex flex-col gap-8 overflow-y-auto"
       >
-        {/* Sort */}
+        {/* Trier par */}
         <div>
-          <p className="text-sm font-bold text-[#1A1A2E] mb-3">{t('maker.filters.tri')}</p>
+          <p className="text-sm font-bold text-[#1A1A2E] mb-3">Trier par</p>
           <div className="flex gap-2">
             {SORT_OPTIONS.map((opt) => {
-              const isActive = sort === opt.id
+              const isActive = sortBy === opt.id
               return (
                 <button
                   key={opt.id}
-                  onClick={() => setSort(opt.id)}
-                  className="flex-1 h-12 rounded-2xl text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                  onClick={() => setSortBy(isActive ? null : opt.id)}
+                  className="flex-1 h-12 rounded-2xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5"
                   style={isActive
                     ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
-                    : { background: '#F7F8FC', color: '#1A1A2E' }
+                    : { background: '#F7F8FC', color: '#1A1A2E', border: '1px solid #E8E8E8' }
                   }
                 >
                   <span>{opt.icon}</span>
-                  {t(`maker.filters.${opt.id}`)}
+                  {opt.label}
                 </button>
               )
             })}
           </div>
         </div>
 
-        {/* Radius slider */}
+        {/* Rayon de recherche */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-bold text-[#1A1A2E]">{t('maker.filters.rayon')}</p>
-            <span className="text-sm font-bold text-[#5B6BF5]">{radius} km</span>
+            <p className="text-sm font-bold text-[#1A1A2E]">Rayon de recherche</p>
+            <span className="text-sm font-bold" style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              {maxDistance >= 100 ? '100+ km' : `${maxDistance} km`}
+            </span>
           </div>
           <div className="relative">
             <input
               type="range"
               min={1}
-              max={50}
-              value={radius}
-              onChange={(e) => setRadius(Number(e.target.value))}
+              max={100}
+              value={maxDistance}
+              onChange={(e) => setMaxDistance(Number(e.target.value))}
               className="w-full h-2 rounded-full appearance-none cursor-pointer"
               style={{
-                background: `linear-gradient(to right, #5B6BF5 0%, #9B59F5 ${(radius / 50) * 100}%, #F0F0F0 ${(radius / 50) * 100}%)`,
+                background: `linear-gradient(to right, #5B6BF5 0%, #9B59F5 ${(maxDistance / 100) * 100}%, #F0F0F0 ${(maxDistance / 100) * 100}%)`,
               }}
             />
             <div className="flex justify-between mt-2">
               <span className="text-[10px] text-[#8A8A9A]">1 km</span>
-              <span className="text-[10px] text-[#8A8A9A]">50 km</span>
+              <span className="text-[10px] text-[#8A8A9A]">100+ km</span>
             </div>
           </div>
+          <p className="text-xs text-[#8A8A9A] mt-2 text-center">
+            Rayon actuel : {maxDistance >= 100 ? '100+ km (illimité)' : `${maxDistance} km`}
+          </p>
         </div>
 
-        {/* Categories */}
+        {/* Catégories */}
         <div>
-          <p className="text-sm font-bold text-[#1A1A2E] mb-3">{t('maker.filters.categories')}</p>
+          <p className="text-sm font-bold text-[#1A1A2E] mb-3">Catégories</p>
           <div className="grid grid-cols-2 gap-2">
             {CATEGORIES.map((cat) => {
               const isActive = selectedCategories.includes(cat.id)
@@ -145,9 +143,10 @@ export default function Filters() {
       </motion.div>
 
       {/* CTA */}
-      <div className="px-5 pb-8 pt-3 bg-white border-t border-[#F0F0F0]">
+      <div className="px-5 pb-8 pt-3 bg-white border-t border-[#F0F0F0]"
+        style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
         <Button onClick={handleApply}>
-          {t('maker.filters.voir_resultats', { count: '—' })}
+          Valider
         </Button>
       </div>
     </div>
