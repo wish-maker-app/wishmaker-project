@@ -81,7 +81,7 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col overflow-y-auto">
       <Header title="S'inscrire" />
 
       <motion.div

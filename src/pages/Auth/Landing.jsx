@@ -35,7 +35,7 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#5B6BF5]">
+    <div className="h-screen flex flex-col bg-[#5B6BF5] overflow-y-auto">
       {/* Partie haute */}
       <motion.div
         initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}

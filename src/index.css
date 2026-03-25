@@ -46,7 +46,8 @@ body {
   position: relative;
   background: white;
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   /* Safe area top sur #root (fond blanc = invisible, contrairement à body gris) */
   padding-top: env(safe-area-inset-top, 0px);
   box-sizing: border-box;
@@ -76,12 +77,11 @@ body {
     padding-top: 0;
   }
 
-  /* En standalone, les pages prennent la hauteur exacte de l'écran et gèrent leur scroll */
+  /* En standalone, les pages prennent la hauteur exacte de l'écran */
   .h-screen, .min-h-screen {
     height: 100% !important;
     min-height: 100% !important;
     max-height: 100% !important;
-    overflow: hidden;
   }
 }
 

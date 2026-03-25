@@ -42,7 +42,7 @@ export default function NewPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col overflow-y-auto">
       <Header />
 
       <motion.div
