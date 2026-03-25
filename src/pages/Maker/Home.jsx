@@ -558,8 +558,8 @@ export default function MakerHome() {
                   })
                 }
               }}
-              className="fixed z-[500] w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center border border-[#E8E8E8] active:scale-95 transition-transform"
-              style={{ bottom: 'calc(72px + env(safe-area-inset-bottom, 0px) + 16px)', right: 16 }}
+              className="absolute z-[500] w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center border border-[#E8E8E8] active:scale-95 transition-transform"
+              style={{ bottom: 80, right: 16 }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="3" fill="#5B6BF5"/>
@@ -651,10 +651,7 @@ export default function MakerHome() {
           <div className="h-full flex flex-col items-center justify-center px-6 py-4 bg-[#F7F8FC]">
             {swipeWishes.length > 0 ? (
               <>
-                <p className="text-xs text-[#8A8A9A] font-medium mb-3">
-                  {swipeWishes.length} vœux disponibles
-                </p>
-                <div className="relative w-full flex-1 max-h-[520px]">
+                <div className="relative w-full flex-1">
                   <AnimatePresence>
                     {swipeWishes.slice(0, 2).reverse().map((wish, i, arr) => (
                       <SwipeCard
