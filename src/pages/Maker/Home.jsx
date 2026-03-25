@@ -668,7 +668,7 @@ export default function MakerHome() {
                     ))}
                   </AnimatePresence>
                 </div>
-                <div className="flex items-center gap-8 mt-4 pb-4">
+                <div className="flex items-center gap-8 mt-4 pb-24">
                   <button
                     onClick={() => { if (swipeWishes[0]) handleSwipeSkip(swipeWishes[0].id) }}
                     className="w-16 h-16 rounded-full bg-white border-2 border-red-400 flex items-center justify-center shadow-lg"
