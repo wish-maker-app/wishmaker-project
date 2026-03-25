@@ -76,12 +76,13 @@ export function useWishes() {
   async function createWish({ titre, description, latitude, longitude, adresse, tags, images, type_recompense, montant_recompense }) {
     setLoading(true)
     // S'assurer que la session auth est active
-    const { data: { session } } = await supabase.auth.getSession()
+    let { data: { session } } = await supabase.auth.getSession()
     if (!session) {
-      // Tenter un refresh
-      await supabase.auth.refreshSession()
+      const { data } = await supabase.auth.refreshSession()
+      session = data.session
     }
     const wisherId = session?.user?.id || user?.id
+    if (!wisherId) { setLoading(false); throw new Error('Session expirée, veuillez vous reconnecter') }
     const { data: wish, error } = await supabase
       .from('wishes')
       .insert({ titre, description, latitude, longitude, adresse, wisher_id: wisherId, type_recompense, montant_recompense })

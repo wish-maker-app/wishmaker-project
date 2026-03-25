@@ -381,7 +381,6 @@ export default function MakerHome() {
   const [skippedIds, setSkippedIds] = useState(new Set())
   const [acceptedWish, setAcceptedWish] = useState(null)
   const [acceptMessage, setAcceptMessage] = useState('')
-  const [acceptConvId, setAcceptConvId] = useState(null)
   const profile = useAuthStore((s) => s.profile)
   const { getAvailableWishes, loading } = useWishes()
   const { createConversation, sendMessage } = useMessages()
@@ -429,17 +428,10 @@ export default function MakerHome() {
     w.wisher_id !== profile?.id && !skippedIds.has(w.id)
   )
 
-  async function handleSwipeAccept(wish) {
-    try {
-      const convId = await createConversation(wish.id, wish.wisher_id)
-      setAcceptConvId(convId)
-      setAcceptedWish(wish)
-      setAcceptMessage('')
-      setSkippedIds((prev) => new Set(prev).add(wish.id))
-    } catch (err) {
-      console.error(err)
-      toast.error('Erreur lors de la mise en relation')
-    }
+  function handleSwipeAccept(wish) {
+    setAcceptedWish(wish)
+    setAcceptMessage('')
+    setSkippedIds((prev) => new Set(prev).add(wish.id))
   }
 
   function handleSwipeSkip(wishId) {
@@ -448,13 +440,18 @@ export default function MakerHome() {
   }
 
   async function handleSendAcceptMessage() {
-    if (acceptMessage.trim() && acceptConvId) {
-      await sendMessage(acceptConvId, acceptMessage.trim())
+    try {
+      const convId = await createConversation(acceptedWish.id, acceptedWish.wisher_id)
+      if (acceptMessage.trim()) {
+        await sendMessage(convId, acceptMessage.trim())
+      }
+      toast.success('Vœu accepté ! 🎉')
+      setAcceptedWish(null)
+      setAcceptMessage('')
+    } catch (err) {
+      console.error(err)
+      toast.error('Erreur lors de la mise en relation')
     }
-    toast.success('Vœu accepté ! 🎉')
-    setAcceptedWish(null)
-    setAcceptConvId(null)
-    setAcceptMessage('')
   }
 
   function handleCancelAccept() {
@@ -466,7 +463,6 @@ export default function MakerHome() {
       })
     }
     setAcceptedWish(null)
-    setAcceptConvId(null)
     setAcceptMessage('')
   }
 

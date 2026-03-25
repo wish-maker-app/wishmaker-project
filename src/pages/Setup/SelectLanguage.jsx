@@ -19,8 +19,8 @@ const LANGUAGES = [
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 30" width="36" height="26" className="rounded-sm">
       <rect width="60" height="30" fill="#012169"/>
       <path d="M0,0 L60,30 M60,0 L0,30" stroke="#FFF" strokeWidth="6"/>
-      <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" strokeWidth="4" clipPath="url(#t)"/>
-      <clipPath id="t"><path d="M30,0 V15 H60 V0zM30,30 V15 H0 V30z"/></clipPath>
+      <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" strokeWidth="4" clipPath="url(#t-setup)"/>
+      <clipPath id="t-setup"><path d="M30,0 V15 H60 V0zM30,30 V15 H0 V30z"/></clipPath>
       <path d="M30,0 V30 M0,15 H60" stroke="#FFF" strokeWidth="10"/>
       <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" strokeWidth="6"/>
     </svg>
