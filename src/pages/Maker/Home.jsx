@@ -322,7 +322,7 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
       )}
 
       {/* Image */}
-      <div className="relative h-[220px] bg-[#F0F0F5]">
+      <div className="relative h-[170px] bg-[#F0F0F5]">
         {coverUrl ? (
           <img src={coverUrl} alt="" className="w-full h-full object-cover" />
         ) : (
@@ -455,6 +455,19 @@ export default function MakerHome() {
       await sendMessage(acceptConvId, acceptMessage.trim())
     }
     toast.success('Vœu accepté ! 🎉')
+    setAcceptedWish(null)
+    setAcceptConvId(null)
+    setAcceptMessage('')
+  }
+
+  function handleCancelAccept() {
+    if (acceptedWish) {
+      setSkippedIds((prev) => {
+        const next = new Set(prev)
+        next.delete(acceptedWish.id)
+        return next
+      })
+    }
     setAcceptedWish(null)
     setAcceptConvId(null)
     setAcceptMessage('')
@@ -697,6 +710,7 @@ export default function MakerHome() {
         {acceptedWish && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={handleCancelAccept}
               className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop" />
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
@@ -710,7 +724,7 @@ export default function MakerHome() {
                   {acceptedWish.wisher?.pseudo || acceptedWish.wisher?.prenom}
                 </span> pour vous présenter.
               </p>
-              <p className="text-xs font-semibold text-[#1A1A2E] mb-2">💬 {acceptedWish.titre}</p>
+              <p className="text-xs font-semibold text-[#1A1A2E] mb-2">{acceptedWish.titre}</p>
               <textarea
                 value={acceptMessage}
                 onChange={(e) => setAcceptMessage(e.target.value)}
@@ -723,13 +737,13 @@ export default function MakerHome() {
                 className="w-full h-12 rounded-full text-white font-bold text-sm"
                 style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
               >
-                {acceptMessage.trim() ? 'Envoyer et continuer' : 'Continuer sans message'}
+                {acceptMessage.trim() ? 'Envoyer le message' : 'Envoyer un message'}
               </button>
               <button
-                onClick={() => navigate(`/messages/${acceptConvId}`)}
-                className="w-full mt-3 text-sm text-[#5B6BF5] font-semibold text-center"
+                onClick={handleCancelAccept}
+                className="w-full mt-3 h-10 rounded-full border border-[#E0E0E0] text-sm text-[#8A8A9A] font-semibold"
               >
-                Ouvrir la conversation
+                Annuler
               </button>
             </motion.div>
           </>

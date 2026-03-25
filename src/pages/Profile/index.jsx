@@ -79,6 +79,7 @@ export default function Profile() {
   const [saving, setSaving] = useState(false)
   const [newPwd, setNewPwd] = useState('')
   const [confirmPwd, setConfirmPwd] = useState('')
+  const [selectedLang, setSelectedLang] = useState(null)
 
   if (!profile) {
     return (
@@ -186,7 +187,7 @@ export default function Profile() {
       </EditModal>
 
       {/* Modal langue */}
-      <EditModal open={editModal === 'langue'} onClose={() => setEditModal(null)} title="Choisir la langue">
+      <EditModal open={editModal === 'langue'} onClose={() => { setEditModal(null); setSelectedLang(null) }} title="Choisir la langue">
         <div className="flex flex-col gap-2">
           {[
             { code: 'fr', label: 'Français', flag: (
@@ -207,9 +208,10 @@ export default function Profile() {
               </svg>
             )},
           ].map((lang) => {
-            const isActive = i18n.language?.startsWith(lang.code)
+            const current = selectedLang || i18n.language?.split('-')[0]
+            const isActive = current === lang.code
             return (
-              <button key={lang.code} onClick={() => handleLanguageChange(lang.code)}
+              <button key={lang.code} onClick={() => setSelectedLang(lang.code)}
                 className="flex items-center gap-3 px-4 py-4 rounded-2xl transition-all border-2"
                 style={isActive ? { borderColor: '#5B6BF5', background: '#EEF0FF' } : { borderColor: '#F0F0F0' }}>
                 <span className="flex-shrink-0">{lang.flag}</span>
@@ -222,6 +224,14 @@ export default function Profile() {
               </button>
             )
           })}
+        </div>
+        <div className="mt-4">
+          <Button onClick={() => {
+            if (selectedLang) handleLanguageChange(selectedLang)
+            setSelectedLang(null)
+          }}>
+            Sauvegarder
+          </Button>
         </div>
       </EditModal>
 
