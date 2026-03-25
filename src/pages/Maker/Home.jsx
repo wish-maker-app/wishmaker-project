@@ -558,7 +558,8 @@ export default function MakerHome() {
                   })
                 }
               }}
-              className="absolute bottom-32 right-4 z-[500] w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center border border-[#E8E8E8] active:scale-95 transition-transform"
+              className="fixed z-[500] w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center border border-[#E8E8E8] active:scale-95 transition-transform"
+              style={{ bottom: 'calc(72px + env(safe-area-inset-bottom, 0px) + 16px)', right: 16 }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="3" fill="#5B6BF5"/>
