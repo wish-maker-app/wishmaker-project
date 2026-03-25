@@ -114,7 +114,7 @@ export default function Profile() {
     <div className="h-screen bg-white flex flex-col overflow-hidden">
 
       {/* Header profil — fixe en haut */}
-      <div className="px-5 pt-8 pb-2 flex items-center gap-4 flex-shrink-0">
+      <div className="px-5 pt-4 pb-2 flex items-center gap-4 flex-shrink-0">
         <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border border-[#E8E8E8]">
           {profile.avatar_url ? (
             <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />

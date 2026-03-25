@@ -253,7 +253,7 @@ export default function WisherHome() {
     <div className="h-screen bg-[#FAFAFA] flex flex-col overflow-hidden">
 
       {/* Header */}
-      <div className="px-5 pt-8 pb-4 flex items-center justify-between">
+      <div className="px-5 pt-4 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-[#E8E8E8]">
             {user.avatar_url ? (

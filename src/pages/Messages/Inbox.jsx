@@ -126,7 +126,7 @@ export default function Inbox() {
     <div className="h-screen bg-white flex flex-col overflow-hidden">
 
       {/* Header */}
-      <div className="px-5 pt-8 pb-2">
+      <div className="px-5 pt-4 pb-2">
         <h1 className="text-xl font-bold text-[#1A1A2E] text-center">{t('messages.titre')}</h1>
       </div>
 

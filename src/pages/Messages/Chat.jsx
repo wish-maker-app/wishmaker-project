@@ -182,7 +182,7 @@ export default function Chat() {
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
 
       {/* Header */}
-      <div className="bg-white px-4 pt-8 pb-3 flex items-center gap-3 border-b border-[#F0F0F0]">
+      <div className="bg-white px-4 pt-4 pb-3 flex items-center gap-3 border-b border-[#F0F0F0]">
         <button onClick={() => navigate(`/messages?tab=${fromTab}`)} className="p-1">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M15 18l-6-6 6-6" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
