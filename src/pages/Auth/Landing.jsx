@@ -40,7 +40,6 @@ export default function Landing() {
       <motion.div
         initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
         className="flex flex-col items-center justify-center px-6 py-10 gap-3"
-        style={{ minHeight: '40vh' }}
       >
         <h1 className="text-white font-bold text-3xl text-center">{t('auth.register_email.titre')}</h1>
         <p className="text-white/80 text-sm text-center leading-relaxed">
@@ -52,7 +51,7 @@ export default function Landing() {
       <motion.div
         initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4, delay: 0.15 }}
-        className="flex-1 bg-white px-6 pt-4 pb-10 flex flex-col gap-5"
+        className="flex-1 bg-white px-6 pt-4 pb-6 flex flex-col gap-4"
         style={{ borderRadius: '32px 32px 0 0' }}
       >
         <form onSubmit={handleEmailContinue} className="flex flex-col gap-4">
