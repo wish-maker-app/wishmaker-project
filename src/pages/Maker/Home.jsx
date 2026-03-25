@@ -307,17 +307,13 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
       exit={{ x: 300, opacity: 0, transition: { duration: 0.3 } }}
       className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.12)] cursor-grab active:cursor-grabbing"
     >
-      {/* Overlays swipe */}
+      {/* Overlays swipe — couleur seule */}
       {isTop && (
         <>
           <motion.div style={{ opacity: opacityRight }}
-            className="absolute inset-0 z-10 flex items-center justify-center bg-green-500/20 rounded-[24px]">
-            <span className="text-6xl">✓</span>
-          </motion.div>
+            className="absolute inset-0 z-10 bg-green-500/20 rounded-[24px] pointer-events-none" />
           <motion.div style={{ opacity: opacityLeft }}
-            className="absolute inset-0 z-10 flex items-center justify-center bg-red-500/20 rounded-[24px]">
-            <span className="text-6xl">✕</span>
-          </motion.div>
+            className="absolute inset-0 z-10 bg-red-500/20 rounded-[24px] pointer-events-none" />
         </>
       )}
 
@@ -348,6 +344,7 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
             </svg>
             {dist}
           </div>
+          <span className="text-xs text-[#8A8A9A]">{timeAgo(wish.created_at)}</span>
           {wish.type_recompense && (
             <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full"
               style={wish.type_recompense === 'argent'
