@@ -42,12 +42,12 @@ body {
   width: 100%;
   max-width: 430px;
   margin: 0 auto;
-  height: 100vh;
+  height: 100vh; /* fallback */
+  height: 100dvh; /* dynamic viewport — s'adapte à la barre d'URL du navigateur */
   position: relative;
   background: white;
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.15);
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   /* Safe area top sur #root (fond blanc = invisible, contrairement à body gris) */
   padding-top: env(safe-area-inset-top, 0px);
   box-sizing: border-box;
@@ -83,6 +83,16 @@ body {
     min-height: 100% !important;
     max-height: 100% !important;
   }
+}
+
+/* ─── Hauteur dynamique — corrige le 100vh sur navigateur mobile ─── */
+.h-screen {
+  height: 100vh !important;
+  height: 100dvh !important;
+}
+.min-h-screen {
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
 }
 
 /* ─── Overlays : contraints dans le shell 430px ─── */
