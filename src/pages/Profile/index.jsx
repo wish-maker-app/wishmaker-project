@@ -75,6 +75,7 @@ export default function Profile() {
   const profile = useAuthStore((s) => s.profile)
 
   const [editModal, setEditModal] = useState(null) // 'password' | 'langue' | null
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [newPwd, setNewPwd] = useState('')
   const [confirmPwd, setConfirmPwd] = useState('')
@@ -111,7 +112,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="h-screen bg-white flex flex-col overflow-hidden">
+    <div className="h-screen bg-white flex flex-col">
 
       {/* Header profil — fixe en haut */}
       <div className="px-5 pt-4 pb-2 flex items-center gap-4 flex-shrink-0">
@@ -160,7 +161,7 @@ export default function Profile() {
         {/* Déconnexion */}
         <motion.button
           whileTap={{ scale: 0.97 }}
-          onClick={signOut}
+          onClick={() => setShowLogoutConfirm(true)}
           className="mt-8 mb-4 w-full h-12 rounded-full border border-[#5B6BF5] text-[#5B6BF5] font-semibold text-sm"
         >
           {t('profile.deconnexion')}
@@ -221,6 +222,25 @@ export default function Profile() {
               </button>
             )
           })}
+        </div>
+      </EditModal>
+
+      {/* Modal confirmation déconnexion */}
+      <EditModal open={showLogoutConfirm} onClose={() => setShowLogoutConfirm(false)} title="Se déconnecter">
+        <p className="text-[15px] text-[#8A8A9A] mb-6">Êtes-vous sûr de vouloir vous déconnecter ?</p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowLogoutConfirm(false)}
+            className="flex-1 h-12 rounded-full border border-[#E0E0E0] text-[#1A1A2E] font-semibold text-sm"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={signOut}
+            className="flex-1 h-12 rounded-full bg-[#FF4D4D] text-white font-semibold text-sm"
+          >
+            Se déconnecter
+          </button>
         </div>
       </EditModal>
 

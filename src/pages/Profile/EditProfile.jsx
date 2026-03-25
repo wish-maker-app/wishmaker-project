@@ -221,7 +221,7 @@ export default function EditProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col">
       <Header title="Profil" onBack={() => navigate(-1)} />
 
       <div className="flex-1 overflow-y-auto pb-10">

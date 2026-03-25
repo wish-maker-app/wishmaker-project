@@ -8,8 +8,23 @@ import Button from '../../components/ui/Button'
 import useOnboardingStore from '../../store/onboardingStore'
 
 const LANGUAGES = [
-  { code: 'fr', label: 'Français', flag: '🇫🇷', region: 'France' },
-  { code: 'en', label: 'English',  flag: '🇺🇸', region: 'United States' },
+  { code: 'fr', label: 'Français', flag: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 24" width="36" height="26" className="rounded-sm">
+      <rect width="12" height="24" fill="#002395"/>
+      <rect x="12" width="12" height="24" fill="#FFF"/>
+      <rect x="24" width="12" height="24" fill="#ED2939"/>
+    </svg>
+  ), region: 'France' },
+  { code: 'en', label: 'English', flag: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 30" width="36" height="26" className="rounded-sm">
+      <rect width="60" height="30" fill="#012169"/>
+      <path d="M0,0 L60,30 M60,0 L0,30" stroke="#FFF" strokeWidth="6"/>
+      <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" strokeWidth="4" clipPath="url(#t)"/>
+      <clipPath id="t"><path d="M30,0 V15 H60 V0zM30,30 V15 H0 V30z"/></clipPath>
+      <path d="M30,0 V30 M0,15 H60" stroke="#FFF" strokeWidth="10"/>
+      <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" strokeWidth="6"/>
+    </svg>
+  ), region: 'United States' },
 ]
 
 export default function SelectLanguage() {
@@ -56,7 +71,7 @@ export default function SelectLanguage() {
                     : '#F5F5F7',
                 }}
               >
-                <span className="text-4xl">{lang.flag}</span>
+                <span className="flex-shrink-0">{lang.flag}</span>
                 <div className="flex-1 text-left">
                   <p className={`font-semibold text-base ${isActive ? 'text-white' : 'text-[#1A1A2E]'}`}>
                     {lang.label}
