@@ -256,7 +256,7 @@ export default function WishDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col pb-28">
+    <div className="h-screen bg-white flex flex-col overflow-y-auto">
 
       {/* Hero */}
       <div className="relative flex-shrink-0" style={{ height: 220 }}>
