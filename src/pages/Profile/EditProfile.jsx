@@ -222,7 +222,15 @@ export default function EditProfile() {
 
   return (
     <div className="h-screen bg-white flex flex-col">
-      <Header title="Profil" onBack={() => navigate(-1)} />
+      <div className="flex items-center justify-between px-5 pt-4 pb-4">
+        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center bg-[#F5F5F7]">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M15 19l-7-7 7-7" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <h1 className="font-bold text-base text-[#1A1A2E]">Profil</h1>
+        <div className="w-10"></div>
+      </div>
 
       <div className="flex-1 overflow-y-auto pb-10">
         {/* Avatar centré */}

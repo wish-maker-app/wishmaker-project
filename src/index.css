@@ -107,10 +107,13 @@ body {
   padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px)) !important;
 }
 
-/* ─── Scrollbar discrète ─── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #E0E0E0; border-radius: 4px; }
+/* ─── Scrollbar masquée — simule un rendu mobile ─── */
+* {
+  scrollbar-width: none; /* Firefox */
+}
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
 
 /* ─── Leaflet : fix z-index ─── */
 .leaflet-container {
