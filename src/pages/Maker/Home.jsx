@@ -212,7 +212,11 @@ function SponsoredCard({ wish, onClick, userLat, userLng }) {
 // ── Fermer l'overlay quand on clique sur la carte ──
 function MapClickHandler({ onMapClick }) {
   useMapEvents({
-    click: () => onMapClick(),
+    click: (e) => {
+      e.originalEvent.preventDefault()
+      e.originalEvent.stopPropagation()
+      onMapClick()
+    },
   })
   return null
 }
@@ -576,7 +580,8 @@ export default function MakerHome() {
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: '100%', opacity: 0 }}
                   transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-                  className="absolute bottom-20 left-4 right-4 z-[600]"
+                  className="fixed left-4 right-4 z-[600] max-w-[398px] mx-auto"
+                  style={{ bottom: 'calc(72px + env(safe-area-inset-bottom, 0px) + 16px)' }}
                 >
                   <WishPreviewCard
                     wish={selectedWish}
