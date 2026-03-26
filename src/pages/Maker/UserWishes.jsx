@@ -122,7 +122,7 @@ export default function UserWishes() {
     <div className="h-screen bg-[#F7F7FA] flex flex-col overflow-y-auto" style={{ paddingBottom: 90 }}>
 
       {/* Hero header gradient */}
-      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #7C6AFA 0%, #9B8BFF 50%, #B8ADFF 100%)', padding: '52px 20px 60px' }}>
+      <div className="relative overflow-hidden flex-shrink-0" style={{ background: 'linear-gradient(160deg, #7C6AFA 0%, #9B8BFF 50%, #B8ADFF 100%)', padding: '52px 20px 60px' }}>
         {/* Cercles décoratifs */}
         <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/[0.08]" />
         <div className="absolute -bottom-5 -left-8 w-24 h-24 rounded-full bg-white/[0.06]" />
