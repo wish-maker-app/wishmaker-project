@@ -48,8 +48,8 @@ body {
   background: white;
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.15);
   overflow: hidden;
-  /* Safe area top sur #root (fond blanc = invisible, contrairement à body gris) */
   padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;
 }
 
