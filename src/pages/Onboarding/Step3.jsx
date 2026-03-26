@@ -11,7 +11,7 @@ export default function OnboardingStep3() {
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ height: '100dvh', maxHeight: '100dvh' }}>
+    <div className="fixed inset-0 flex flex-col">
 
       {/* Image de fond (placeholder pour future belle image) */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#5B6BF5] to-[#9B59F5]" />
