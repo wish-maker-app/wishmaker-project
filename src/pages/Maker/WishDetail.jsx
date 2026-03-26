@@ -343,8 +343,8 @@ export default function WishDetail() {
         className="flex-1 bg-white rounded-t-[28px] -mt-5 px-5 pt-6 flex flex-col gap-5 relative z-10"
       >
         {/* Titre */}
-        <div className="flex-shrink-0">
-          <h1 className="font-extrabold text-[#1A1A2E] text-2xl leading-tight mb-2 line-clamp-2">
+        <div>
+          <h1 className="font-extrabold text-[#1A1A2E] text-2xl leading-tight mb-2">
             {wish.titre}
           </h1>
           <div className="flex items-center gap-4 text-xs text-[#8A8A9A] font-medium">
@@ -398,7 +398,7 @@ export default function WishDetail() {
         </div>
 
         {/* Description */}
-        <p className="text-[#4A4A5A] text-sm leading-relaxed line-clamp-4">{wish.description}</p>
+        <p className="text-[#4A4A5A] text-sm leading-relaxed">{wish.description}</p>
 
         {/* Wisher */}
         <div
