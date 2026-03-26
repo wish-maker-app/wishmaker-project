@@ -340,7 +340,7 @@ export default function WishDetail() {
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.35 }}
-        className="flex-1 bg-white rounded-t-[28px] -mt-5 px-5 pt-6 flex flex-col gap-5 relative z-10"
+        className="flex-1 bg-white rounded-t-[28px] -mt-5 px-5 pt-6 pb-32 flex flex-col gap-5 relative z-10"
       >
         {/* Titre */}
         <div>
@@ -482,7 +482,7 @@ export default function WishDetail() {
 
         {/* CTA — masqué si c'est ton propre vœu */}
         {!isOwner && (
-          <div className="pt-2 pb-24">
+          <div className="pt-2">
             <Button onClick={() => setShowProposal(true)}>
               {t('maker.detail.realiser')}
             </Button>
