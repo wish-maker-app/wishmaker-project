@@ -340,11 +340,11 @@ export default function WishDetail() {
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.35 }}
-        className="flex-1 bg-white rounded-t-[28px] -mt-5 px-5 pt-6 flex flex-col gap-5 relative z-10"
+        className="flex-1 bg-white rounded-t-[28px] -mt-5 px-5 pt-6 flex flex-col gap-5 relative z-10 overflow-y-auto"
       >
         {/* Titre */}
-        <div>
-          <h1 className="font-extrabold text-[#1A1A2E] text-2xl leading-tight mb-2">
+        <div className="flex-shrink-0">
+          <h1 className="font-extrabold text-[#1A1A2E] text-2xl leading-tight mb-2 line-clamp-2">
             {wish.titre}
           </h1>
           <div className="flex items-center gap-4 text-xs text-[#8A8A9A] font-medium">
@@ -398,7 +398,7 @@ export default function WishDetail() {
         </div>
 
         {/* Description */}
-        <p className="text-[#4A4A5A] text-sm leading-relaxed">{wish.description}</p>
+        <p className="text-[#4A4A5A] text-sm leading-relaxed line-clamp-4">{wish.description}</p>
 
         {/* Wisher */}
         <div
