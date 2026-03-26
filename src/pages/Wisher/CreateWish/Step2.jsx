@@ -73,7 +73,7 @@ export default function Step2() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col">
       <Header title={t('wisher.create.step2_titre')} onBack={() => navigate('/wisher/create/1')} />
       <StepProgress current={2} />
 

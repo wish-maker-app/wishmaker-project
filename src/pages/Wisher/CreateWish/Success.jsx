@@ -29,7 +29,7 @@ export default function Success() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-8 text-center"
+    <div className="h-screen flex flex-col items-center justify-center px-8 text-center"
       style={{ background: 'linear-gradient(160deg, #5B6BF5 0%, #9B59F5 100%)' }}>
 
       {/* Icône étoile animée */}

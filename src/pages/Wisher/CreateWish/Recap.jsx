@@ -40,7 +40,7 @@ export default function Recap() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F8FC] flex flex-col">
+    <div className="h-screen bg-[#F7F8FC] flex flex-col">
 
       {/* ── Photo hero ── */}
       <div className="relative">
