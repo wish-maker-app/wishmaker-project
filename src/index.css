@@ -53,38 +53,15 @@ body {
   box-sizing: border-box;
 }
 
-/* ─── PWA standalone mode (iOS safe areas) ─── */
+/* ─── PWA standalone mode ─── */
 @media all and (display-mode: standalone) {
-  html {
-    height: 100%;
-    background: #FFFFFF !important;
-    overscroll-behavior: none;
-  }
-
-  body {
-    height: 100%;
-    margin: 0;
-    padding: 0 !important;
-    overflow: hidden;
+  html, body {
     background: #FFFFFF !important;
     overscroll-behavior: none;
   }
 
   #root {
-    height: 100dvh !important;
-    min-height: 100dvh !important;
-    overflow-y: auto;
-    overflow-x: hidden;
-    overscroll-behavior: none;
     box-shadow: none;
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-
-  .h-screen {
-    height: 100% !important;
-  }
-  .min-h-screen {
-    min-height: 100% !important;
   }
 }
 
@@ -157,18 +134,6 @@ input, textarea, select {
   padding-bottom: calc(env(safe-area-inset-bottom, 0px)) !important;
 }
 
-/* ─── Bottom sheets en mode standalone ─── */
-@media all and (display-mode: standalone) {
-  .bottom-sheet {
-    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px)) !important;
-  }
-
-  /* Modals fixés en bas */
-  form[style*="safe-area"],
-  .fixed.bottom-0 {
-    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  }
-}
 
 /* ─── Scrollable sans scrollbar visible ─── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
