@@ -340,7 +340,7 @@ export default function WishDetail() {
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.35 }}
-        className="flex-1 bg-white rounded-t-[28px] -mt-5 px-5 pt-6 flex flex-col gap-5 relative z-10 overflow-y-auto"
+        className="flex-1 bg-white rounded-t-[28px] -mt-5 px-5 pt-6 flex flex-col gap-5 relative z-10"
       >
         {/* Titre */}
         <div className="flex-shrink-0">
