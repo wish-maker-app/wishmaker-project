@@ -482,7 +482,7 @@ export default function WishDetail() {
 
         {/* CTA — masqué si c'est ton propre vœu */}
         {!isOwner && (
-          <div className="pt-2 pb-6">
+          <div className="pt-2 pb-12">
             <Button onClick={() => setShowProposal(true)}>
               {t('maker.detail.realiser')}
             </Button>
