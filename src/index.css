@@ -55,13 +55,7 @@ body {
 
 /* ─── PWA standalone mode (iOS safe areas) ─── */
 @media all and (display-mode: standalone) {
-  html {
-    height: 100%;
-    background: #FFFFFF !important;
-    overscroll-behavior: none;
-  }
-
-  body {
+  html, body {
     height: 100%;
     margin: 0;
     padding: 0 !important;
@@ -71,16 +65,21 @@ body {
   }
 
   #root {
-    height: 100dvh;
-    height: 100vh; /* fallback */
-    height: 100dvh;
-    min-height: 100dvh !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100% !important;
+    max-width: 100%;
     overflow: hidden;
     box-shadow: none;
     padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
   }
 
-  /* En standalone, les pages prennent la hauteur exacte de l'écran */
+  /* En standalone, les pages prennent la hauteur exacte du root */
   .h-screen, .min-h-screen {
     height: 100% !important;
     min-height: 100% !important;
