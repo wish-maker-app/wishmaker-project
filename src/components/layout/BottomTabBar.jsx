@@ -103,15 +103,16 @@ export default function BottomTabBar() {
 
   return (
     <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white z-40
-                    flex items-center justify-around px-2 pt-2 pb-2
-                    shadow-[0_-2px_16px_rgba(0,0,0,0.07)]">
+                    flex items-center justify-around px-2 pt-1 pb-1
+                    shadow-[0_-2px_16px_rgba(0,0,0,0.07)]"
+      style={{ paddingBottom: 'max(4px, env(safe-area-inset-bottom, 4px))' }}>
       {TABS.map(({ to, labelKey, Icon }) => {
         const active = location.pathname.startsWith(to)
         return (
           <NavLink
             key={to}
             to={to}
-            className="flex flex-col items-center gap-1 flex-1 py-2"
+            className="flex flex-col items-center gap-0.5 flex-1 py-1"
           >
             <Icon active={active} />
             <span
