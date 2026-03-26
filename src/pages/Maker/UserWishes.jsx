@@ -119,7 +119,7 @@ export default function UserWishes() {
   const activeWishes = wishes.filter(w => w.statut !== 'realise' && w.statut !== 'annule')
 
   return (
-    <div className="h-screen bg-[#F7F7FA] flex flex-col overflow-y-auto" style={{ paddingBottom: 90 }}>
+    <div className="min-h-screen bg-[#F7F7FA] flex flex-col" style={{ paddingBottom: 90 }}>
 
       {/* Hero header gradient */}
       <div className="relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #7C6AFA 0%, #9B8BFF 50%, #B8ADFF 100%)', padding: '52px 20px 60px' }}>

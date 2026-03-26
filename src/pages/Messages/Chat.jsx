@@ -179,7 +179,7 @@ export default function Chat() {
   const interlocuteurName = interlocuteur.pseudo || interlocuteur.prenom
 
   return (
-    <div className="h-screen bg-[#FAFAFA] flex flex-col">
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
 
       {/* Header */}
       <div className="bg-white px-4 pt-4 pb-3 flex items-center gap-3 border-b border-[#F0F0F0]">

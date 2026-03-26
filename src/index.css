@@ -48,20 +48,42 @@ body {
   background: white;
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.15);
   overflow: hidden;
+  /* Safe area top sur #root (fond blanc = invisible, contrairement à body gris) */
   padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;
 }
 
-/* ─── PWA standalone mode ─── */
+/* ─── PWA standalone mode (iOS safe areas) ─── */
 @media all and (display-mode: standalone) {
-  html, body {
+  html {
+    min-height: calc(100% + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background: #FFFFFF !important;
+    overscroll-behavior: none;
+  }
+
+  body {
+    height: 100%;
+    margin: 0;
+    padding: 0 !important;
+    overflow: hidden;
     background: #FFFFFF !important;
     overscroll-behavior: none;
   }
 
   #root {
+    height: 100%;
+    min-height: 100% !important;
+    overflow: hidden;
     box-shadow: none;
+    padding-top: 0;
+  }
+
+  /* En standalone, les pages prennent la hauteur exacte de l'écran */
+  .h-screen, .min-h-screen {
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
   }
 }
 
@@ -128,12 +150,6 @@ input, textarea, select {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-
-/* ─── Safe area iOS pour éléments fixés en bas ─── */
-.safe-bottom {
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px)) !important;
-}
-
 
 /* ─── Scrollable sans scrollbar visible ─── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
