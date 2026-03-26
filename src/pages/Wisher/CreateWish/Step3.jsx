@@ -229,6 +229,12 @@ export default function Step3() {
 
           {/* Input adresse */}
           <div className="flex-1 relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={pin ? '#5B6BF5' : '#8A8A9A'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21l-4.35-4.35"/>
+              </svg>
+            </span>
             <input
               ref={inputRef}
               type="text"
@@ -236,7 +242,7 @@ export default function Step3() {
               onChange={handleSearchChange}
               onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
               placeholder="Saisissez votre adresse..."
-              className={`w-full h-11 px-4 pr-10 rounded-2xl text-sm transition-colors focus:outline-none ${
+              className={`w-full h-11 pl-10 pr-10 rounded-2xl text-sm transition-colors focus:outline-none ${
                 pin
                   ? 'border-2 border-[#5B6BF5] bg-[#EEF0FF] text-[#5B6BF5] font-medium'
                   : 'border border-[#E0E0E0] bg-[#F5F5F7] text-[#1A1A2E] placeholder:text-[#B0B0B0] focus:border-[#5B6BF5] focus:ring-1 focus:ring-[#5B6BF5]/20'
