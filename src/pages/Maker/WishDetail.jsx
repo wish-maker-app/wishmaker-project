@@ -344,7 +344,7 @@ export default function WishDetail() {
       >
         {/* Titre */}
         <div>
-          <h1 className="font-extrabold text-[#1A1A2E] text-2xl leading-tight mb-2">
+          <h1 className="font-extrabold text-[#1A1A2E] text-2xl leading-tight mb-2 line-clamp-2">
             {wish.titre}
           </h1>
           <div className="flex items-center gap-4 text-xs text-[#8A8A9A] font-medium">
@@ -398,7 +398,7 @@ export default function WishDetail() {
         </div>
 
         {/* Description */}
-        <p className="text-[#4A4A5A] text-sm leading-relaxed">{wish.description}</p>
+        <p className="text-[#4A4A5A] text-sm leading-relaxed line-clamp-5">{wish.description}</p>
 
         {/* Wisher */}
         <div
