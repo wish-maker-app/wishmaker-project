@@ -8,15 +8,6 @@ export default function OnboardingStep2() {
   return (
     <div className="fixed inset-0 flex flex-col bg-white">
 
-      {/* Barre de progression */}
-      <div className="flex gap-2 px-6 pt-10">
-        {[false, true, false].map((active, i) => (
-          <div key={i} className="h-1 flex-1 rounded-full overflow-hidden bg-gray-200">
-            {active && <div className="h-full rounded-full" style={{ background: 'linear-gradient(135deg, #5B6BF5, #9B59F5)' }} />}
-          </div>
-        ))}
-      </div>
-
       {/* Illustration génie */}
       <div className="flex-1 flex items-center justify-center px-8">
         <motion.img
@@ -33,17 +24,18 @@ export default function OnboardingStep2() {
         initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
         className="px-6 pb-12 flex flex-col gap-6"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)', paddingTop: 40 }}
       >
-        <div className="flex gap-2 justify-center">
+        <div className="flex gap-2">
           {[false, true, false].map((active, i) => (
             <div key={i} className={`rounded-full transition-all ${active ? 'w-6 h-2' : 'w-2 h-2'}`}
-              style={{ background: active ? 'linear-gradient(135deg,#5B6BF5,#9B59F5)' : '#E0E0E0' }}/>
+              style={{ background: active ? 'linear-gradient(135deg,#5B6BF5,#9B59F5)' : 'rgba(255,255,255,0.3)' }}/>
           ))}
         </div>
 
         <div className="flex flex-col gap-2">
-          <h2 className="font-bold text-2xl" style={{ color: '#1A1A2E' }}>Du temps libre ? Deviens un Génie ! ✨</h2>
-          <p className="text-sm leading-relaxed" style={{ color: '#8A8A9A' }}>
+          <h2 className="text-white font-bold text-2xl">Du temps libre ? Deviens un Génie ! ✨</h2>
+          <p className="text-white/70 text-sm leading-relaxed">
             Parcourez les vœux autour de vous et proposez vos services à ceux qui en ont besoin.
           </p>
         </div>
