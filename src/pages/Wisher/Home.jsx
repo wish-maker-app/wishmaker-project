@@ -124,7 +124,7 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
       <div onClick={() => navigate(`/maker/wish/${wish.id}?owner=1`)} className="cursor-pointer">
         {/* Photo de couverture */}
         {coverUrl && (
-          <div className="relative h-[140px] bg-[#F0F0F5]">
+          <div className="relative h-[200px] bg-[#F0F0F5]">
             <img src={coverUrl} alt="" className="w-full h-full object-cover" />
             {wish.is_urgent && (
               <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-1 rounded-full"
