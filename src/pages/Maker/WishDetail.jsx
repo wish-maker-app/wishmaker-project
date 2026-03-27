@@ -218,6 +218,7 @@ export default function WishDetail() {
   const [deleting, setDeleting] = useState(false)
   const [showProposal, setShowProposal] = useState(false)
   const [showFullMap, setShowFullMap] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(null)
   const [proposalMsg, setProposalMsg] = useState('')
   const [sendingProposal, setSendingProposal] = useState(false)
 
@@ -267,7 +268,7 @@ export default function WishDetail() {
       {/* Hero */}
       <div className="relative flex-shrink-0" style={{ height: 220 }}>
         {heroImage ? (
-          <img src={heroImage} alt="" className="w-full h-full object-cover" />
+          <img src={heroImage} alt="" className="w-full h-full object-cover cursor-pointer" onClick={() => setLightboxIndex(0)} />
         ) : (
           <div className="w-full h-full"
             style={{ background: 'linear-gradient(160deg,#5B6BF5 0%,#9B59F5 100%)' }} />
@@ -448,7 +449,7 @@ export default function WishDetail() {
             <p className="text-sm font-bold text-[#1A1A2E] mb-3">Photos du voeu</p>
             <div className="flex gap-3 overflow-x-auto pb-1">
               {wish.images.map((img, i) => (
-                <div key={i} className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 bg-[#F5F5F7]">
+                <div key={i} className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 bg-[#F5F5F7] cursor-pointer" onClick={() => setLightboxIndex(i)}>
                   <img src={img.url} alt="" className="w-full h-full object-cover" />
                 </div>
               ))}
@@ -701,6 +702,73 @@ export default function WishDetail() {
                 <p className="text-sm font-medium text-[#1A1A2E]">{wish.adresse}</p>
                 <p className="text-xs text-[#8A8A9A] mt-1">Localisation approximative · Zone de ~400m</p>
               </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Lightbox photos */}
+      <AnimatePresence>
+        {lightboxIndex !== null && wish?.images?.length > 0 && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/90 z-[960]"
+              onClick={() => setLightboxIndex(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed inset-0 z-[961] flex flex-col items-center justify-center"
+            >
+              {/* Bouton fermer */}
+              <button
+                onClick={() => setLightboxIndex(null)}
+                className="absolute top-12 right-4 w-10 h-10 rounded-full bg-white/15 backdrop-blur flex items-center justify-center z-10"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+
+              {/* Compteur */}
+              <p className="absolute top-14 left-0 right-0 text-center text-white/70 text-sm font-medium">
+                {lightboxIndex + 1} / {wish.images.length}
+              </p>
+
+              {/* Image */}
+              <motion.img
+                key={lightboxIndex}
+                src={wish.images[lightboxIndex]?.url}
+                alt=""
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                className="max-w-[90vw] max-h-[75vh] object-contain rounded-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+
+              {/* Navigation */}
+              {wish.images.length > 1 && (
+                <div className="flex gap-4 mt-6">
+                  <button
+                    onClick={() => setLightboxIndex((prev) => (prev - 1 + wish.images.length) % wish.images.length)}
+                    className="w-12 h-12 rounded-full bg-white/15 backdrop-blur flex items-center justify-center"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M15 19l-7-7 7-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setLightboxIndex((prev) => (prev + 1) % wish.images.length)}
+                    className="w-12 h-12 rounded-full bg-white/15 backdrop-blur flex items-center justify-center"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 5l7 7-7 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              )}
             </motion.div>
           </>
         )}

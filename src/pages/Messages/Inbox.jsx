@@ -143,11 +143,6 @@ export default function Inbox() {
             placeholder={t('messages.recherche')}
             className="w-full h-12 bg-white border border-[#E8E8E8] rounded-full pl-10 pr-12 text-sm text-[#1A1A2E] placeholder-[#B0B0B0] outline-none focus:border-[#5B6BF5] transition-colors"
           />
-          <button className="absolute right-3">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M4 6h16M8 12h8M11 18h2" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
         </div>
       </div>
 

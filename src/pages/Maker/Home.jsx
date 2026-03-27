@@ -605,10 +605,10 @@ export default function MakerHome() {
                   })
                 }
               }}
-              className="absolute z-[500] w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center border border-[#E8E8E8] active:scale-95 transition-transform"
-              style={{ bottom: 80, right: 16 }}
+              className="absolute z-[500] w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center border border-[#E8E8E8] active:scale-95 transition-transform"
+              style={{ bottom: 100, right: '1.25rem' }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="3" fill="#5B6BF5"/>
                 <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="#5B6BF5" strokeWidth="2" strokeLinecap="round"/>
                 <circle cx="12" cy="12" r="8" stroke="#5B6BF5" strokeWidth="1.5" fill="none"/>

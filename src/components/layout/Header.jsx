@@ -11,7 +11,7 @@ export default function Header({ title = '', onBack = null, rightAction = null, 
   const handleBack = onBack || (() => navigate(-1))
 
   return (
-    <div className={`flex items-center justify-between px-5 pt-12 pb-4 ${transparent ? 'absolute top-0 left-0 right-0 z-10' : ''}`}>
+    <div className={`flex items-center justify-between p-5 ${transparent ? 'absolute top-0 left-0 right-0 z-10' : ''}`}>
       {/* Bouton retour */}
       <button
         onClick={handleBack}
