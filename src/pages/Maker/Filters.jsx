@@ -43,7 +43,7 @@ export default function Filters() {
   const activeCount = (sortBy ? 1 : 0) + (maxDistance !== 100 ? 1 : 0) + (selectedCategories.length > 0 ? 1 : 0)
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col">
       <Header
         title="Filtres"
         onBack={() => navigate(-1)}

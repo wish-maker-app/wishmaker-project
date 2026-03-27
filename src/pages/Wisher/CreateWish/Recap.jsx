@@ -74,7 +74,7 @@ export default function Recap() {
       </div>
 
       {/* ── Contenu ── */}
-      <div className="flex-1 -mt-5 relative z-10">
+      <div className="flex-1 -mt-5 relative z-10 overflow-y-auto">
         <div className="bg-[#F7F8FC] rounded-t-[24px] px-5 pt-5 pb-10 flex flex-col gap-4">
 
           {/* Card vœu */}
