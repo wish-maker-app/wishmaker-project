@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Header from '../../components/layout/Header'
 import Button from '../../components/ui/Button'
@@ -21,6 +21,8 @@ const CATEGORIES = [
 
 export default function Filters() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const fromView = searchParams.get('from') || 'liste'
   const { sortBy, setSortBy, maxDistance, setMaxDistance, selectedCategories, setSelectedCategories, resetFilters } = useMakerStore()
 
   function toggleCategory(id) {
@@ -32,7 +34,7 @@ export default function Filters() {
   }
 
   function handleApply() {
-    navigate(-1)
+    navigate(`/maker?view=${fromView}`, { replace: true })
   }
 
   function handleReset() {

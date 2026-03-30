@@ -390,7 +390,7 @@ export default function MakerHome() {
   const [acceptedWish, setAcceptedWish] = useState(null)
   const [acceptMessage, setAcceptMessage] = useState('')
   const profile = useAuthStore((s) => s.profile)
-  const { sortBy, maxDistance } = useMakerStore()
+  const { sortBy, maxDistance, selectedCategories } = useMakerStore()
   const { getAvailableWishes, loading } = useWishes()
   const { createConversation, sendMessage } = useMessages()
   const [wishes, setWishes] = useState([])
@@ -427,12 +427,33 @@ export default function MakerHome() {
     (w.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()))
   )
 
+  // Mapping catégories → tags pour le filtrage
+  const CATEGORY_TAGS = {
+    depannage: ['Plomberie', 'Électricité', 'Serrurerie', 'Peinture', 'Carrelage', 'Maçonnerie'],
+    immobilier: ['Meubles', 'Montage de meubles', 'Décoration d\'intérieur', 'Déménagement', 'Rangement'],
+    services: ['Ménage', 'Aide à domicile', 'Repassage', 'Nettoyage', 'Baby-sitting', 'Cuisine'],
+    animaux: ['Garde animaux', 'Promenade chien', 'Jardinage', 'Entretien jardin', 'Vétérinaire'],
+    transport: ['Livraison', 'Courses', 'Transport de personnes', 'Déplacement'],
+    cours: ['Cours particuliers', 'Musique', 'Informatique', 'Langues', 'Sport', 'Soutien scolaire'],
+  }
+
   // Filtrage par rayon de distance
-  const filtered = maxDistance >= 100
+  const distanceFiltered = maxDistance >= 100
     ? textFiltered
     : textFiltered.filter((w) => {
         if (!w.latitude || !w.longitude) return true
         return distanceKm(center[0], center[1], w.latitude, w.longitude) <= maxDistance
+      })
+
+  // Filtrage par catégories sélectionnées
+  const filtered = selectedCategories.length === 0
+    ? distanceFiltered
+    : distanceFiltered.filter((w) => {
+        const wishTags = (w.tags || []).map(t => t.toLowerCase())
+        return selectedCategories.some((catId) => {
+          const catTags = (CATEGORY_TAGS[catId] || []).map(t => t.toLowerCase())
+          return catTags.some(ct => wishTags.includes(ct))
+        })
       })
 
   const sponsored = filtered.filter((w) => w.is_sponsored || (w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now()))
@@ -528,7 +549,7 @@ export default function MakerHome() {
             className="w-full h-12 bg-white border border-[#E8E8E8] rounded-full pl-10 pr-12 text-sm text-[#1A1A2E] placeholder-[#B0B0B0] outline-none shadow-sm disabled:cursor-not-allowed"
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <button className="relative p-1" onClick={() => navigate('/maker/filters')} disabled={view === 'swipe'}>
+            <button className="relative p-1" onClick={() => navigate(`/maker/filters?from=${view}`)} disabled={view === 'swipe'}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                 <path d="M4 6h16M8 12h8M11 18h2" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round"/>
               </svg>
