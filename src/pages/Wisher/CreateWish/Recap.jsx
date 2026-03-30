@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import toast from 'react-hot-toast'
 import useWishFormStore from '../../../store/wishFormStore'
 import { useWishes } from '../../../hooks/useWishes'
 import useAuthStore from '../../../store/authStore'
+import { checkContent } from '../../../lib/moderation'
 
 export default function Recap() {
   const navigate = useNavigate()
@@ -25,6 +27,16 @@ export default function Recap() {
     if (!titre || titre.length < 5) { setError('Le titre est obligatoire (min. 5 caractères)'); return }
     if (!description || description.length < 10) { setError('La description est obligatoire (min. 10 caractères)'); return }
     if (!latitude || !longitude) { setError('La localisation est obligatoire. Retournez à l\'étape "Lieu".'); return }
+    // Vérification modération avant publication
+    const [titreCheck, descCheck] = await Promise.all([
+      checkContent(titre),
+      checkContent(description),
+    ])
+    if (!titreCheck.isClean || !descCheck.isClean) {
+      toast.error('Publication impossible : contenu non conforme.')
+      return
+    }
+
     setRecompense(recompenseType, recompenseType === 'argent' ? parseFloat(montant) || null : null, bonProcedeText)
     try {
       await createWish({

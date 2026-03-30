@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,6 +9,7 @@ import Header from '../../../components/layout/Header'
 import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
 import useWishFormStore from '../../../store/wishFormStore'
+import { checkContent } from '../../../lib/moderation'
 
 const schema = z.object({
   titre: z.string().min(5, 'Minimum 5 caractères').max(80, 'Maximum 80 caractères'),
@@ -53,9 +55,29 @@ export default function Step1() {
     defaultValues: { titre, description },
   })
 
+  const titreValue = watch('titre') || ''
   const descValue = watch('description') || ''
+  const [titreViolation, setTitreViolation] = useState(false)
+  const [descViolation, setDescViolation] = useState(false)
+
+  const checkModeration = useCallback(async () => {
+    const [titreCheck, descCheck] = await Promise.all([
+      checkContent(titreValue),
+      checkContent(descValue),
+    ])
+    setTitreViolation(!titreCheck.isClean)
+    setDescViolation(!descCheck.isClean)
+  }, [titreValue, descValue])
+
+  useEffect(() => {
+    const timer = setTimeout(checkModeration, 300)
+    return () => clearTimeout(timer)
+  }, [checkModeration])
+
+  const hasViolation = titreViolation || descViolation
 
   function onSubmit(data) {
+    if (hasViolation) return
     setStep1(data.titre, data.description)
     navigate('/wisher/create/2')
   }
@@ -75,7 +97,7 @@ export default function Step1() {
             label="Titre du vœu"
             placeholder={t('wisher.create.titre_placeholder')}
             {...register('titre')}
-            error={errors.titre?.message}
+            error={titreViolation ? 'Ce contenu contient des termes non autorisés.' : errors.titre?.message}
           />
 
           <div className="flex flex-col gap-1.5">
@@ -89,15 +111,17 @@ export default function Step1() {
               {...register('description')}
               className={`w-full bg-[#F5F5F7] rounded-[14px] px-4 py-3 text-[#1A1A2E] text-sm outline-none resize-none
                 focus:ring-2 focus:ring-[#5B6BF5] border border-transparent focus:border-[#5B6BF5]
-                transition-all placeholder-[#8A8A9A] ${errors.description ? 'border-red-400' : ''}`}
+                transition-all placeholder-[#8A8A9A] ${errors.description || descViolation ? 'border-red-400' : ''}`}
             />
-            {errors.description && (
-              <p className="text-xs text-red-500">{errors.description.message}</p>
+            {(descViolation || errors.description) && (
+              <p className="text-xs text-red-500">
+                {descViolation ? 'Ce contenu contient des termes non autorisés.' : errors.description.message}
+              </p>
             )}
           </div>
 
           <div className="mt-auto">
-            <Button type="submit">{t('common.continuer')}</Button>
+            <Button type="submit" disabled={hasViolation}>{t('common.continuer')}</Button>
           </div>
         </form>
       </motion.div>

@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import useAuthStore from '../../store/authStore'
 import { useMessages } from '../../hooks/useMessages'
 import { useWishes } from '../../hooks/useWishes'
+import { checkContent } from '../../lib/moderation'
 
 function RatingModal({ open, onClose, onSubmit, interlocuteurName, loading }) {
   const [note, setNote] = useState(0)
@@ -133,9 +134,17 @@ export default function Chat() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
   }, [messages])
 
+  const [chatModerationError, setChatModerationError] = useState('')
+
   async function handleSend(e) {
     e.preventDefault()
     if (!input.trim()) return
+    const result = await checkContent(input.trim())
+    if (!result.isClean) {
+      setChatModerationError('Message non envoyé : contenu inapproprié.')
+      return
+    }
+    setChatModerationError('')
     await sendMessage(id, input.trim())
     setInput('')
   }
@@ -324,12 +333,19 @@ export default function Chat() {
         })}
       </div>
 
+      {/* Warning modération */}
+      {chatModerationError && (
+        <div className="bg-red-50 px-4 py-2 border-b border-red-100">
+          <p className="text-xs text-red-500">{chatModerationError}</p>
+        </div>
+      )}
+
       {/* Input */}
       <form onSubmit={handleSend} className="bg-white border-t border-[#F0F0F0] px-4 py-3 flex items-center gap-3"
         style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
         <input
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => { setInput(e.target.value); setChatModerationError('') }}
           placeholder={t('messages.envoyer')}
           className="flex-1 h-11 bg-[#F5F5F5] rounded-full px-4 text-sm text-[#1A1A2E] placeholder-[#B0B0B0] outline-none"
         />

@@ -462,10 +462,14 @@ export default function MakerHome() {
       return 0
     })
 
-  // Vœux pour le mode swipe : exclure ses propres vœux + les refusés
-  const swipeWishes = filtered.filter((w) =>
-    w.wisher_id !== profile?.id && !skippedIds.has(w.id)
-  )
+  // Vœux pour le mode swipe : exclure ses propres vœux + les refusés, max 30km
+  const swipeWishes = filtered.filter((w) => {
+    if (w.wisher_id === profile?.id || skippedIds.has(w.id)) return false
+    if (w.latitude && w.longitude) {
+      return distanceKm(center[0], center[1], w.latitude, w.longitude) <= 30
+    }
+    return true
+  })
 
   function handleSwipeAccept(wish) {
     setAcceptedWish(wish)

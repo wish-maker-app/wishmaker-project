@@ -74,6 +74,8 @@ export default function Profile() {
   const { t, i18n } = useTranslation()
   const { signOut } = useAuth()
   const profile = useAuthStore((s) => s.profile)
+  const user = useAuthStore((s) => s.user)
+  const isAdmin = user?.email === import.meta.env.VITE_ADMIN_EMAIL
 
   const [editModal, setEditModal] = useState(null) // 'password' | 'langue' | null
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
@@ -151,6 +153,13 @@ export default function Profile() {
 
         <SectionTitle title="General" />
         <ProfileItem icon={icons.globe} label="Langue" onClick={() => setEditModal('langue')} />
+
+        {isAdmin && (
+          <>
+            <SectionTitle title="Administration" />
+            <ProfileItem icon={icons.shield} label="Panel Admin" onClick={() => navigate('/admin')} />
+          </>
+        )}
 
         <SectionTitle title="About" />
         <ProfileItem icon={icons.legal} label="Mentions légales" />

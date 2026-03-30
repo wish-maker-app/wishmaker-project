@@ -11,6 +11,7 @@ import Header from '../../components/layout/Header'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
 import SuccessModal from '../../components/ui/SuccessModal'
+import { checkContent } from '../../lib/moderation'
 
 const schema = z.object({
   prenom: z.string().min(2, 'Prénom requis'),
@@ -34,6 +35,7 @@ export default function Register() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [typeCompte, setTypeCompte] = useState('particulier')
+  const [pseudoModerationError, setPseudoModerationError] = useState('')
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
@@ -43,6 +45,15 @@ export default function Register() {
   async function onSubmit(data) {
     setLoading(true)
     try {
+      // Vérification modération du pseudo
+      const pseudoCheck = await checkContent(data.pseudo)
+      if (!pseudoCheck.isClean) {
+        setPseudoModerationError('Ce pseudo n\'est pas autorisé.')
+        setLoading(false)
+        return
+      }
+      setPseudoModerationError('')
+
       // Crée le compte — le trigger SQL handle_new_user() crée le profil dans public.users
       const { data: authData, error: signUpErr } = await supabase.auth.signUp({
         email: data.email,
@@ -99,7 +110,7 @@ export default function Register() {
           <Input label="Nom" placeholder="Votre nom"
             {...register('nom')} error={errors.nom?.message} />
           <Input label="Pseudo" placeholder="Votre pseudo (ex: wish_maker42)"
-            {...register('pseudo')} error={errors.pseudo?.message} />
+            {...register('pseudo')} error={pseudoModerationError || errors.pseudo?.message} />
 
           {/* Type de compte */}
           <div className="flex flex-col gap-2">

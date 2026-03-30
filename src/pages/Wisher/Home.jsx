@@ -6,6 +6,8 @@ import toast from 'react-hot-toast'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
 import { useWishes } from '../../hooks/useWishes'
+import { supabase } from '../../lib/supabase'
+import WishPackModal from '../../components/ui/WishPackModal'
 
 const TABS = ['en_attente', 'realise', 'expire']
 const TAB_LABELS = { en_attente: 'En attente', realise: 'Réalisé', expire: 'Expiré' }
@@ -201,6 +203,7 @@ export default function WisherHome() {
   const [activeTab, setActiveTab] = useState('en_attente')
   const [modal, setModal] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [showPackModal, setShowPackModal] = useState(false)
 
   const [, setTick] = useState(0)
 
@@ -208,6 +211,11 @@ export default function WisherHome() {
     getMyWishes()
       .then((w) => { setWishes(w); setLoading(false) })
       .catch(() => setLoading(false))
+    // Rafraîchir le profil pour avoir le quota à jour
+    if (user?.id) {
+      supabase.from('users').select('*').eq('id', user.id).single()
+        .then(({ data }) => { if (data) useAuthStore.getState().setProfile(data) })
+    }
   }, [])
 
   // Rafraîchir le compte à rebours toutes les minutes
@@ -306,6 +314,25 @@ export default function WisherHome() {
             <p className="text-[16px] font-bold text-[#1A1A2E]">{user.prenom} {user.nom}</p>
           </div>
         </div>
+        {/* Compteur quota mini */}
+        {(() => {
+          const quota = user.wishes_quota || 3
+          const used = user.wishes_used || 0
+          const remaining = Math.max(0, quota - used)
+          const percent = Math.min(100, Math.round((used / quota) * 100))
+          const barColor = percent >= 80 ? '#EF4444' : percent >= 50 ? '#F59E0B' : '#22C55E'
+          return (
+            <button
+              onClick={() => remaining === 0 ? setShowPackModal(true) : null}
+              className="flex flex-col items-end gap-1"
+            >
+              <span className="text-[11px] font-semibold text-[#8A8A9A]">{used}/{quota} vœux</span>
+              <div className="w-16 h-1.5 bg-[#F0F0F0] rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, background: barColor }} />
+              </div>
+            </button>
+          )
+        })()}
       </div>
 
       {/* Contenu scrollable */}
@@ -315,7 +342,15 @@ export default function WisherHome() {
         <div className="px-5 mb-5">
           <motion.button
             whileTap={{ scale: 0.98 }}
-            onClick={() => navigate('/wisher/create/1')}
+            onClick={() => {
+              const quota = user.wishes_quota || 3
+              const used = user.wishes_used || 0
+              if (used >= quota) {
+                setShowPackModal(true)
+              } else {
+                navigate('/wisher/create/1')
+              }
+            }}
             className="w-full rounded-[20px] p-5 text-left relative overflow-hidden"
             style={{ background: 'linear-gradient(135deg,#5B6BF5 0%,#9B59F5 100%)' }}
           >
@@ -470,6 +505,15 @@ export default function WisherHome() {
           />
         )}
       </AnimatePresence>
+
+      <WishPackModal
+        open={showPackModal}
+        onClose={() => setShowPackModal(false)}
+        onSuccess={() => {
+          setShowPackModal(false)
+          navigate('/wisher/create/1')
+        }}
+      />
 
       <BottomTabBar />
     </div>
