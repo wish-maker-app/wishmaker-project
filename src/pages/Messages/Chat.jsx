@@ -88,10 +88,13 @@ export default function Chat() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const fromTab = searchParams.get('tab') || 'missions'
+  const isDraft = id === 'new'
+  const draftWishId = searchParams.get('wishId')
+  const draftWisherId = searchParams.get('wisherId')
   const [input, setInput] = useState('')
   const scrollRef = useRef(null)
   const userId = useAuthStore((s) => s.user?.id)
-  const { messages, loadMessages, sendMessage, loadConversations, conversations, loading } = useMessages()
+  const { messages, loadMessages, sendMessage, createConversation, loadConversations, conversations, loading } = useMessages()
   const { markWishRealized, submitRating, getUserRating } = useWishes()
   const [interlocuteur, setInterlocuteur] = useState({ prenom: 'Utilisateur', nom: '', pseudo: null, is_online: false })
   const [wishTitre, setWishTitre] = useState('')
@@ -102,13 +105,31 @@ export default function Chat() {
   const [alreadyRated, setAlreadyRated] = useState(false)
   const [ratingLoading, setRatingLoading] = useState(false)
   const [showConfirmRealise, setShowConfirmRealise] = useState(false)
+  const [convId, setConvId] = useState(isDraft ? null : id)
 
   useEffect(() => {
-    loadMessages(id)
-    loadConversations().then(() => {})
+    if (!isDraft) {
+      loadMessages(id)
+      loadConversations().then(() => {})
+    } else if (draftWisherId) {
+      // Mode brouillon : charger les infos du wisher
+      import('../../lib/supabase').then(({ supabase }) => {
+        supabase.from('users').select('id, prenom, nom, pseudo, avatar_url, is_online, rating').eq('id', draftWisherId).single()
+          .then(({ data }) => { if (data) setInterlocuteur(data) })
+        supabase.from('wishes').select('id, titre, statut, type_recompense, montant_recompense, wish_images(url, is_cover)').eq('id', draftWishId).single()
+          .then(({ data }) => {
+            if (data) {
+              setWishTitre(data.titre || '')
+              setWishStatut(data.statut || '')
+              setConvData({ wish: data, wisher_id: draftWisherId, maker_id: userId })
+            }
+          })
+      })
+    }
   }, [id])
 
   useEffect(() => {
+    if (isDraft) return
     const conv = conversations.find((c) => c.id === id)
     if (conv) {
       const wisher = conv.wisher_id === userId
@@ -145,7 +166,24 @@ export default function Chat() {
       return
     }
     setChatModerationError('')
-    await sendMessage(id, input.trim())
+
+    // Mode brouillon : créer la conversation au premier message
+    let targetConvId = convId
+    if (!targetConvId && isDraft && draftWishId && draftWisherId) {
+      try {
+        targetConvId = await createConversation(draftWishId, draftWisherId)
+        setConvId(targetConvId)
+        // Remplacer l'URL sans ajouter à l'historique
+        navigate(`/messages/${targetConvId}`, { replace: true })
+        loadMessages(targetConvId)
+        loadConversations()
+      } catch (err) {
+        toast.error('Erreur lors de la création de la conversation')
+        return
+      }
+    }
+
+    await sendMessage(targetConvId, input.trim())
     setInput('')
   }
 

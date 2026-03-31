@@ -255,10 +255,23 @@ export default function WishDetail() {
 
   async function handleMessage() {
     try {
-      const convId = await createConversation(wish.id, wish.wisher_id)
-      navigate(`/messages/${convId}`)
+      // Vérifier si une conversation existe déjà
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('wish_id', wish.id)
+        .eq('maker_id', profile.id)
+        .single()
+
+      if (existing) {
+        navigate(`/messages/${existing.id}`)
+      } else {
+        // Pas de conversation existante — ouvrir le chat en mode brouillon
+        navigate(`/messages/new?wishId=${wish.id}&wisherId=${wish.wisher_id}`)
+      }
     } catch (err) {
-      console.error('Erreur création conversation:', err)
+      // .single() throws si pas de résultat — c'est normal, on ouvre en mode brouillon
+      navigate(`/messages/new?wishId=${wish.id}&wisherId=${wish.wisher_id}`)
     }
   }
 
