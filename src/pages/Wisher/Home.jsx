@@ -32,7 +32,7 @@ function timeAgo(iso) {
 function expirationInfo(expiresAt) {
   if (!expiresAt) return null
   const diff = new Date(expiresAt) - Date.now()
-  if (diff <= 0) return { label: 'Expiré', color: '#EF4444' }
+  if (diff <= 0) return { label: 'Expiré', color: '#EF4444', expired: true }
   const hours = Math.floor(diff / 3600000)
   const minutes = Math.floor((diff % 3600000) / 60000)
   const label = hours > 0 ? `Expire dans ${hours}h ${minutes}min` : `Expire dans ${minutes}min`
@@ -150,7 +150,7 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
       </div>
 
       {/* Bannière expiration proche (<6h) */}
-      {isActive && exp && !wish.is_extended && exp.color === '#EF4444' && (
+      {isActive && exp && !exp.expired && !wish.is_extended && exp.color === '#EF4444' && (
         <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl flex items-center justify-between"
           style={{ background: '#FFF7ED', border: '1px solid #FFEDD5' }}>
           <div className="flex items-center gap-2">
