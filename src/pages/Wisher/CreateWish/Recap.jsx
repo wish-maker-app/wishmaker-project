@@ -51,13 +51,15 @@ export default function Recap() {
     }
   }
 
-  return (
-    <div className="h-screen bg-[#F7F8FC] flex flex-col">
+  const heroH = cover ? 260 : 160
 
-      {/* ── Photo hero ── */}
-      <div className="relative">
+  return (
+    <div className="h-screen bg-[#F7F8FC] overflow-y-auto">
+
+      {/* ── Photo hero (sticky, reste en place pendant le scroll) ── */}
+      <div className="sticky top-0 z-0" style={{ height: heroH }}>
         {cover ? (
-          <div className="relative h-[260px] bg-[#F0F0F5]">
+          <div className="relative h-full bg-[#F0F0F5]">
             <img src={cover.preview} alt="" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15" />
             {images.length > 1 && (
@@ -67,7 +69,7 @@ export default function Recap() {
             )}
           </div>
         ) : (
-          <div className="relative h-[160px]" style={{ background: 'linear-gradient(160deg,#5B6BF5 0%,#9B59F5 100%)' }}>
+          <div className="relative h-full" style={{ background: 'linear-gradient(160deg,#5B6BF5 0%,#9B59F5 100%)' }}>
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-5xl">✨</span>
             </div>
@@ -75,7 +77,7 @@ export default function Recap() {
         )}
 
         {/* Bouton retour */}
-        <div className="absolute top-14 left-4 z-10">
+        <div className="absolute top-14 left-4 z-20">
           <button onClick={() => navigate('/wisher/create/4')}
             className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -85,8 +87,8 @@ export default function Recap() {
         </div>
       </div>
 
-      {/* ── Contenu ── */}
-      <div className="flex-1 -mt-5 relative z-10 overflow-y-auto">
+      {/* ── Contenu (scrolle par-dessus la photo) ── */}
+      <div className="relative z-10 -mt-5">
         <div className="bg-[#F7F8FC] rounded-t-[24px] px-5 pt-5 pb-10 flex flex-col gap-4">
 
           {/* Card vœu */}
