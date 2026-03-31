@@ -178,7 +178,7 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
               Prolonger
             </button>
           )}
-          {!wish.is_urgent && (
+          {!wish.is_urgent && !exp?.expired && (
             <button
               onClick={(e) => { e.stopPropagation(); onMakeUrgent(wish) }}
               className="flex-1 h-10 rounded-full text-xs font-bold flex items-center justify-center text-white active:scale-[0.97] transition-transform"
