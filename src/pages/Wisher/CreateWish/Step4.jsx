@@ -107,7 +107,7 @@ export default function Step4() {
           const selectedInCat = cat.tags.filter((t) => selected.includes(t))
 
           return (
-            <div key={cat.id} className="rounded-2xl border border-[#E8E8E8] overflow-hidden bg-white">
+            <div key={cat.id} className="shrink-0 rounded-2xl border border-[#E8E8E8] overflow-hidden bg-white">
               {/* En-tête de catégorie */}
               <button
                 onClick={() => setOpenCategory(isOpen ? null : cat.id)}
@@ -176,7 +176,7 @@ export default function Step4() {
           )
         })}
 
-        <div className="mt-4 flex flex-col gap-3">
+        <div className="shrink-0 mt-4 flex flex-col gap-3">
           <Button onClick={handleContinue}>
             Terminer
           </Button>
