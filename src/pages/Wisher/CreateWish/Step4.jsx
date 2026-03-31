@@ -100,7 +100,7 @@ export default function Step4() {
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex-1 flex flex-col px-5 pt-2 pb-10 gap-3"
+        className="flex-1 flex flex-col px-5 pt-2 pb-10 gap-3 overflow-y-auto"
       >
         {CATEGORIES.map((cat) => {
           const isOpen = openCategory === cat.id
