@@ -74,6 +74,7 @@ export function useMap() {
       .gte('longitude', bounds.west)
       .lte('longitude', bounds.east)
       .in('statut', ['en_attente', 'en_cours'])
+      .gte('expires_at', new Date().toISOString())
 
     if (error) throw error
     return data || []

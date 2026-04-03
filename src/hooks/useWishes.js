@@ -39,6 +39,7 @@ export function useWishes() {
       .from('wishes')
       .select(`*, wish_images(url, is_cover), wish_tags(tag), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
       .eq('statut', 'en_attente')
+      .gte('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
 
     setLoading(false)
@@ -134,7 +135,7 @@ export function useWishes() {
   }
 
   async function extendWish(wishId) {
-    // Utilise la fonction SQL qui fait expires_at = expires_at + 72h
+    // Utilise la fonction SQL qui fait expires_at = expires_at + 48h
     const { error } = await supabase.rpc('extend_wish', { wish_id: wishId })
     if (error) throw error
   }
@@ -148,7 +149,7 @@ export function useWishes() {
       .single()
     if (fetchError) throw fetchError
 
-    const urgentUntil = wish.expires_at || new Date(Date.now() + 72 * 3600000).toISOString()
+    const urgentUntil = wish.expires_at || new Date(Date.now() + 48 * 3600000).toISOString()
 
     const { error } = await supabase
       .from('wishes')

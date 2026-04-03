@@ -14,6 +14,7 @@ import useAuthStore from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
 import { useWishes } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
+import { shortenAddress } from '../../lib/utils'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -296,7 +297,7 @@ export default function WishDetail() {
           }}
           rightAction={
             <div className="relative">
-              <button onClick={() => setShowMenu(!showMenu)} className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+              <button onClick={() => setShowMenu(!showMenu)} className="w-10 h-10 rounded-full bg-black/20 backdrop-blur flex items-center justify-center">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
                   <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
                 </svg>
@@ -491,7 +492,7 @@ export default function WishDetail() {
             <StaticMap lat={wish.latitude} lng={wish.longitude} wishId={wish.id} />
           </div>
 
-          <p className="text-xs text-[#8A8A9A] font-medium mt-3">Localisation approximative · {wish.adresse}</p>
+          <p className="text-xs text-[#8A8A9A] font-medium mt-3">Localisation approximative · {shortenAddress(wish.adresse)}</p>
         </div>
 
         {/* CTA — masqué si c'est ton propre vœu */}
@@ -529,7 +530,7 @@ export default function WishDetail() {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-[#1A1A2E] text-sm truncate">{wish.titre}</p>
-                  <p className="text-xs text-[#8A8A9A] mt-0.5">{wish.adresse}</p>
+                  <p className="text-xs text-[#8A8A9A] mt-0.5">{shortenAddress(wish.adresse)}</p>
                   {wish.type_recompense && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1"
                       style={wish.type_recompense === 'argent'
@@ -712,7 +713,7 @@ export default function WishDetail() {
               </div>
               {/* Adresse en bas */}
               <div className="px-5 py-4 bg-white border-t border-[#F0F0F0]">
-                <p className="text-sm font-medium text-[#1A1A2E]">{wish.adresse}</p>
+                <p className="text-sm font-medium text-[#1A1A2E]">{shortenAddress(wish.adresse)}</p>
                 <p className="text-xs text-[#8A8A9A] mt-1">Localisation approximative · Zone de ~400m</p>
               </div>
             </motion.div>

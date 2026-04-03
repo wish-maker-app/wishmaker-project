@@ -35,7 +35,7 @@ function createAvatarIcon(initials, rating) {
         </div>
         <div style="display:flex;align-items:center;gap:2px;margin-top:2px;">
           <svg width="10" height="10" viewBox="0 0 12 12" fill="#F5C542"><path d="M6 1l1.35 2.74L10.5 4.27l-2.25 2.19.53 3.09L6 8.1l-2.78 1.45.53-3.09L1.5 4.27l3.15-.53L6 1z"/></svg>
-          <span style="font-size:11px;font-weight:700;color:#1A1A2E;">${rating}</span>
+          <span style="font-size:11px;font-weight:700;color:#1A1A2E;">${rating > 0 ? rating : '-'}</span>
         </div>
       </div>
     `,

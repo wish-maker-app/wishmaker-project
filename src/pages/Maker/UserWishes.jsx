@@ -94,6 +94,7 @@ export default function UserWishes() {
   const [wishes, setWishes] = useState([])
   const [userData, setUserData] = useState(null)
   const [userLocation, setUserLocation] = useState(null)
+  const [ratings, setRatings] = useState([])
 
   // Géolocalisation en temps réel
   useEffect(() => {
@@ -110,6 +111,12 @@ export default function UserWishes() {
     getWishesByUser(userId).then(setWishes).catch(() => {})
     supabase.from('users').select('id, prenom, nom, pseudo, avatar_url, rating, rating_count, type_compte').eq('id', userId).single()
       .then(({ data }) => setUserData(data))
+    supabase
+      .from('ratings')
+      .select('id, note, commentaire, created_at, from_user:users!from_user_id(id, prenom, nom, avatar_url)')
+      .eq('to_user_id', userId)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setRatings(data || []))
   }, [userId])
 
   const userLat = userLocation?.[0] || profile?.latitude || 43.6047
@@ -229,6 +236,50 @@ export default function UserWishes() {
           >
             <span className="text-[40px]">✨</span>
             <p className="text-[15px] font-medium text-[#AAA]">Aucun vœu actif</p>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Section Avis */}
+      <div className="px-5 pt-6 pb-4">
+        <h2 className="text-[19px] font-bold text-[#1A1A2E] m-0 mb-4">
+          Avis
+          <span className="ml-2 text-[13px] font-semibold bg-[#5B6BF5] text-white rounded-xl px-2.5 py-0.5 align-middle">
+            {ratings.length}
+          </span>
+        </h2>
+        {ratings.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {ratings.map((r) => (
+              <div key={r.id} className="bg-white rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <SmallAvatar user={r.from_user} size={32} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[#1A1A2E]">{r.from_user?.prenom}</p>
+                    <p className="text-[11px] text-[#8A8A9A]">{timeAgo(r.created_at)}</p>
+                  </div>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={i <= Math.round(r.note) ? '#F5C542' : '#E0E0E0'}>
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    ))}
+                  </div>
+                </div>
+                {r.commentaire && (
+                  <p className="text-[13px] text-[#4A4A5A] leading-relaxed">{r.commentaire}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center py-8 gap-2"
+          >
+            <span className="text-[32px]">💬</span>
+            <p className="text-[14px] font-medium text-[#AAA]">Aucun avis pour le moment</p>
           </motion.div>
         )}
       </div>

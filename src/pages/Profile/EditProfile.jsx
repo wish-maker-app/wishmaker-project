@@ -192,8 +192,8 @@ export default function EditProfile() {
   // ── Save form ──
   async function handleSave() {
     if (!nom.trim() || !prenom.trim()) { toast.error('Nom et prénom obligatoires'); return }
-    if (pseudo && !/^[a-zA-Z0-9_]{3,20}$/.test(pseudo)) {
-      toast.error('Pseudo : 3-20 caractères (lettres, chiffres, _)')
+    if (pseudo && !/^[a-zA-Z0-9_ ]{3,20}$/.test(pseudo)) {
+      toast.error('Pseudo : 3-20 caractères (lettres, chiffres, espaces, _)')
       return
     }
     setSaving(true)
@@ -267,7 +267,7 @@ export default function EditProfile() {
         <div className="px-5">
           <FormField label="Prénom" value={prenom} onChange={setPrenom} placeholder="Votre prénom" />
           <FormField label="Nom" value={nom} onChange={setNom} placeholder="Votre nom" />
-          <FormField label="Pseudo" value={pseudo} onChange={(v) => setPseudo(v.replace(/[^a-zA-Z0-9_]/g, ''))} placeholder="Votre pseudo (ex: john_doe)" />
+          <FormField label="Pseudo" value={pseudo} onChange={(v) => setPseudo(v.replace(/[^a-zA-Z0-9_ ]/g, ''))} placeholder="Votre pseudo (ex: john_doe)" />
 
           {/* Toggle type de compte */}
           <div className="mb-4">

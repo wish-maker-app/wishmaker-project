@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import Header from '../../components/layout/Header'
 import { useWishes } from '../../hooks/useWishes'
+import { shortenAddress } from '../../lib/utils'
 
 const STORAGE_KEY = 'maker_search_history'
 
@@ -130,7 +131,7 @@ export default function Search() {
                       <Avatar user={wish.wisher} size={40} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-[#1A1A2E] truncate">{wish.titre}</p>
-                        <p className="text-xs text-[#8A8A9A] truncate">{wish.adresse}</p>
+                        <p className="text-xs text-[#8A8A9A] truncate">{shortenAddress(wish.adresse)}</p>
                       </div>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                         <path d="M9 5l7 7-7 7" stroke="#8A8A9A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

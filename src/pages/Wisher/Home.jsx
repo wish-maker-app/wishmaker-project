@@ -8,6 +8,7 @@ import useAuthStore from '../../store/authStore'
 import { useWishes } from '../../hooks/useWishes'
 import { supabase } from '../../lib/supabase'
 import WishPackModal from '../../components/ui/WishPackModal'
+import lampeIcon from '../../assets/lampe.svg'
 
 const TABS = ['en_attente', 'realise', 'expire']
 const TAB_LABELS = { en_attente: 'En attente', realise: 'Réalisé', expire: 'Expiré' }
@@ -204,6 +205,7 @@ export default function WisherHome() {
   const [modal, setModal] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [showPackModal, setShowPackModal] = useState(false)
+  const [showTip, setShowTip] = useState(() => localStorage.getItem('wishmaker-tip-dismissed') !== 'true')
 
   const [, setTick] = useState(0)
 
@@ -299,7 +301,7 @@ export default function WisherHome() {
       {/* Header */}
       <div className="px-5 pt-4 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-[#E8E8E8]">
+          <div onClick={() => navigate('/profile')} className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-[#E8E8E8] cursor-pointer">
             {user.avatar_url ? (
               <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -356,6 +358,7 @@ export default function WisherHome() {
           >
             <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10" />
             <div className="absolute -bottom-4 -right-10 w-20 h-20 rounded-full bg-white/5" />
+            <img src={lampeIcon} alt="" className="absolute bottom-2 right-3 w-20 h-20 opacity-30 pointer-events-none" />
             <div className="relative z-10">
               <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mb-3">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -369,12 +372,19 @@ export default function WisherHome() {
         </div>
 
         {/* Astuce */}
+        {showTip && (
         <div className="px-5 mb-5">
-          <div className="rounded-2xl bg-white border border-[#F0F0F0] p-4 flex items-start gap-3">
+          <div className="rounded-2xl bg-white border border-[#F0F0F0] p-4 flex items-start gap-3 relative">
+            <button onClick={() => { setShowTip(false); localStorage.setItem('wishmaker-tip-dismissed', 'true') }}
+              className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#F0F0F0] flex items-center justify-center">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8A8A9A" strokeWidth="3" strokeLinecap="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
             <div className="w-10 h-10 rounded-xl bg-[#FFF4E0] flex items-center justify-center flex-shrink-0">
               <span className="text-lg">💡</span>
             </div>
-            <div>
+            <div className="pr-6">
               <p className="text-sm font-bold text-[#1A1A2E] mb-0.5">Astuce</p>
               <p className="text-xs text-[#8A8A9A] leading-relaxed">
                 Ajoute des photos et une localisation précise à tes vœux pour attirer plus de Makers !
@@ -382,6 +392,7 @@ export default function WisherHome() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Section Mes vœux */}
         <div className="px-5">
@@ -472,7 +483,7 @@ export default function WisherHome() {
             open
             onClose={() => setModal(null)}
             title="Prolonger mon vœu"
-            description="Prolongez votre vœu de 72h supplémentaires."
+            description="Prolongez votre vœu de 48h supplémentaires."
             price="2,99€"
             buttonLabel="Payer et prolonger"
             onConfirm={handleExtend}

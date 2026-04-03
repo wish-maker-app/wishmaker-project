@@ -16,13 +16,10 @@ function ProfileItem({ icon, label, value, onClick }) {
     <button onClick={onClick} className="flex items-center gap-4 w-full py-4 text-left">
       <div className="w-6 flex items-center justify-center flex-shrink-0">{icon}</div>
       <span className="flex-1 text-[15px] font-medium text-[#1A1A2E]">{label}</span>
-      {value ? (
-        <span className="text-[13px] text-[#8A8A9A]">{value}</span>
-      ) : (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M9 18l6-6-6-6" stroke="#C0C0C0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      )}
+      {value && <span className="text-[13px] text-[#8A8A9A]">{value}</span>}
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
+        <path d="M9 18l6-6-6-6" stroke="#C0C0C0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
     </button>
   )
 }
@@ -135,8 +132,16 @@ export default function Profile() {
           <p className="text-[13px] text-[#5B6BF5] font-medium">
             {profile.pseudo || `user_${(profile.id || '0000').slice(0, 4)}`}
           </p>
-          <div className="mt-1">
+          <div className="flex items-center gap-2 mt-1">
             <AccountTypeBadge type={profile.type_compte} />
+            {profile.rating > 0 ? (
+              <div className="flex items-center gap-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#F5C542"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <span className="text-xs font-semibold text-[#1A1A2E]">{profile.rating}</span>
+              </div>
+            ) : (
+              <span className="text-xs text-[#8A8A9A]">Aucun avis</span>
+            )}
           </div>
         </div>
       </div>
@@ -146,6 +151,12 @@ export default function Profile() {
 
         <SectionTitle title="Personal Info" />
         <ProfileItem icon={icons.user} label="Profil" onClick={() => navigate('/profile/edit')} />
+        <ProfileItem
+          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#1A1A2E" strokeWidth="1.8" strokeLinejoin="round"/></svg>}
+          label="Mes avis"
+          value={profile.rating > 0 ? `${profile.rating}/5` : null}
+          onClick={() => navigate('/profile/reviews')}
+        />
 
         <SectionTitle title="Security" />
         <ProfileItem icon={icons.lock} label="Changer le mot de passe"
