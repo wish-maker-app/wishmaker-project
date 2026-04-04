@@ -8,6 +8,7 @@ import Button from '../../components/ui/Button'
 import useAuthStore from '../../store/authStore'
 import { useAuth } from '../../hooks/useAuth'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
+import { requestPushPermission } from '../../lib/pushNotifications'
 
 // ── Composants utilitaires ──
 
@@ -164,6 +165,21 @@ export default function Profile() {
 
         <SectionTitle title="General" />
         <ProfileItem icon={icons.globe} label="Langue" onClick={() => setEditModal('langue')} />
+        <ProfileItem
+          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          label="Notifications"
+          value={typeof Notification !== 'undefined' && Notification.permission === 'granted' ? 'Activées' : 'Désactivées'}
+          onClick={async () => {
+            const user = useAuthStore.getState().user
+            if (!user) return
+            const ok = await requestPushPermission(user.id)
+            if (ok) {
+              toast.success('Notifications activées !')
+            } else {
+              toast('Pour activer les notifications, va dans Réglages → Wishmaker → Notifications', { icon: 'ℹ️', duration: 5000 })
+            }
+          }}
+        />
 
         {isAdmin && (
           <>
