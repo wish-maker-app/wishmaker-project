@@ -29,6 +29,8 @@ export default function Recap() {
   const [recompenseType, setRecompenseType] = useState(type_recompense || 'bon_procede')
   const [montant, setMontant] = useState(montant_recompense || '')
   const [bonProcedeText, setBonProcedeText] = useState(description_bon_procede || '')
+  const [isUrgent, setIsUrgent] = useState(false)
+  const [showUrgentModal, setShowUrgentModal] = useState(false)
 
   const cover = images.find((img) => img.is_cover) || images[0]
   const initials = profile ? `${profile.prenom?.[0] || ''}${profile.nom?.[0] || ''}` : '?'
@@ -38,28 +40,44 @@ export default function Recap() {
   const imgScale = useTransform(scrollY, [0, HERO_H], [1, 1.12])
   const imgOpacity = useTransform(scrollY, [0, HERO_H * 0.6], [1, 0.6])
 
-  async function handlePublish() {
+  async function validateFields() {
     setError(null)
-    if (!titre || titre.length < 5) { setError('Le titre est obligatoire (min. 5 caractères)'); return }
-    if (!description || description.length < 10) { setError('La description est obligatoire (min. 10 caractères)'); return }
-    if (!latitude || !longitude) { setError('La localisation est obligatoire. Retournez à l\'étape "Lieu".'); return }
+    if (!titre || titre.length < 5) { setError('Le titre est obligatoire (min. 5 caractères)'); return false }
+    if (!description || description.length < 10) { setError('La description est obligatoire (min. 10 caractères)'); return false }
+    if (!latitude || !longitude) { setError('La localisation est obligatoire. Retournez à l\'étape "Lieu".'); return false }
     const [titreCheck, descCheck] = await Promise.all([
       checkContent(titre),
       checkContent(description),
     ])
     if (!titreCheck.isClean || !descCheck.isClean) {
       toast.error('Publication impossible : contenu non conforme.')
+      return false
+    }
+    return true
+  }
+
+  async function handlePublish() {
+    const valid = await validateFields()
+    if (!valid) return
+    // Si urgent activé, montrer le modal de paiement d'abord
+    if (isUrgent) {
+      setShowUrgentModal(true)
       return
     }
+    await doPublish(false)
+  }
 
+  async function doPublish(urgent) {
     setRecompense(recompenseType, recompenseType === 'argent' ? parseFloat(montant) || null : null, bonProcedeText)
     try {
       await createWish({
         titre, description, latitude, longitude, adresse, tags, images,
         type_recompense: recompenseType,
         montant_recompense: recompenseType === 'argent' ? parseFloat(montant) || null : null,
+        is_urgent: urgent,
       })
       reset()
+      if (urgent) toast.success('\u26A1 Votre vœu est publié en Urgent !')
       navigate('/wisher/create/success')
     } catch (err) {
       setError(err.message || 'Erreur lors de la publication')
@@ -265,9 +283,50 @@ export default function Recap() {
               )}
             </AnimatePresence>
 
+            {/* ── Option Urgent ── */}
+            <motion.div
+              custom={2}
+              initial="hidden"
+              animate="visible"
+              variants={sectionVariants}
+              onClick={() => setIsUrgent(!isUrgent)}
+              className="rounded-2xl p-4 cursor-pointer transition-all border-2"
+              style={{
+                background: isUrgent ? 'linear-gradient(135deg, #FFF7ED, #FFF0E0)' : '#fff',
+                borderColor: isUrgent ? '#F59E0B' : '#F0F0F0',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">{isUrgent ? '\u26A1' : '\u26A1'}</span>
+                  <div>
+                    <p className="text-sm font-bold text-[#1A1A2E]">
+                      {isUrgent ? 'Urgent activé' : 'Mettre ce vœu en Urgent'}
+                    </p>
+                    <p className="text-xs text-[#8A8A9A]">Votre vœu sera mis en avant pendant 24h</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold px-2 py-1 rounded-full"
+                    style={isUrgent
+                      ? { background: '#F59E0B', color: '#fff' }
+                      : { background: '#FFF4E0', color: '#F59E0B' }
+                    }>
+                    0,99€
+                  </span>
+                  {/* Toggle switch */}
+                  <div className="w-11 h-6 rounded-full p-0.5 transition-colors"
+                    style={{ background: isUrgent ? '#F59E0B' : '#D1D5DB' }}>
+                    <div className="w-5 h-5 rounded-full bg-white shadow-sm transition-transform"
+                      style={{ transform: isUrgent ? 'translateX(20px)' : 'translateX(0)' }} />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
             {/* ── Publier ── */}
             <motion.button
-              custom={2}
+              custom={3}
               initial="hidden"
               animate="visible"
               variants={sectionVariants}
@@ -277,12 +336,67 @@ export default function Recap() {
               className="w-full h-[52px] rounded-full text-white font-bold text-[15px] disabled:opacity-50 relative overflow-hidden"
               style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
             >
-              <span className="relative z-10">{publishing ? 'Publication...' : 'Publier mon vœu'}</span>
+              <span className="relative z-10">
+                {publishing ? 'Publication...' : isUrgent ? '\u26A1 Publier en Urgent' : 'Publier mon vœu'}
+              </span>
             </motion.button>
 
           </div>
         </div>
       </div>
+
+      {/* Modal paiement urgent */}
+      <AnimatePresence>
+        {showUrgentModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowUrgentModal(false)}
+              className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop"
+            />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
+            >
+              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+              <div className="text-center mb-4">
+                <span className="text-4xl mb-2 block">{'\u26A1'}</span>
+                <h2 className="text-lg font-bold text-[#1A1A2E]">Mettre en Urgent</h2>
+                <p className="text-sm text-[#8A8A9A] mt-1">Votre vœu sera mis en avant pendant 24h devant tous les autres.</p>
+              </div>
+              <div className="rounded-2xl bg-[#FFF7ED] border border-[#FFEDD5] p-4 mb-5 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-[#1A1A2E]">Option Urgent 24h</p>
+                  <p className="text-xs text-[#8A8A9A]">Visible en priorité par les Makers</p>
+                </div>
+                <p className="text-xl font-bold text-[#F59E0B]">0,99€</p>
+              </div>
+              <button
+                onClick={async () => {
+                  setShowUrgentModal(false)
+                  await doPublish(true)
+                }}
+                disabled={publishing}
+                className="w-full h-[52px] rounded-full text-white font-bold text-[15px] disabled:opacity-50 mb-3"
+                style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}
+              >
+                {publishing ? 'Publication...' : 'Payer 0,99€ et publier'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowUrgentModal(false)
+                  setIsUrgent(false)
+                  doPublish(false)
+                }}
+                className="w-full text-sm text-[#8A8A9A] text-center py-2"
+              >
+                Publier sans l'option Urgent
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

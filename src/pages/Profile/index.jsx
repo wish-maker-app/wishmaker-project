@@ -176,11 +176,45 @@ export default function Profile() {
         <ProfileItem icon={icons.legal} label="Mentions légales" />
         <ProfileItem icon={icons.help} label="Aide et assistance" />
 
+        {/* Inviter des amis */}
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={async () => {
+            const shareData = {
+              title: 'Wish Maker',
+              text: "Découvre Wish Maker, l'app qui exauce tes vœux du quotidien !",
+              url: 'https://wishmaker-project.vercel.app',
+            }
+            try {
+              if (navigator.share) {
+                await navigator.share(shareData)
+              } else {
+                await navigator.clipboard.writeText(shareData.url)
+                toast.success('Lien copié ! Partage-le à tes amis')
+              }
+            } catch (err) {
+              if (err.name !== 'AbortError') {
+                await navigator.clipboard.writeText(shareData.url)
+                toast.success('Lien copié ! Partage-le à tes amis')
+              }
+            }
+          }}
+          className="mt-8 mb-3 w-full h-14 rounded-full text-white font-bold text-sm flex items-center justify-center gap-2"
+          style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M16 6l-4-4-4 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 2v13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Inviter des amis
+        </motion.button>
+
         {/* Déconnexion */}
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={() => setShowLogoutConfirm(true)}
-          className="mt-8 mb-4 w-full h-12 rounded-full border border-[#5B6BF5] text-[#5B6BF5] font-semibold text-sm"
+          className="mb-4 w-full h-12 rounded-full border border-[#5B6BF5] text-[#5B6BF5] font-semibold text-sm"
         >
           {t('profile.deconnexion')}
         </motion.button>

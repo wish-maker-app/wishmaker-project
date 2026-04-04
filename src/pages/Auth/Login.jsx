@@ -135,7 +135,7 @@ export default function Login() {
 
       <SuccessModal isOpen={showSuccess} variant="login" onContinue={() => {
         const profile = useAuthStore.getState().profile
-        const dest = profile?.onboarding_completed ? '/wisher' : '/setup/langue'
+        const dest = profile?.onboarding_completed ? '/maker' : '/setup/langue'
         navigate(dest, { replace: true })
       }} />
     </div>

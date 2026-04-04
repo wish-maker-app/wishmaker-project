@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
+import { requestPushPermission } from '../lib/pushNotifications'
 
 export default function Splash() {
   const navigate = useNavigate()
@@ -13,7 +14,11 @@ export default function Splash() {
         if (session?.user) {
           const { data: profile } = await supabase
             .from('users').select('onboarding_completed').eq('id', session.user.id).single()
-          navigate(profile?.onboarding_completed ? '/wisher' : '/setup/langue', { replace: true })
+          // Demander la permission push (ne bloque pas la navigation)
+          if (profile?.onboarding_completed) {
+            requestPushPermission(session.user.id).catch(() => {})
+          }
+          navigate(profile?.onboarding_completed ? '/maker' : '/setup/langue', { replace: true })
         } else {
           const seen = localStorage.getItem('onboarding_seen')
           navigate(seen ? '/auth' : '/onboarding/1', { replace: true })

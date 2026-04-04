@@ -32,6 +32,7 @@ const CreateStep3   = lazy(() => import('../pages/Wisher/CreateWish/Step3'))
 const CreateStep4   = lazy(() => import('../pages/Wisher/CreateWish/Step4'))
 const CreateRecap   = lazy(() => import('../pages/Wisher/CreateWish/Recap'))
 const CreateSuccess = lazy(() => import('../pages/Wisher/CreateWish/Success'))
+const EditWish = lazy(() => import('../pages/Wisher/CreateWish/EditWish'))
 
 // Maker
 const MakerHome   = lazy(() => import('../pages/Maker/Home'))
@@ -76,13 +77,13 @@ function ProtectedRoute() {
 function SetupRoute() {
   const { user, profile } = useAuthStore()
   if (!user) return <Navigate to="/auth" replace />
-  if (profile?.onboarding_completed) return <Navigate to="/wisher" replace />
+  if (profile?.onboarding_completed) return <Navigate to="/maker" replace />
   return <Outlet />
 }
 
 function PublicRoute() {
   const { user, profile } = useAuthStore()
-  if (user && profile?.onboarding_completed) return <Navigate to="/wisher" replace />
+  if (user && profile?.onboarding_completed) return <Navigate to="/maker" replace />
   return <Outlet />
 }
 
@@ -145,6 +146,7 @@ const router = createBrowserRouter([
       { path: '/wisher/create/4',      element: <Suspense fallback={<PageLoader />}><CreateStep4 /></Suspense> },
       { path: '/wisher/create/recap',  element: <Suspense fallback={<PageLoader />}><CreateRecap /></Suspense> },
       { path: '/wisher/create/success', element: <Suspense fallback={<PageLoader />}><CreateSuccess /></Suspense> },
+      { path: '/wisher/edit/:wishId', element: <Suspense fallback={<PageLoader />}><EditWish /></Suspense> },
 
       // Maker
       { path: '/maker',               element: <Suspense fallback={<PageLoader />}><MakerHome /></Suspense> },

@@ -74,7 +74,7 @@ export function useWishes() {
     return normalizeWish(data)
   }
 
-  async function createWish({ titre, description, latitude, longitude, adresse, tags, images, type_recompense, montant_recompense }) {
+  async function createWish({ titre, description, latitude, longitude, adresse, tags, images, type_recompense, montant_recompense, is_urgent }) {
     setLoading(true)
     // S'assurer que la session auth est active
     let { data: { session } } = await supabase.auth.getSession()
@@ -84,9 +84,14 @@ export function useWishes() {
     }
     const wisherId = session?.user?.id || user?.id
     if (!wisherId) { setLoading(false); throw new Error('Session expirée, veuillez vous reconnecter') }
+    const insertData = { titre, description, latitude, longitude, adresse, wisher_id: wisherId, type_recompense, montant_recompense }
+    if (is_urgent) {
+      insertData.is_urgent = true
+      insertData.urgent_until = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    }
     const { data: wish, error } = await supabase
       .from('wishes')
-      .insert({ titre, description, latitude, longitude, adresse, wisher_id: wisherId, type_recompense, montant_recompense })
+      .insert(insertData)
       .select()
       .single()
 
@@ -196,5 +201,23 @@ export function useWishes() {
     if (error) throw error
   }
 
-  return { loading, getMyWishes, getAvailableWishes, getWishesByUser, getWishById, createWish, updateWishStatus, extendWish, makeUrgent, markWishRealized, submitRating, getUserRating, deleteWish }
+  async function updateWish(wishId, { titre, description, type_recompense, montant_recompense, adresse, latitude, longitude, tags }) {
+    setLoading(true)
+    const { error } = await supabase
+      .from('wishes')
+      .update({ titre, description, type_recompense, montant_recompense, adresse, latitude, longitude })
+      .eq('id', wishId)
+    if (error) { setLoading(false); throw error }
+
+    // Remplacer les tags
+    if (tags !== undefined) {
+      await supabase.from('wish_tags').delete().eq('wish_id', wishId)
+      if (tags?.length) {
+        await supabase.from('wish_tags').insert(tags.map((tag) => ({ wish_id: wishId, tag })))
+      }
+    }
+    setLoading(false)
+  }
+
+  return { loading, getMyWishes, getAvailableWishes, getWishesByUser, getWishById, createWish, updateWish, updateWishStatus, extendWish, makeUrgent, markWishRealized, submitRating, getUserRating, deleteWish }
 }

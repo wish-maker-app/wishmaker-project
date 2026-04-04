@@ -382,7 +382,7 @@ export default function MakerHome() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
-  const [view, setView] = useState(searchParams.get('view') || 'carte')
+  const [view, setView] = useState(searchParams.get('view') || 'liste')
   const [search, setSearch] = useState('')
   const [selectedWish, setSelectedWish] = useState(null)
   const [swipeIndex, setSwipeIndex] = useState(0)

@@ -25,6 +25,10 @@ import router from './router'
 import './lib/i18n'
 import './index.css'
 import 'leaflet/dist/leaflet.css'
+import { registerServiceWorker } from './lib/pushNotifications'
+
+// Enregistrer le Service Worker au démarrage
+registerServiceWorker()
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null } }

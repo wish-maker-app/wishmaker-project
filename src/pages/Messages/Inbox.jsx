@@ -112,6 +112,9 @@ export default function Inbox() {
 
   const transformed = conversations.map((c) => transformConversation(c, userId))
 
+  const unreadVoeux = transformed.filter((c) => c.type === 'voeu' && c.non_lus > 0).reduce((sum, c) => sum + c.non_lus, 0)
+  const unreadMissions = transformed.filter((c) => c.type === 'mission' && c.non_lus > 0).reduce((sum, c) => sum + c.non_lus, 0)
+
   const filtered = transformed
     .filter(c => tab === 'missions' ? c.type === 'mission' : c.type === 'voeu')
     .filter(c =>
@@ -151,21 +154,39 @@ export default function Inbox() {
         <div className="flex bg-[#F5F5F5] rounded-full p-1">
           <button
             onClick={() => setTab('voeux')}
-            className="flex-1 h-10 rounded-full text-sm font-semibold transition-all"
+            className="flex-1 h-10 rounded-full text-sm font-semibold transition-all flex items-center justify-center gap-1.5"
             style={tab === 'voeux'
               ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
               : { color: '#8A8A9A' }}
           >
             {t('messages.mes_voeux')}
+            {unreadVoeux > 0 && (
+              <span className="min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold px-1"
+                style={tab === 'voeux'
+                  ? { background: 'rgba(255,255,255,0.3)', color: '#fff' }
+                  : { background: '#EF4444', color: '#fff' }
+                }>
+                {unreadVoeux > 9 ? '9+' : unreadVoeux}
+              </span>
+            )}
           </button>
           <button
             onClick={() => setTab('missions')}
-            className="flex-1 h-10 rounded-full text-sm font-semibold transition-all"
+            className="flex-1 h-10 rounded-full text-sm font-semibold transition-all flex items-center justify-center gap-1.5"
             style={tab === 'missions'
               ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
               : { color: '#8A8A9A' }}
           >
             {t('messages.mes_missions')}
+            {unreadMissions > 0 && (
+              <span className="min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold px-1"
+                style={tab === 'missions'
+                  ? { background: 'rgba(255,255,255,0.3)', color: '#fff' }
+                  : { background: '#EF4444', color: '#fff' }
+                }>
+                {unreadMissions > 9 ? '9+' : unreadMissions}
+              </span>
+            )}
           </button>
         </div>
       </div>

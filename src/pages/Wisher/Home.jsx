@@ -110,6 +110,18 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
               transition={{ duration: 0.15 }}
               className="absolute right-4 top-12 bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] z-[51] overflow-hidden min-w-[160px]"
             >
+              {(wish.statut === 'en_attente') && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); navigate(`/wisher/edit/${wish.id}`) }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#1A1A2E] hover:bg-[#F5F5F7] transition-colors"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Modifier ce vœu
+                </button>
+              )}
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(wish) }}
                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#EF4444] hover:bg-red-50 transition-colors"

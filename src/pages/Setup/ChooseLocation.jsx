@@ -177,7 +177,7 @@ export default function ChooseLocation() {
         .single()
       if (profile) useAuthStore.getState().setProfile(profile)
 
-      navigate('/wisher', { replace: true })
+      navigate('/maker', { replace: true })
     } catch (err) {
       toast.error(err.message || 'Erreur lors de la sauvegarde')
     } finally {

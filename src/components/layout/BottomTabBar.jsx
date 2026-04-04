@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useNotifications } from '../../hooks/useNotifications'
 
 // Icônes SVG inline pour éviter une dépendance supplémentaire
 function IconWisher({ active }) {
@@ -100,6 +101,17 @@ const TABS = [
 export default function BottomTabBar() {
   const { t } = useTranslation()
   const location = useLocation()
+  const { unreadMessagesCount, expiringWishesCount } = useNotifications()
+
+  function getBadge(to) {
+    if (to === '/messages' && unreadMessagesCount > 0) {
+      return { count: unreadMessagesCount > 9 ? '9+' : unreadMessagesCount, color: '#EF4444' }
+    }
+    if (to === '/wisher' && expiringWishesCount > 0) {
+      return { count: expiringWishesCount > 9 ? '9+' : expiringWishesCount, color: '#F59E0B' }
+    }
+    return null
+  }
 
   return (
     <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white z-40
@@ -108,13 +120,24 @@ export default function BottomTabBar() {
       style={{ paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))' }}>
       {TABS.map(({ to, labelKey, Icon }) => {
         const active = location.pathname.startsWith(to)
+        const badge = getBadge(to)
         return (
           <NavLink
             key={to}
             to={to}
-            className="flex flex-col items-center gap-1 flex-1 py-2"
+            className="flex flex-col items-center gap-1 flex-1 py-2 relative"
           >
-            <Icon active={active} />
+            <div className="relative">
+              <Icon active={active} />
+              {badge && (
+                <span
+                  className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-white text-[11px] font-bold px-1"
+                  style={{ background: badge.color }}
+                >
+                  {badge.count}
+                </span>
+              )}
+            </div>
             <span
               className="text-[10px] font-semibold"
               style={
