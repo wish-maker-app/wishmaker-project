@@ -45,6 +45,17 @@ export function useNotifications() {
     setExpiringWishesCount(count || 0)
   }
 
+  // Met à jour le badge sur l'icône PWA
+  function updateAppBadge(count) {
+    if ('setAppBadge' in navigator) {
+      if (count > 0) {
+        navigator.setAppBadge(count).catch(() => {})
+      } else {
+        navigator.clearAppBadge().catch(() => {})
+      }
+    }
+  }
+
   useEffect(() => {
     if (!user) return
 
@@ -68,6 +79,11 @@ export function useNotifications() {
       clearInterval(interval)
     }
   }, [user?.id])
+
+  // Mettre à jour le badge PWA quand le compteur change
+  useEffect(() => {
+    updateAppBadge(unreadMessagesCount)
+  }, [unreadMessagesCount])
 
   return { unreadMessagesCount, expiringWishesCount }
 }
