@@ -155,13 +155,6 @@ export default function Reviews() {
     return (sum / reviewsReceived.length).toFixed(1).replace('.0', '')
   }, [reviewsReceived])
 
-  // Distribution par note (5,4,3,2,1)
-  const distribution = useMemo(() => {
-    const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
-    reviewsReceived.forEach((r) => { counts[r.note] = (counts[r.note] || 0) + 1 })
-    return counts
-  }, [reviewsReceived])
-
   const currentReviews = activeTab === 'received' ? reviewsReceived : reviewsGiven
 
   const tabs = [
@@ -171,14 +164,9 @@ export default function Reviews() {
 
   return (
     <div className="h-screen bg-white flex flex-col">
-      <Header onBack={() => navigate('/profile')} />
+      <Header title="Mes avis" onBack={() => navigate('/profile')} />
 
       <div className="flex-1 overflow-y-auto">
-        {/* Titre Avis */}
-        <h1 className="px-5 pt-1 pb-4 text-[26px] font-bold tracking-[-0.02em]" style={{ color: TEXT_PRIMARY }}>
-          Avis
-        </h1>
-
         {/* TABS underline */}
         <div className="px-5 border-b" style={{ borderColor: BORDER }}>
           <div className="flex gap-8">
@@ -225,51 +213,25 @@ export default function Reviews() {
             >
               {/* HERO note moyenne — uniquement sur l'onglet Reçus */}
               {activeTab === 'received' && reviewsReceived.length > 0 && (
-                <>
-                  <section className="px-5 pt-6 pb-6">
-                    <div className="flex items-baseline gap-1">
-                      <span
-                        className="font-bold tabular-nums leading-none"
-                        style={{ color: TEXT_PRIMARY, fontSize: '56px', letterSpacing: '-0.04em' }}
-                      >
-                        {avgRating}
-                      </span>
-                      <span
-                        className="font-bold tabular-nums leading-none"
-                        style={{ color: TEXT_SECONDARY, fontSize: '40px', letterSpacing: '-0.03em' }}
-                      >
-                        /5
-                      </span>
-                    </div>
-                    <p className="text-[13px] mt-2" style={{ color: TEXT_SECONDARY }}>
-                      {reviewsReceived.length} avis
-                    </p>
-                  </section>
-
-                  {/* Distribution par note */}
-                  <section className="px-5 pb-2 border-t pt-2" style={{ borderColor: BORDER }}>
-                    {[5, 4, 3, 2, 1].map((note) => (
-                      <div
-                        key={note}
-                        className="flex items-center justify-between py-3 border-b last:border-b-0"
-                        style={{ borderColor: BORDER }}
-                      >
-                        <span
-                          className="text-[14px]"
-                          style={{ color: distribution[note] > 0 ? TEXT_PRIMARY : TEXT_SECONDARY }}
-                        >
-                          {RATING_LABELS[note]}
-                        </span>
-                        <span
-                          className="text-[14px] font-bold tabular-nums"
-                          style={{ color: distribution[note] > 0 ? TEXT_PRIMARY : TEXT_SECONDARY }}
-                        >
-                          {distribution[note]}
-                        </span>
-                      </div>
-                    ))}
-                  </section>
-                </>
+                <section className="px-5 pt-6 pb-6">
+                  <div className="flex items-baseline gap-1">
+                    <span
+                      className="font-bold tabular-nums leading-none"
+                      style={{ color: TEXT_PRIMARY, fontSize: '56px', letterSpacing: '-0.04em' }}
+                    >
+                      {avgRating}
+                    </span>
+                    <span
+                      className="font-bold tabular-nums leading-none"
+                      style={{ color: TEXT_SECONDARY, fontSize: '40px', letterSpacing: '-0.03em' }}
+                    >
+                      /5
+                    </span>
+                  </div>
+                  <p className="text-[13px] mt-2" style={{ color: TEXT_SECONDARY }}>
+                    {reviewsReceived.length} avis
+                  </p>
+                </section>
               )}
 
               {/* LIST des avis */}
