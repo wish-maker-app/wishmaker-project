@@ -167,16 +167,16 @@ export default function Reviews() {
       <Header title="Mes avis" onBack={() => navigate('/profile')} />
 
       <div className="flex-1 overflow-y-auto">
-        {/* TABS underline */}
-        <div className="px-5 border-b" style={{ borderColor: BORDER }}>
-          <div className="flex gap-8">
+        {/* TABS underline pleine largeur */}
+        <div className="border-b" style={{ borderColor: BORDER }}>
+          <div className="flex">
             {tabs.map((tab) => {
               const active = activeTab === tab.key
               return (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className="relative pb-3.5 pt-1 transition-colors"
+                  className="relative flex-1 pb-3.5 pt-2 transition-colors"
                 >
                   <span
                     className="text-[15px] font-bold tracking-[-0.005em]"
