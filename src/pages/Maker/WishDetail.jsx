@@ -289,9 +289,8 @@ export default function WishDetail() {
             <motion.img
               src={heroImage}
               alt=""
-              className="w-full h-full object-cover cursor-pointer"
+              className="w-full h-full object-cover"
               style={{ opacity: imgOpacity }}
-              onClick={() => setLightboxIndex(0)}
             />
             <div className="absolute inset-0 pointer-events-none" style={{
               background: 'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 45%, rgba(0,0,0,0.15) 100%)',
@@ -362,10 +361,6 @@ export default function WishDetail() {
           </div>
         )}
 */}
-        {/* Bouton favoris — flottant en bas-droite de la photo */}
-        <div className="absolute bottom-3 right-4 z-20">
-          <FavoriteButton wish={wish} variant="plain" size={22} />
-        </div>
       </div>
 
       {/* Contenu — scrolle par-dessus le hero */}
@@ -381,9 +376,14 @@ export default function WishDetail() {
           >
         {/* Titre */}
         <motion.div custom={0} initial="hidden" animate="visible" variants={sectionVariants}>
-          <h1 className="font-extrabold text-[#1A1A2E] text-2xl leading-tight mb-2 line-clamp-2 break-words">
-            {wish.titre}
-          </h1>
+          <div className="flex items-start gap-3 mb-2">
+            <h1 className="flex-1 font-extrabold text-[#1A1A2E] text-2xl leading-tight line-clamp-2 break-words">
+              {wish.titre}
+            </h1>
+            <div className="flex-shrink-0 pt-0.5">
+              <FavoriteButton wish={wish} variant="plain" size={20} />
+            </div>
+          </div>
           <div className="flex items-center gap-4 text-xs text-[#8A8A9A] font-medium">
             <span className="flex items-center gap-1">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#8A8A9A">
