@@ -87,7 +87,8 @@ export function useWishes() {
     const insertData = { titre, description, latitude, longitude, adresse, wisher_id: wisherId, type_recompense, montant_recompense }
     if (is_urgent) {
       insertData.is_urgent = true
-      insertData.urgent_until = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      // expires_at et urgent_until sont calculés par le trigger set_wish_expiration
+      // (source de vérité : fonctions SQL wish_duration() / urgent_duration())
     }
     const { data: wish, error } = await supabase
       .from('wishes')
@@ -140,27 +141,14 @@ export function useWishes() {
   }
 
   async function extendWish(wishId) {
-    // Utilise la fonction SQL qui fait expires_at = expires_at + 48h
+    // Durée d'extension = wish_duration() côté SQL
     const { error } = await supabase.rpc('extend_wish', { wish_id: wishId })
     if (error) throw error
   }
 
   async function makeUrgent(wishId) {
-    // Récupérer expires_at du vœu pour que urgent_until = expires_at
-    const { data: wish, error: fetchError } = await supabase
-      .from('wishes')
-      .select('expires_at')
-      .eq('id', wishId)
-      .single()
-    if (fetchError) throw fetchError
-
-    const urgentUntil = wish.expires_at || new Date(Date.now() + 48 * 3600000).toISOString()
-
-    const { error } = await supabase
-      .from('wishes')
-      .update({ is_urgent: true, urgent_until: urgentUntil })
-      .eq('id', wishId)
-      .eq('wisher_id', user.id)
+    // urgent_until = LEAST(now + urgent_duration(), expires_at) — calculé en SQL
+    const { error } = await supabase.rpc('make_urgent', { wish_id: wishId })
     if (error) throw error
   }
 

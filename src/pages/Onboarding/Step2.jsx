@@ -39,7 +39,8 @@ export default function OnboardingStep2() {
           <div className="flex flex-col gap-2">
             <h2 className="text-white font-bold text-2xl">Du temps libre ? Deviens un Génie !</h2>
             <p className="text-white/70 text-sm leading-relaxed">
-              Un besoin ? Publie ton vœu en un instant, Les Génies autour de toi s'occupent du reste.
+              Un talent, un coup de main, une bonne vibe…<br />
+              Et hop, tu exauces des vœux autour de toi.
             </p>
           </div>
 

@@ -26,9 +26,13 @@ import './lib/i18n'
 import './index.css'
 import 'leaflet/dist/leaflet.css'
 import { registerServiceWorker } from './lib/pushNotifications'
+import useConfigStore from './store/configStore'
 
 // Enregistrer le Service Worker au démarrage
 registerServiceWorker()
+
+// Charger la config (durées vœux/urgent, rétention) depuis Supabase
+useConfigStore.getState().loadConfig()
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null } }

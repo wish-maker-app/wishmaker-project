@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
+import useConfigStore from '../../store/configStore'
 import { useWishes } from '../../hooks/useWishes'
 import { supabase } from '../../lib/supabase'
 import WishPackModal from '../../components/ui/WishPackModal'
@@ -210,6 +211,7 @@ export default function WisherHome() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.profile)
+  const wishDurationHours = useConfigStore((s) => s.wish_duration_hours)
   const { getMyWishes, extendWish, makeUrgent, deleteWish } = useWishes()
   const [wishes, setWishes] = useState([])
   const [loading, setLoading] = useState(true)
@@ -495,7 +497,7 @@ export default function WisherHome() {
             open
             onClose={() => setModal(null)}
             title="Prolonger mon vœu"
-            description="Prolongez votre vœu de 48h supplémentaires."
+            description={`Prolongez votre vœu de ${wishDurationHours}h supplémentaires.`}
             price="2,99€"
             buttonLabel="Payer et prolonger"
             onConfirm={handleExtend}

@@ -634,13 +634,18 @@ export default function WishDetail() {
             reasons={REPORT_REASONS_WISH}
             onClose={() => setShowReportWish(false)}
             onSubmit={async (raison) => {
-              await supabase.from('reports').insert({
+              const { error } = await supabase.from('reports').insert({
                 reporter_id: profile.id,
                 reported_wish_id: wish.id,
                 reported_user_id: wish.wisher.id,
                 type: 'voeu',
                 raison,
               })
+              if (error) {
+                toast.error("Impossible d'envoyer le signalement. Réessayez plus tard.")
+                console.error('[report wish] error:', error)
+                return
+              }
               toast.success('Signalement envoyé, merci !')
             }}
           />
@@ -652,12 +657,17 @@ export default function WishDetail() {
             reasons={REPORT_REASONS_PROFILE}
             onClose={() => setShowReportProfile(false)}
             onSubmit={async (raison) => {
-              await supabase.from('reports').insert({
+              const { error } = await supabase.from('reports').insert({
                 reporter_id: profile.id,
                 reported_user_id: wish.wisher.id,
                 type: 'profil',
                 raison,
               })
+              if (error) {
+                toast.error("Impossible d'envoyer le signalement. Réessayez plus tard.")
+                console.error('[report profile] error:', error)
+                return
+              }
               toast.success('Signalement envoyé, merci !')
             }}
           />

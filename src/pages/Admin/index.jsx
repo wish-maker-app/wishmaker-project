@@ -277,11 +277,11 @@ function UtilisateursTab() {
 export default function Admin() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const profile = useAuthStore((s) => s.profile)
   const [tab, setTab] = useState('mots')
 
-  // Protection admin
-  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL
-  if (!user || user.email !== adminEmail) {
+  // Protection admin (1re ligne côté client — la vraie sécurité est la RLS BDD)
+  if (!user || !profile?.is_admin) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4 px-6">
         <p className="text-lg font-bold text-[#EF4444]">Accès refusé</p>

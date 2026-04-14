@@ -19,7 +19,7 @@
     },
     "step2": {
       "titre": "Du temps libre ? Deviens un Génie ! ✨",
-      "sous_titre": "Parcourez les vœux autour de vous et proposez vos services."
+      "sous_titre": "Un talent, un coup de main, une bonne vibe… Et hop, tu exauces des vœux autour de toi."
     },
     "step3": {
       "titre": "Simple, rapide & gratifiant",
@@ -54,7 +54,7 @@
     },
     "register_email": {
       "titre": "Créer un compte",
-      "sous_titre": "Créer vos vœux ou réaliser en !",
+      "sous_titre": "Créez vos vœux ou réalisez-en !",
       "email_label": "Email",
       "btn": "S'enregistrer",
       "deja_compte": "Vous avez un compte ?",
