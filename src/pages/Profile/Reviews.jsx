@@ -87,12 +87,7 @@ function ReviewItem({ review, isReceived, index, onClickProfile }) {
 
       {/* Étoiles + commentaire + date */}
       <div className="mt-3">
-        <div className="flex items-center gap-1.5">
-          <Stars count={review.note} size={14} />
-          <span className="text-[12.5px] font-semibold tabular-nums" style={{ color: TEXT_SECONDARY }}>
-            {review.note}/5
-          </span>
-        </div>
+        <Stars count={review.note} size={14} />
         {review.commentaire && (
           <p className="text-[14px] leading-[1.55] mt-2" style={{ color: '#3A3A4E' }}>
             {review.commentaire}
