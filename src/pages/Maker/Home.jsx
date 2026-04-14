@@ -357,7 +357,8 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
         <h3 className="font-extrabold text-[#1A1A2E] text-lg mb-1 line-clamp-2">{wish.titre}</h3>
         <p className="text-[#8A8A9A] text-[13px] leading-relaxed line-clamp-2 mb-3">{wish.description}</p>
 
-        <div className="flex items-center gap-3 flex-wrap">
+        {/* Ligne 1 : distance + temps */}
+        <div className="flex items-center gap-3 mb-2">
           <div className="flex items-center gap-1 text-sm text-[#5B6BF5] font-semibold">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#5B6BF5"/>
@@ -366,6 +367,10 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
             {dist}
           </div>
           <span className="text-xs text-[#8A8A9A]">{timeAgo(wish.created_at)}</span>
+        </div>
+
+        {/* Ligne 2 : type de compte + récompense */}
+        <div className="flex items-center gap-2 flex-wrap">
           <AccountTypeBadge type={wish.wisher.type_compte} />
           {wish.type_recompense && (
             <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full"
