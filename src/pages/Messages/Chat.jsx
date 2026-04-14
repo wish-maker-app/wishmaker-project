@@ -273,13 +273,83 @@ export default function Chat() {
             </p>
           </div>
         </div>
-        <button className="p-1" onClick={() => setShowMenu(true)} aria-label="Options">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="5" r="1.5" fill="#1A1A2E"/>
-            <circle cx="12" cy="12" r="1.5" fill="#1A1A2E"/>
-            <circle cx="12" cy="19" r="1.5" fill="#1A1A2E"/>
-          </svg>
-        </button>
+        <div className="relative">
+          <button className="p-1" onClick={() => setShowMenu((v) => !v)} aria-label="Options">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="5" r="1.5" fill="#1A1A2E"/>
+              <circle cx="12" cy="12" r="1.5" fill="#1A1A2E"/>
+              <circle cx="12" cy="19" r="1.5" fill="#1A1A2E"/>
+            </svg>
+          </button>
+
+          <AnimatePresence>
+            {showMenu && (
+              <>
+                {/* Backdrop transparent pour fermer au clic extérieur */}
+                <div
+                  className="fixed inset-0 z-[800]"
+                  onClick={() => setShowMenu(false)}
+                />
+                {/* Popup */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                  transition={{ duration: 0.12 }}
+                  className="absolute right-0 top-full mt-1 w-56 bg-white rounded-2xl shadow-xl border border-[#F0F0F0] overflow-hidden z-[801]"
+                  style={{ transformOrigin: 'top right' }}
+                >
+                  <button
+                    onClick={() => {
+                      const interlocuteurId = isWisher ? convData?.maker_id : convData?.wisher_id
+                      setShowMenu(false)
+                      if (interlocuteurId) navigate(`/maker/user/${interlocuteurId}`)
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 active:bg-[#F5F5F7] transition-colors text-left"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <span className="text-sm font-medium text-[#1A1A2E] truncate">Voir le profil</span>
+                  </button>
+
+                  <div className="h-px bg-[#F0F0F0]" />
+
+                  <button
+                    disabled={reportLoading}
+                    onClick={async () => {
+                      const interlocuteurId = isWisher ? convData?.maker_id : convData?.wisher_id
+                      if (!interlocuteurId || !userId) return
+                      setReportLoading(true)
+                      const { error } = await supabase.from('reports').insert({
+                        reporter_id: userId,
+                        reported_user_id: interlocuteurId,
+                        type: 'profil',
+                        raison: 'Signalé depuis la conversation',
+                      })
+                      setReportLoading(false)
+                      setShowMenu(false)
+                      if (error) {
+                        toast.error("Impossible d'envoyer le signalement.")
+                        console.error('[chat report] error:', error)
+                      } else {
+                        toast.success('Signalement envoyé, merci !')
+                      }
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 active:bg-[#FEF2F2] transition-colors text-left disabled:opacity-50"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                      <line x1="4" y1="22" x2="4" y2="15"/>
+                    </svg>
+                    <span className="text-sm font-medium text-[#EF4444] truncate">Signaler</span>
+                  </button>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Encart récap du voeu */}
@@ -449,77 +519,6 @@ export default function Chat() {
         />
       </AnimatePresence>
 
-      {/* Menu d'options de la conversation */}
-      <AnimatePresence>
-        {showMenu && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowMenu(false)}
-              className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop"
-            />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-2 pb-8 pt-4 bottom-sheet"
-            >
-              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-2" />
-
-              <button
-                onClick={() => {
-                  const interlocuteurId = isWisher ? convData?.maker_id : convData?.wisher_id
-                  setShowMenu(false)
-                  if (interlocuteurId) navigate(`/maker/user/${interlocuteurId}`)
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl active:bg-[#F5F5F7] transition-colors"
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                  <circle cx="12" cy="7" r="4"/>
-                </svg>
-                <span className="text-sm font-semibold text-[#1A1A2E]">Voir le profil de {interlocuteurName}</span>
-              </button>
-
-              <button
-                disabled={reportLoading}
-                onClick={async () => {
-                  const interlocuteurId = isWisher ? convData?.maker_id : convData?.wisher_id
-                  if (!interlocuteurId || !userId) return
-                  setReportLoading(true)
-                  const { error } = await supabase.from('reports').insert({
-                    reporter_id: userId,
-                    reported_user_id: interlocuteurId,
-                    type: 'profil',
-                    raison: 'Signalé depuis la conversation',
-                  })
-                  setReportLoading(false)
-                  setShowMenu(false)
-                  if (error) {
-                    toast.error("Impossible d'envoyer le signalement.")
-                    console.error('[chat report] error:', error)
-                  } else {
-                    toast.success('Signalement envoyé, merci !')
-                  }
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl active:bg-[#F5F5F7] transition-colors disabled:opacity-50"
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-                  <line x1="4" y1="22" x2="4" y2="15"/>
-                </svg>
-                <span className="text-sm font-semibold text-[#EF4444]">Signaler la conversation</span>
-              </button>
-
-              <button
-                onClick={() => setShowMenu(false)}
-                className="w-full mt-2 text-sm text-[#8A8A9A] py-3"
-              >
-                Annuler
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   )
 }
