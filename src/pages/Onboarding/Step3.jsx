@@ -83,14 +83,6 @@ export default function OnboardingStep3() {
             </div>
           </motion.div>
 
-          {/* Point de localisation utilisateur */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.6 }}
-            className="absolute" style={{ top: '36%', left: '45%' }}>
-            <div className="relative">
-              <div className="w-4 h-4 rounded-full bg-[#4285F4] border-2 border-white shadow-lg" />
-              <div className="absolute inset-0 w-4 h-4 rounded-full bg-[#4285F4]/30 animate-ping" />
-            </div>
-          </motion.div>
         </div>
 
         {/* Contenu bas */}
