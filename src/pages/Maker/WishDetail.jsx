@@ -316,7 +316,13 @@ export default function WishDetail() {
                 </svg>
               </button>
               {showMenu && (
-                <div className="absolute right-0 top-12 bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] py-1 min-w-[200px] z-50 overflow-hidden">
+                <>
+                  {/* Backdrop transparent pour fermer au clic extérieur */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowMenu(false)}
+                  />
+                  <div className="absolute right-0 top-12 bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] py-1 min-w-[200px] z-50 overflow-hidden">
                   {isOwner ? (
                     <button onClick={() => { setShowMenu(false); setShowDeleteConfirm(true) }}
                       className="w-full px-4 py-3 text-left text-sm text-red-500 active:bg-red-50/60 flex items-center gap-2.5 transition-colors">
@@ -347,6 +353,7 @@ export default function WishDetail() {
                     </>
                   )}
                 </div>
+                </>
               )}
             </div>
           }
