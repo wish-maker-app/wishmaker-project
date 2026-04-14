@@ -343,7 +343,6 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full pr-2.5 pl-0.5 py-0.5">
           <SmallAvatar user={wish.wisher} size={24} />
           <span className="text-white text-[11px] font-medium">{wish.wisher.pseudo || wish.wisher.prenom}</span>
-          <AccountTypeBadge type={wish.wisher.type_compte} />
         </div>
         {wish.is_urgent && (
           <span className="absolute top-3 right-3 text-[11px] font-bold px-2.5 py-1 rounded-full"
@@ -358,7 +357,7 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
         <h3 className="font-extrabold text-[#1A1A2E] text-lg mb-1 line-clamp-2">{wish.titre}</h3>
         <p className="text-[#8A8A9A] text-[13px] leading-relaxed line-clamp-2 mb-3">{wish.description}</p>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-1 text-sm text-[#5B6BF5] font-semibold">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="#5B6BF5">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
@@ -366,6 +365,7 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
             {dist}
           </div>
           <span className="text-xs text-[#8A8A9A]">{timeAgo(wish.created_at)}</span>
+          <AccountTypeBadge type={wish.wisher.type_compte} />
           {wish.type_recompense && (
             <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full"
               style={wish.type_recompense === 'argent'
