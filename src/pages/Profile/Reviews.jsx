@@ -64,15 +64,17 @@ export default function Reviews() {
     Promise.all([
       supabase
         .from('ratings')
-        .select('id, note, commentaire, created_at, from_user:users!from_user_id(id, prenom, nom, avatar_url)')
-        .eq('to_user_id', profile.id)
+        .select('id, note, commentaire, created_at, from_user:users!ratings_from_user_fkey(id, prenom, nom, avatar_url)')
+        .eq('to_user', profile.id)
         .order('created_at', { ascending: false }),
       supabase
         .from('ratings')
-        .select('id, note, commentaire, created_at, to_user:users!to_user_id(id, prenom, nom, avatar_url)')
-        .eq('from_user_id', profile.id)
+        .select('id, note, commentaire, created_at, to_user:users!ratings_to_user_fkey(id, prenom, nom, avatar_url)')
+        .eq('from_user', profile.id)
         .order('created_at', { ascending: false }),
     ]).then(([received, given]) => {
+      if (received.error) console.error('[Reviews] received error:', received.error)
+      if (given.error) console.error('[Reviews] given error:', given.error)
       setReviewsReceived(received.data || [])
       setReviewsGiven(given.data || [])
       setLoading(false)
