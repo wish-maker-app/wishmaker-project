@@ -155,7 +155,6 @@ export default function Profile() {
         <ProfileItem
           icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#1A1A2E" strokeWidth="1.8" strokeLinejoin="round"/></svg>}
           label="Mes avis"
-          value={profile.rating > 0 ? `${profile.rating}/5` : null}
           onClick={() => navigate('/profile/reviews')}
         />
 
