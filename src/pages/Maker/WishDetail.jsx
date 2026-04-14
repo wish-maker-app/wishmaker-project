@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { MapContainer, TileLayer, Marker, Circle, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -189,6 +189,16 @@ function ReportModal({ open, onClose, type, reasons, onSubmit }) {
   )
 }
 
+// Variants de stagger pour l'entrée des sections (alignés sur Recap.jsx)
+const sectionVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: 0.06 * i, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
+  }),
+}
+
 export default function WishDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -208,6 +218,13 @@ export default function WishDetail() {
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const [proposalMsg, setProposalMsg] = useState('')
   const [sendingProposal, setSendingProposal] = useState(false)
+
+  // Parallax hero (comme sur Recap)
+  const scrollRef = useRef(null)
+  const HERO_H = 220
+  const { scrollY } = useScroll({ container: scrollRef })
+  const imgScale = useTransform(scrollY, [0, HERO_H], [1, 1.12])
+  const imgOpacity = useTransform(scrollY, [0, HERO_H * 0.6], [1, 0.6])
 
   useEffect(() => {
     getWishById(id).then(setWish).catch(() => {})
@@ -263,14 +280,25 @@ export default function WishDetail() {
   }
 
   return (
-    <div className="h-screen bg-white flex flex-col overflow-y-auto">
+    <div ref={scrollRef} className="h-screen bg-[#F7F8FC] overflow-y-auto overflow-x-hidden">
 
-      {/* Hero */}
-      <div className="relative flex-shrink-0" style={{ height: 220 }}>
+      {/* Hero sticky parallax */}
+      <div className="sticky top-0 z-0" style={{ height: HERO_H }}>
         {heroImage ? (
-          <img src={heroImage} alt="" className="w-full h-full object-cover cursor-pointer" onClick={() => setLightboxIndex(0)} />
+          <motion.div className="relative h-full bg-[#F0F0F5] overflow-hidden" style={{ scale: imgScale }}>
+            <motion.img
+              src={heroImage}
+              alt=""
+              className="w-full h-full object-cover cursor-pointer"
+              style={{ opacity: imgOpacity }}
+              onClick={() => setLightboxIndex(0)}
+            />
+            <div className="absolute inset-0 pointer-events-none" style={{
+              background: 'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 45%, rgba(0,0,0,0.15) 100%)',
+            }} />
+          </motion.div>
         ) : (
-          <div className="w-full h-full"
+          <div className="relative h-full"
             style={{ background: 'linear-gradient(160deg,#5B6BF5 0%,#9B59F5 100%)' }} />
         )}
         <Header transparent onBack={() => {
@@ -340,15 +368,19 @@ export default function WishDetail() {
         </div>
       </div>
 
-      {/* Contenu */}
-      <motion.div
-        initial={{ y: 30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.35 }}
-        className="flex-1 bg-white rounded-t-[28px] -mt-5 px-5 pt-6 pb-32 flex flex-col gap-5 relative z-10"
-      >
+      {/* Contenu — scrolle par-dessus le hero */}
+      <div className="relative z-10 -mt-5">
+        <div className="bg-white rounded-t-[28px] pt-3 pb-32 flex flex-col">
+          {/* Drag handle */}
+          <div className="flex justify-center pb-2">
+            <div className="w-8 h-1 rounded-full bg-[#D5D5DC]" />
+          </div>
+
+          <motion.div
+            className="px-5 pt-3 flex flex-col gap-5"
+          >
         {/* Titre */}
-        <div>
+        <motion.div custom={0} initial="hidden" animate="visible" variants={sectionVariants}>
           <h1 className="font-extrabold text-[#1A1A2E] text-2xl leading-tight mb-2 line-clamp-2 break-words">
             {wish.titre}
           </h1>
@@ -400,13 +432,17 @@ export default function WishDetail() {
               </span>
             </div>
           )}
-        </div>
+        </motion.div>
 
         {/* Description */}
-        <p className="text-[#4A4A5A] text-sm leading-relaxed line-clamp-5 break-words">{wish.description}</p>
+        <motion.p
+          custom={1} initial="hidden" animate="visible" variants={sectionVariants}
+          className="text-[#4A4A5A] text-sm leading-relaxed line-clamp-5 break-words"
+        >{wish.description}</motion.p>
 
         {/* Wisher */}
-        <div
+        <motion.div
+          custom={2} initial="hidden" animate="visible" variants={sectionVariants}
           onClick={() => !isOwner && navigate(`/maker/user/${wish.wisher.id}`)}
           className={`flex items-center gap-3 p-4 rounded-2xl bg-[#F7F8FC] ${!isOwner ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}`}
         >
@@ -431,11 +467,11 @@ export default function WishDetail() {
                 </svg>
               </button>
           )}
-        </div>
+        </motion.div>
 
         {/* Mots clefs */}
         {wish.tags?.length > 0 && (
-          <div>
+          <motion.div custom={3} initial="hidden" animate="visible" variants={sectionVariants}>
             <p className="text-sm font-bold text-[#1A1A2E] mb-3">Mots clefs</p>
             <div className="flex flex-wrap gap-2">
               {wish.tags.map((tag) => (
@@ -444,12 +480,12 @@ export default function WishDetail() {
                 </span>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Photos du voeu */}
         {wish.images?.length > 0 && (
-          <div>
+          <motion.div custom={4} initial="hidden" animate="visible" variants={sectionVariants}>
             <p className="text-sm font-bold text-[#1A1A2E] mb-3">Photos du voeu</p>
             <div className="flex gap-3 overflow-x-auto pb-1">
               {wish.images.map((img, i) => (
@@ -458,11 +494,11 @@ export default function WishDetail() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Localisation */}
-        <div>
+        <motion.div custom={5} initial="hidden" animate="visible" variants={sectionVariants}>
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-bold text-[#1A1A2E]">Localisation</p>
             <button
@@ -483,17 +519,19 @@ export default function WishDetail() {
           </div>
 
           <p className="text-xs text-[#8A8A9A] font-medium mt-3">Localisation approximative · {formatLocation(wish)}</p>
-        </div>
+        </motion.div>
 
         {/* CTA — masqué si c'est ton propre vœu */}
         {!isOwner && (
-          <div className="pt-2">
+          <motion.div custom={6} initial="hidden" animate="visible" variants={sectionVariants} className="pt-2">
             <Button onClick={() => setShowProposal(true)}>
               {t('maker.detail.realiser')}
             </Button>
-          </div>
+          </motion.div>
         )}
-      </motion.div>
+          </motion.div>
+        </div>
+      </div>
 
       {/* Bottom sheet — Proposer de réaliser */}
       <AnimatePresence>
