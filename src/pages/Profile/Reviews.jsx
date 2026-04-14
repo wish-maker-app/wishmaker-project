@@ -7,20 +7,33 @@ import { supabase } from '../../lib/supabase'
 
 // Charte WishMaker
 const PRIMARY_GRADIENT = 'linear-gradient(135deg,#5B6BF5,#9B59F5)'
+const STAR_COLOR = '#F5C542'
 const TEXT_PRIMARY = '#1A1A2E'
 const TEXT_SECONDARY = '#8A8A9A'
 const BORDER = '#F0F0F2'
 
-const RATING_LABELS = {
-  5: 'Excellent',
-  4: 'Bien',
-  3: 'Correct',
-  2: 'Décevant',
-  1: 'Très décevant',
-}
-
-function ratingLabel(note) {
-  return RATING_LABELS[Math.round(note)] || '—'
+function Stars({ count, size = 14 }) {
+  return (
+    <div className="flex items-center gap-[2px]" aria-label={`${count} étoiles sur 5`}>
+      {[1, 2, 3, 4, 5].map((i) => {
+        const filled = i <= Math.round(count)
+        return (
+          <svg
+            key={i}
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill={filled ? STAR_COLOR : 'none'}
+            stroke={filled ? STAR_COLOR : '#E0E0E0'}
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+          >
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        )
+      })}
+    </div>
+  )
 }
 
 function formatMonthYear(iso) {
@@ -72,13 +85,16 @@ function ReviewItem({ review, isReceived, index, onClickProfile }) {
         </svg>
       </button>
 
-      {/* Label rating + commentaire + date */}
+      {/* Étoiles + commentaire + date */}
       <div className="mt-3">
-        <p className="text-[14px] font-bold" style={{ color: TEXT_PRIMARY }}>
-          {ratingLabel(review.note)}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <Stars count={review.note} size={14} />
+          <span className="text-[12.5px] font-semibold tabular-nums" style={{ color: TEXT_SECONDARY }}>
+            {review.note}/5
+          </span>
+        </div>
         {review.commentaire && (
-          <p className="text-[14px] leading-[1.55] mt-1" style={{ color: '#3A3A4E' }}>
+          <p className="text-[14px] leading-[1.55] mt-2" style={{ color: '#3A3A4E' }}>
             {review.commentaire}
           </p>
         )}
