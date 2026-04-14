@@ -11,6 +11,7 @@ import useAuthStore from '../../store/authStore'
 import Header from '../../components/layout/Header'
 import Button from '../../components/ui/Button'
 import useOnboardingStore from '../../store/onboardingStore'
+import { parseNominatim, formatLocation } from '../../lib/geo'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -48,13 +49,14 @@ function MapFlyTo({ center, zoom }) {
 export default function ChooseLocation() {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { latitude: savedLat, longitude: savedLng, ville: savedVille, setLocation } = useOnboardingStore()
+  const { latitude: savedLat, longitude: savedLng, quartier: savedQuartier, ville: savedVille, code_postal: savedCP, setLocation } = useOnboardingStore()
 
+  const savedDisplay = formatLocation({ quartier: savedQuartier, ville: savedVille, code_postal: savedCP })
   const defaultCenter = savedLat ? [savedLat, savedLng] : [46.603354, 1.888334]
 
   const [pin, setPin] = useState(savedLat ? { lat: savedLat, lng: savedLng } : null)
-  const [ville, setVille] = useState(savedVille || '')
-  const [searchQuery, setSearchQuery] = useState(savedVille || '')
+  const [ville, setVille] = useState(savedDisplay)
+  const [searchQuery, setSearchQuery] = useState(savedDisplay)
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [geoLoading, setGeoLoading] = useState(false)
@@ -70,10 +72,10 @@ export default function ChooseLocation() {
         { headers: { 'Accept-Language': 'fr' } }
       )
       const data = await res.json()
-      const city = data.address?.city || data.address?.town || data.address?.village || data.display_name.split(',')[0]
-      const postcode = data.address?.postcode
-      return postcode ? `${city} (${postcode})` : city
-    } catch { return `${lat.toFixed(4)}, ${lng.toFixed(4)}` }
+      return parseNominatim(data)
+    } catch {
+      return { quartier: null, ville: null, code_postal: null, adresse_raw: '', latitude: lat, longitude: lng }
+    }
   }, [])
 
   const searchAddress = useCallback(async (query) => {
@@ -84,7 +86,7 @@ export default function ChooseLocation() {
         { headers: { 'Accept-Language': 'fr' } }
       )
       const data = await res.json()
-      setSuggestions(data)
+      setSuggestions(data.map(parseNominatim))
       setShowSuggestions(true)
     } catch {
       setSuggestions([])
@@ -99,19 +101,21 @@ export default function ChooseLocation() {
   }
 
   function handleSelectSuggestion(item) {
-    const city = item.address?.city || item.address?.town || item.address?.village || item.display_name.split(',')[0]
-    const postcode = item.address?.postcode
-    const label = postcode ? `${city} (${postcode})` : city
-    const lat = parseFloat(item.lat)
-    const lng = parseFloat(item.lon)
-
-    setPin({ lat, lng })
+    // item vient de parseNominatim
+    const label = formatLocation(item)
+    setPin({ lat: item.latitude, lng: item.longitude })
     setVille(label)
     setSearchQuery(label)
-    setLocation(lat, lng, label)
+    setLocation({
+      latitude: item.latitude,
+      longitude: item.longitude,
+      quartier: item.quartier,
+      ville: item.ville,
+      code_postal: item.code_postal,
+    })
     setShowSuggestions(false)
     setSuggestions([])
-    setFlyTarget([lat, lng])
+    setFlyTarget([item.latitude, item.longitude])
   }
 
   function clearSearch() {
@@ -127,10 +131,17 @@ export default function ChooseLocation() {
     const { lat, lng } = e.latlng
     setPin({ lat, lng })
     setShowSuggestions(false)
-    const name = await reverseGeocode(lat, lng)
-    setVille(name)
-    setSearchQuery(name)
-    setLocation(lat, lng, name)
+    const parsed = await reverseGeocode(lat, lng)
+    const label = formatLocation(parsed) || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+    setVille(label)
+    setSearchQuery(label)
+    setLocation({
+      latitude: lat,
+      longitude: lng,
+      quartier: parsed.quartier,
+      ville: parsed.ville,
+      code_postal: parsed.code_postal,
+    })
   }, [reverseGeocode, setLocation])
 
   async function handleGeolocate() {
@@ -141,10 +152,17 @@ export default function ChooseLocation() {
         const { latitude: lat, longitude: lng } = coords
         setPin({ lat, lng })
         setShowSuggestions(false)
-        const name = await reverseGeocode(lat, lng)
-        setVille(name)
-        setSearchQuery(name)
-        setLocation(lat, lng, name)
+        const parsed = await reverseGeocode(lat, lng)
+        const label = formatLocation(parsed) || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+        setVille(label)
+        setSearchQuery(label)
+        setLocation({
+          latitude: lat,
+          longitude: lng,
+          quartier: parsed.quartier,
+          ville: parsed.ville,
+          code_postal: parsed.code_postal,
+        })
         setFlyTarget([lat, lng])
         setGeoLoading(false)
       },
@@ -164,6 +182,8 @@ export default function ChooseLocation() {
           latitude: store.latitude,
           longitude: store.longitude,
           ville: store.ville,
+          quartier: store.quartier,
+          code_postal: store.code_postal,
           langue: store.langue,
           onboarding_completed: true,
         })
@@ -259,11 +279,11 @@ export default function ChooseLocation() {
               className="absolute left-5 right-5 mt-1 bg-white rounded-xl border border-[#E0E0E0] shadow-lg overflow-hidden"
             >
               {suggestions.map((item, idx) => {
-                const name = item.address?.city || item.address?.town || item.address?.village || item.display_name.split(',')[0]
-                const detail = item.display_name.split(',').slice(1, 3).join(',').trim()
+                const name = formatLocation(item) || (item.adresse_raw || '').split(',')[0]
+                const detail = (item.adresse_raw || '').split(',').slice(1, 3).join(',').trim()
                 return (
                   <button
-                    key={item.place_id}
+                    key={idx}
                     onClick={() => handleSelectSuggestion(item)}
                     className="w-full flex items-start gap-3 px-4 py-3 hover:bg-[#F5F5F7] transition-colors text-left border-b border-[#F0F0F0] last:border-b-0"
                   >

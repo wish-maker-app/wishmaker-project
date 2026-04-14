@@ -9,6 +9,7 @@ import { useWishes } from '../../../hooks/useWishes'
 import { checkContent } from '../../../lib/moderation'
 import { supabase } from '../../../lib/supabase'
 import useAuthStore from '../../../store/authStore'
+import { formatLocation } from '../../../lib/geo'
 
 const CATEGORIES = [
   { id: 'depannage', emoji: '\u{1F527}', label: 'Dépannage & Travaux', tags: ['Plomberie', 'Électricité', 'Serrurerie', 'Peinture', 'Carrelage', 'Maçonnerie'] },
@@ -318,7 +319,7 @@ export default function EditWish() {
           </div>
 
           {/* Localisation (affichage seul) */}
-          {wish?.adresse && (
+          {wish && (formatLocation(wish) || wish.adresse) && (
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-[#1A1A2E]">Localisation</label>
               <div className="flex items-center gap-2 px-4 py-3 bg-[#F5F5F7] rounded-[14px]">
@@ -326,7 +327,7 @@ export default function EditWish() {
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke="#5B6BF5" strokeWidth="2"/>
                   <circle cx="12" cy="10" r="3" stroke="#5B6BF5" strokeWidth="2"/>
                 </svg>
-                <span className="text-sm text-[#1A1A2E]">{wish.adresse}</span>
+                <span className="text-sm text-[#1A1A2E]">{formatLocation(wish)}</span>
               </div>
             </div>
           )}

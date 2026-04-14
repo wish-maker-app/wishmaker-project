@@ -10,6 +10,7 @@ import Header from '../../../components/layout/Header'
 import Button from '../../../components/ui/Button'
 import useWishFormStore from '../../../store/wishFormStore'
 import useOnboardingStore from '../../../store/onboardingStore'
+import { parseNominatim, formatLocation } from '../../../lib/geo'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -76,15 +77,17 @@ function StepProgress({ current, total = 4 }) {
 export default function Step3() {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { latitude: savedLat, longitude: savedLng, adresse: savedAdresse, setLocation } = useWishFormStore()
+  const { latitude: savedLat, longitude: savedLng, quartier: savedQuartier, ville: savedVille, code_postal: savedCP, setLocation } = useWishFormStore()
   const { latitude: userLat, longitude: userLng } = useOnboardingStore()
+
+  const savedDisplay = formatLocation({ quartier: savedQuartier, ville: savedVille, code_postal: savedCP })
 
   const defaultCenter = savedLat ? [savedLat, savedLng]
     : userLat ? [userLat, userLng] : [46.603354, 1.888334]
 
   const [pin, setPin] = useState(savedLat ? { lat: savedLat, lng: savedLng } : null)
-  const [adresse, setAdresse] = useState(savedAdresse || '')
-  const [searchQuery, setSearchQuery] = useState(savedAdresse || '')
+  const [adresse, setAdresse] = useState(savedDisplay)
+  const [searchQuery, setSearchQuery] = useState(savedDisplay)
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [geoLoading, setGeoLoading] = useState(false)
@@ -95,17 +98,14 @@ export default function Step3() {
   const reverseGeocode = useCallback(async (lat, lng) => {
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
         { headers: { 'Accept-Language': 'fr' } }
       )
       const data = await res.json()
-      const city = data.address?.city || data.address?.town || data.address?.village || ''
-      const postcode = data.address?.postcode || ''
-      const road = data.address?.road || ''
-      if (road && city && postcode) return `${road}, ${city} (${postcode})`
-      if (city && postcode) return `${city} (${postcode})`
-      return city || data.display_name.split(',')[0]
-    } catch { return `${lat.toFixed(4)}, ${lng.toFixed(4)}` }
+      return parseNominatim(data)
+    } catch {
+      return { quartier: null, ville: null, code_postal: null, adresse_raw: '', latitude: lat, longitude: lng }
+    }
   }, [])
 
   // Recherche d'adresse via Nominatim
@@ -117,14 +117,7 @@ export default function Step3() {
         { headers: { 'Accept-Language': 'fr' } }
       )
       const data = await res.json()
-      setSuggestions(data.map(item => ({
-        display: item.display_name,
-        city: item.address?.city || item.address?.town || item.address?.village || '',
-        postcode: item.address?.postcode || '',
-        road: item.address?.road || '',
-        lat: parseFloat(item.lat),
-        lng: parseFloat(item.lon),
-      })))
+      setSuggestions(data.map(item => parseNominatim(item)))
       setShowSuggestions(true)
     } catch {
       setSuggestions([])
@@ -139,19 +132,21 @@ export default function Step3() {
   }
 
   function handleSelectSuggestion(suggestion) {
-    const label = suggestion.road && suggestion.city && suggestion.postcode
-      ? `${suggestion.road}, ${suggestion.city} (${suggestion.postcode})`
-      : suggestion.city && suggestion.postcode
-        ? `${suggestion.city} (${suggestion.postcode})`
-        : suggestion.display.split(',').slice(0, 2).join(',')
-
-    setPin({ lat: suggestion.lat, lng: suggestion.lng })
+    const label = formatLocation(suggestion)
+    setPin({ lat: suggestion.latitude, lng: suggestion.longitude })
     setAdresse(label)
     setSearchQuery(label)
-    setLocation(suggestion.lat, suggestion.lng, label)
+    setLocation({
+      latitude: suggestion.latitude,
+      longitude: suggestion.longitude,
+      adresse: suggestion.adresse_raw,
+      quartier: suggestion.quartier,
+      ville: suggestion.ville,
+      code_postal: suggestion.code_postal,
+    })
     setShowSuggestions(false)
     setSuggestions([])
-    setFlyTarget([suggestion.lat, suggestion.lng])
+    setFlyTarget([suggestion.latitude, suggestion.longitude])
   }
 
   function clearSearch() {
@@ -167,10 +162,18 @@ export default function Step3() {
     const { lat, lng } = e.latlng
     setPin({ lat, lng })
     setShowSuggestions(false)
-    const addr = await reverseGeocode(lat, lng)
-    setAdresse(addr)
-    setSearchQuery(addr)
-    setLocation(lat, lng, addr)
+    const parsed = await reverseGeocode(lat, lng)
+    const label = formatLocation(parsed) || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+    setAdresse(label)
+    setSearchQuery(label)
+    setLocation({
+      latitude: lat,
+      longitude: lng,
+      adresse: parsed.adresse_raw,
+      quartier: parsed.quartier,
+      ville: parsed.ville,
+      code_postal: parsed.code_postal,
+    })
   }, [reverseGeocode, setLocation])
 
   async function handleGeolocate() {
@@ -181,10 +184,18 @@ export default function Step3() {
         const { latitude: lat, longitude: lng } = coords
         setPin({ lat, lng })
         setShowSuggestions(false)
-        const addr = await reverseGeocode(lat, lng)
-        setAdresse(addr)
-        setSearchQuery(addr)
-        setLocation(lat, lng, addr)
+        const parsed = await reverseGeocode(lat, lng)
+        const label = formatLocation(parsed) || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+        setAdresse(label)
+        setSearchQuery(label)
+        setLocation({
+          latitude: lat,
+          longitude: lng,
+          adresse: parsed.adresse_raw,
+          quartier: parsed.quartier,
+          ville: parsed.ville,
+          code_postal: parsed.code_postal,
+        })
         setFlyTarget([lat, lng])
         setGeoLoading(false)
       },
@@ -278,7 +289,7 @@ export default function Step3() {
                     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
                     <circle cx="12" cy="9" r="2.5"/>
                   </svg>
-                  <span className="text-sm text-[#1A1A2E] line-clamp-2">{s.display}</span>
+                  <span className="text-sm text-[#1A1A2E] line-clamp-2">{formatLocation(s) || s.adresse_raw}</span>
                 </button>
               ))}
             </motion.div>

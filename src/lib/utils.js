@@ -42,17 +42,6 @@ export function formatRelativeDate(dateStr) {
 }
 
 /**
- * Tronque une adresse pour n'afficher que le quartier + ville
- * Ex: "12 rue de la Paix, Belleville, Paris" → "Belleville, Paris"
- */
-export function shortenAddress(adresse) {
-  if (!adresse) return ''
-  const parts = adresse.split(',').map(s => s.trim())
-  if (parts.length <= 2) return adresse
-  return parts.slice(-2).join(', ')
-}
-
-/**
  * Classe CSS conditionnelle (utilitaire)
  */
 export function cn(...classes) {

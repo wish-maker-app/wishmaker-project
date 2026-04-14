@@ -13,6 +13,7 @@ import useAuthStore from '../../store/authStore'
 import useMakerStore from '../../store/makerStore'
 import { useWishes } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
+import { fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 
 // Fix default marker icon
@@ -604,17 +605,20 @@ export default function MakerHome() {
                   <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />
                 </>
               )}
-              {filtered.map((wish) => (
-                <Marker
-                  key={wish.id}
-                  position={[wish.latitude, wish.longitude]}
-                  icon={createAvatarIcon(
-                    `${wish.wisher.prenom[0]}${wish.wisher.nom[0]}`,
-                    wish.wisher.rating
-                  )}
-                  eventHandlers={{ click: () => setSelectedWish(wish) }}
-                />
-              ))}
+              {filtered.map((wish) => {
+                const [fLat, fLng] = fuzzyCoordinates(wish.latitude, wish.longitude, wish.id)
+                return (
+                  <Marker
+                    key={wish.id}
+                    position={[fLat, fLng]}
+                    icon={createAvatarIcon(
+                      `${wish.wisher.prenom[0]}${wish.wisher.nom[0]}`,
+                      wish.wisher.rating
+                    )}
+                    eventHandlers={{ click: () => setSelectedWish(wish) }}
+                  />
+                )
+              })}
             </MapContainer>
 
             {/* Bouton recentrer sur moi */}

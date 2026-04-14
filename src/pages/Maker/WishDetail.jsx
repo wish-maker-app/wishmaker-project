@@ -14,7 +14,7 @@ import useAuthStore from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
 import { useWishes } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
-import { shortenAddress } from '../../lib/utils'
+import { formatLocation, fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -29,21 +29,6 @@ const pinIcon = L.divIcon({
   iconSize: [16, 16],
   iconAnchor: [8, 8],
 })
-
-// Génère des coordonnées floues déterministes basées sur l'ID du vœu
-function seededRandom(seed) {
-  let h = 0
-  for (let i = 0; i < seed.length; i++) {
-    h = ((h << 5) - h + seed.charCodeAt(i)) | 0
-  }
-  return ((h & 0x7fffffff) % 10000) / 10000
-}
-
-function fuzzyCoordinates(lat, lng, id, radiusMeters = 400) {
-  const latOffset = (seededRandom(id + 'lat') - 0.5) * (radiusMeters / 111320)
-  const lngOffset = (seededRandom(id + 'lng') - 0.5) * (radiusMeters / (111320 * Math.cos(lat * Math.PI / 180)))
-  return [lat + latOffset, lng + lngOffset]
-}
 
 function StaticMap({ lat, lng, wishId }) {
   const [fuzzyLat, fuzzyLng] = fuzzyCoordinates(lat, lng, wishId)
@@ -72,7 +57,7 @@ function StaticMap({ lat, lng, wishId }) {
       <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
       <Circle
         center={[fuzzyLat, fuzzyLng]}
-        radius={400}
+        radius={FUZZY_RADIUS_METERS}
         pathOptions={{ color: '#5B6BF5', fillColor: '#5B6BF5', fillOpacity: 0.12, weight: 2 }}
       />
       <Marker position={[fuzzyLat, fuzzyLng]} icon={pinIcon} />
@@ -477,7 +462,7 @@ export default function WishDetail() {
             <p className="text-sm font-bold text-[#1A1A2E]">Localisation</p>
             <button
               onClick={() => {
-                const [fLat, fLng] = fuzzyCoordinates(wish.latitude, wish.longitude, wish.id, 300)
+                const [fLat, fLng] = fuzzyCoordinates(wish.latitude, wish.longitude, wish.id)
                 window.open(`https://www.google.com/maps?q=${fLat},${fLng}`, '_blank')
               }}
               className="text-xs font-semibold text-[#5B6BF5]">
@@ -492,7 +477,7 @@ export default function WishDetail() {
             <StaticMap lat={wish.latitude} lng={wish.longitude} wishId={wish.id} />
           </div>
 
-          <p className="text-xs text-[#8A8A9A] font-medium mt-3">Localisation approximative · {shortenAddress(wish.adresse)}</p>
+          <p className="text-xs text-[#8A8A9A] font-medium mt-3">Localisation approximative · {formatLocation(wish)}</p>
         </div>
 
         {/* CTA — masqué si c'est ton propre vœu */}
@@ -530,7 +515,7 @@ export default function WishDetail() {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-[#1A1A2E] text-sm truncate">{wish.titre}</p>
-                  <p className="text-xs text-[#8A8A9A] mt-0.5">{shortenAddress(wish.adresse)}</p>
+                  <p className="text-xs text-[#8A8A9A] mt-0.5">{formatLocation(wish)}</p>
                   {wish.type_recompense && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1"
                       style={wish.type_recompense === 'argent'
@@ -713,7 +698,7 @@ export default function WishDetail() {
                       <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
                       <Circle
                         center={[fLat, fLng]}
-                        radius={400}
+                        radius={FUZZY_RADIUS_METERS}
                         pathOptions={{ color: '#5B6BF5', fillColor: '#5B6BF5', fillOpacity: 0.12, weight: 2 }}
                       />
                       <Marker position={[fLat, fLng]} icon={pinIcon} />
@@ -723,7 +708,7 @@ export default function WishDetail() {
               </div>
               {/* Adresse en bas */}
               <div className="px-5 py-4 bg-white border-t border-[#F0F0F0]">
-                <p className="text-sm font-medium text-[#1A1A2E]">{shortenAddress(wish.adresse)}</p>
+                <p className="text-sm font-medium text-[#1A1A2E]">{formatLocation(wish)}</p>
                 <p className="text-xs text-[#8A8A9A] mt-1">Localisation approximative · Zone de ~400m</p>
               </div>
             </motion.div>

@@ -7,13 +7,15 @@ const useOnboardingStore = create(
       langue: 'fr',
       latitude: null,
       longitude: null,
-      ville: '',
+      ville: null,
+      quartier: null,
+      code_postal: null,
 
       setLangue: (langue) => set({ langue }),
-      setLocation: (latitude, longitude, ville) =>
-        set({ latitude, longitude, ville }),
+      setLocation: ({ latitude, longitude, ville, quartier, code_postal }) =>
+        set({ latitude, longitude, ville, quartier, code_postal }),
 
-      reset: () => set({ langue: 'fr', latitude: null, longitude: null, ville: '' }),
+      reset: () => set({ langue: 'fr', latitude: null, longitude: null, ville: null, quartier: null, code_postal: null }),
     }),
     { name: 'wishmaker-onboarding' }
   )

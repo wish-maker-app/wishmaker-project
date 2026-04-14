@@ -7,6 +7,7 @@ import useWishFormStore from '../../../store/wishFormStore'
 import { useWishes } from '../../../hooks/useWishes'
 import useAuthStore from '../../../store/authStore'
 import { checkContent } from '../../../lib/moderation'
+import { formatLocation } from '../../../lib/geo'
 
 const HERO_H = 200
 
@@ -23,7 +24,7 @@ export default function Recap() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const profile = useAuthStore((s) => s.profile)
-  const { titre, description, images, adresse, latitude, longitude, tags, type_recompense, montant_recompense, description_bon_procede, setRecompense, reset } = useWishFormStore()
+  const { titre, description, images, adresse, quartier, ville, code_postal, latitude, longitude, tags, type_recompense, montant_recompense, description_bon_procede, setRecompense, reset } = useWishFormStore()
   const { createWish, loading: publishing } = useWishes()
   const [error, setError] = useState(null)
   const [recompenseType, setRecompenseType] = useState(type_recompense || 'bon_procede')
@@ -71,7 +72,7 @@ export default function Recap() {
     setRecompense(recompenseType, recompenseType === 'argent' ? parseFloat(montant) || null : null, bonProcedeText)
     try {
       await createWish({
-        titre, description, latitude, longitude, adresse, tags, images,
+        titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, images,
         type_recompense: recompenseType,
         montant_recompense: recompenseType === 'argent' ? parseFloat(montant) || null : null,
         is_urgent: urgent,
@@ -185,7 +186,7 @@ export default function Recap() {
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="#B0B0BE">
                     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
                   </svg>
-                  <span className="truncate max-w-[160px]">{adresse || 'Non renseignée'}</span>
+                  <span className="truncate max-w-[160px]">{formatLocation({ quartier, ville, code_postal, adresse }) || 'Non renseignée'}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {profile?.avatar_url ? (
