@@ -113,10 +113,13 @@ export default function UserWishes() {
       .then(({ data }) => setUserData(data))
     supabase
       .from('ratings')
-      .select('id, note, commentaire, created_at, from_user:users!from_user_id(id, prenom, nom, avatar_url)')
-      .eq('to_user_id', userId)
+      .select('id, note, commentaire, created_at, from_user:users!ratings_from_user_fkey(id, prenom, nom, avatar_url)')
+      .eq('to_user', userId)
       .order('created_at', { ascending: false })
-      .then(({ data }) => setRatings(data || []))
+      .then(({ data, error }) => {
+        if (error) console.error('[UserWishes] ratings error:', error)
+        setRatings(data || [])
+      })
   }, [userId])
 
   const userLat = userLocation?.[0] || profile?.latitude || 43.6047
