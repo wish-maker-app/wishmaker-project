@@ -15,6 +15,7 @@ import { supabase } from '../../lib/supabase'
 import { useWishes } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
 import { formatLocation, fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
+import FavoriteButton from '../../components/ui/FavoriteButton'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -333,6 +334,10 @@ export default function WishDetail() {
           </div>
         )}
 */}
+        {/* Bouton favoris — flottant en bas-droite de la photo */}
+        <div className="absolute bottom-3 right-4 z-20">
+          <FavoriteButton wish={wish} variant="plain" size={22} />
+        </div>
       </div>
 
       {/* Contenu */}

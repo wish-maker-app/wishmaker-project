@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import useFavoritesStore from './favoritesStore'
 
 const useAuthStore = create(
   persist(
@@ -10,7 +11,11 @@ const useAuthStore = create(
       setUser: (user) => set({ user }),
       setProfile: (profile) => set({ profile }),
 
-      logout: () => set({ user: null, profile: null }),
+      logout: () => {
+        // Reset des stores liés à l'utilisateur pour éviter les fuites d'état
+        useFavoritesStore.getState().clear()
+        set({ user: null, profile: null })
+      },
     }),
     { name: 'wishmaker-auth' }
   )

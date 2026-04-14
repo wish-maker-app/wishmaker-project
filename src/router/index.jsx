@@ -50,6 +50,7 @@ const Chat  = lazy(() => import('../pages/Messages/Chat'))
 const Profile = lazy(() => import('../pages/Profile/index'))
 const EditProfile = lazy(() => import('../pages/Profile/EditProfile'))
 const Reviews = lazy(() => import('../pages/Profile/Reviews'))
+const Favorites = lazy(() => import('../pages/Profile/Favorites'))
 
 // Admin
 const Admin = lazy(() => import('../pages/Admin/index'))
@@ -164,6 +165,7 @@ const router = createBrowserRouter([
       { path: '/profile',             element: <Suspense fallback={<PageLoader />}><Profile /></Suspense> },
       { path: '/profile/edit',        element: <Suspense fallback={<PageLoader />}><EditProfile /></Suspense> },
       { path: '/profile/reviews',     element: <Suspense fallback={<PageLoader />}><Reviews /></Suspense> },
+      { path: '/profile/favorites',   element: <Suspense fallback={<PageLoader />}><Favorites /></Suspense> },
 
       // Admin
       { path: '/admin',               element: <Suspense fallback={<PageLoader />}><Admin /></Suspense> },

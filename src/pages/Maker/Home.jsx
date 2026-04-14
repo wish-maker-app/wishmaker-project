@@ -14,6 +14,7 @@ import useMakerStore from '../../store/makerStore'
 import { useWishes } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
 import { fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
+import FavoriteButton from '../../components/ui/FavoriteButton'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 
 // Fix default marker icon
@@ -149,6 +150,10 @@ function WishGridCard({ wish, onClick, userLat, userLng }) {
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full pr-2.5 pl-0.5 py-0.5">
           <SmallAvatar user={wish.wisher} size={24} />
           <span className="text-white text-[11px] font-medium">{wish.wisher.prenom}</span>
+        </div>
+        {/* Bouton favoris en overlay top-right */}
+        <div className="absolute top-2 right-2">
+          <FavoriteButton wish={wish} variant="overlay" size={18} />
         </div>
       </div>
 
