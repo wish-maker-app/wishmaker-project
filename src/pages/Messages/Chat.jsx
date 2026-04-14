@@ -408,7 +408,7 @@ export default function Chat() {
             className="w-full h-11 rounded-full text-sm font-bold text-white"
             style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}
           >
-            ✅ Marquer comme réalisé
+            Marquer comme réalisé
           </button>
         </div>
       )}
