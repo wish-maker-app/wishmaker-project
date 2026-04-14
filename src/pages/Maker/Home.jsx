@@ -24,17 +24,24 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
-function createAvatarIcon(initials, rating) {
+function createWishMarker(wish) {
+  const cover = wish.images?.find((img) => img.is_cover) || wish.images?.[0]
+  const initials = `${wish.wisher?.prenom?.[0] || ''}${wish.wisher?.nom?.[0] || ''}`
+  const rating = wish.wisher?.rating
+
+  // Si une photo existe → on l'affiche, sinon fallback initiales (gradient or)
+  const visual = cover?.url
+    ? `<div style="width:48px;height:48px;border-radius:12px;background:#F5F5F7 center/cover no-repeat url('${cover.url}');border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.15);"></div>`
+    : `<div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#F5C542,#E8A820);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:14px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.15);">${initials}</div>`
+
   return L.divIcon({
     className: '',
     iconSize: [56, 68],
     iconAnchor: [28, 68],
     html: `
       <div style="display:flex;flex-direction:column;align-items:center;">
-        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#F5C542,#E8A820);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:14px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
-          ${initials}
-        </div>
-        <div style="display:flex;align-items:center;gap:2px;margin-top:2px;">
+        ${visual}
+        <div style="display:flex;align-items:center;gap:2px;margin-top:2px;background:#fff;padding:2px 6px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.12);">
           <svg width="10" height="10" viewBox="0 0 12 12" fill="#F5C542"><path d="M6 1l1.35 2.74L10.5 4.27l-2.25 2.19.53 3.09L6 8.1l-2.78 1.45.53-3.09L1.5 4.27l3.15-.53L6 1z"/></svg>
           <span style="font-size:11px;font-weight:700;color:#1A1A2E;">${rating > 0 ? rating : '-'}</span>
         </div>
@@ -611,10 +618,7 @@ export default function MakerHome() {
                   <Marker
                     key={wish.id}
                     position={[fLat, fLng]}
-                    icon={createAvatarIcon(
-                      `${wish.wisher.prenom[0]}${wish.wisher.nom[0]}`,
-                      wish.wisher.rating
-                    )}
+                    icon={createWishMarker(wish)}
                     eventHandlers={{ click: () => setSelectedWish(wish) }}
                   />
                 )
