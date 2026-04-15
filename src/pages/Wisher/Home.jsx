@@ -364,7 +364,7 @@ export default function WisherHome() {
               if (used >= quota) {
                 setShowPackModal(true)
               } else {
-                navigate('/wisher/create/1')
+                navigate('/wisher/create')
               }
             }}
             className="w-full rounded-[20px] p-5 text-left relative overflow-hidden"
@@ -475,7 +475,7 @@ export default function WisherHome() {
                   </p>
                   {activeTab === 'en_attente' && (
                     <button
-                      onClick={() => navigate('/wisher/create/1')}
+                      onClick={() => navigate('/wisher/create')}
                       className="mt-1 px-6 h-10 rounded-full text-sm font-semibold text-white"
                       style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
                     >
@@ -536,7 +536,7 @@ export default function WisherHome() {
         onClose={() => setShowPackModal(false)}
         onSuccess={() => {
           setShowPackModal(false)
-          navigate('/wisher/create/1')
+          navigate('/wisher/create')
         }}
       />
 

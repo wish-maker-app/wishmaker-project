@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import Header from '../../../components/layout/Header'
 import Button from '../../../components/ui/Button'
+import CategoryBadge from '../../../components/ui/CategoryBadge'
 import useWishFormStore from '../../../store/wishFormStore'
 
 function StepProgress({ current, total = 4 }) {
@@ -76,6 +77,7 @@ export default function Step2() {
     <div className="h-screen bg-white flex flex-col">
       <Header title={t('wisher.create.step2_titre')} onBack={() => navigate('/wisher/create/1')} />
       <StepProgress current={2} />
+      <CategoryBadge />
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
