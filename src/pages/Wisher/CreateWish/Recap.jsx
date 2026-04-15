@@ -24,7 +24,7 @@ export default function Recap() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const profile = useAuthStore((s) => s.profile)
-  const { titre, description, images, adresse, quartier, ville, code_postal, latitude, longitude, tags, type_recompense, montant_recompense, description_bon_procede, setRecompense, reset } = useWishFormStore()
+  const { titre, description, images, adresse, quartier, ville, code_postal, latitude, longitude, tags, category_id, tag_ids, type_recompense, montant_recompense, description_bon_procede, setRecompense, reset } = useWishFormStore()
   const { createWish, loading: publishing } = useWishes()
   const [error, setError] = useState(null)
   const [recompenseType, setRecompenseType] = useState(type_recompense || 'bon_procede')
@@ -73,6 +73,7 @@ export default function Recap() {
     try {
       await createWish({
         titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, images,
+        category_id, tag_ids,
         type_recompense: recompenseType,
         montant_recompense: recompenseType === 'argent' ? parseFloat(montant) || null : null,
         is_urgent: urgent,

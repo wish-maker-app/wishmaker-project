@@ -74,7 +74,7 @@ export function useWishes() {
     return normalizeWish(data)
   }
 
-  async function createWish({ titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, images, type_recompense, montant_recompense, is_urgent }) {
+  async function createWish({ titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, tag_ids, category_id, images, type_recompense, montant_recompense, is_urgent }) {
     setLoading(true)
     // S'assurer que la session auth est active
     let { data: { session } } = await supabase.auth.getSession()
@@ -84,7 +84,7 @@ export function useWishes() {
     }
     const wisherId = session?.user?.id || user?.id
     if (!wisherId) { setLoading(false); throw new Error('Session expirée, veuillez vous reconnecter') }
-    const insertData = { titre, description, latitude, longitude, adresse, quartier, ville, code_postal, wisher_id: wisherId, type_recompense, montant_recompense }
+    const insertData = { titre, description, latitude, longitude, adresse, quartier, ville, code_postal, category_id, wisher_id: wisherId, type_recompense, montant_recompense }
     if (is_urgent) {
       insertData.is_urgent = true
       // expires_at et urgent_until sont calculés par le trigger set_wish_expiration
@@ -98,7 +98,14 @@ export function useWishes() {
 
     if (error) { setLoading(false); throw error }
 
-    // Tags
+    // Tags V2 (nouveaux liens vers la table tags)
+    if (tag_ids?.length) {
+      await supabase.from('wish_tag_links').insert(
+        tag_ids.map((tag_id) => ({ wish_id: wish.id, tag_id }))
+      )
+    }
+
+    // Tags legacy (strings) — conservé pour rétrocompat affichage
     if (tags?.length) {
       await supabase.from('wish_tags').insert(
         tags.map((tag) => ({ wish_id: wish.id, tag }))

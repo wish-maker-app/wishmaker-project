@@ -13,7 +13,10 @@ const useWishFormStore = create((set) => ({
   quartier: null,     // Ex: "Belleville"
   ville: null,        // Ex: "Paris"
   code_postal: null,  // Ex: "75018"
-  // Étape 4
+  // Étape 4 — catégorisation V2
+  category_id: null,  // uuid de la catégorie choisie (obligatoire)
+  tag_ids: [],        // array d'uuid de tags (1 min, 3 max)
+  // Legacy : garder tags (array de strings) pour rétrocompat pendant la migration
   tags: [],
   // Récompense
   type_recompense: 'bon_procede',
@@ -25,13 +28,15 @@ const useWishFormStore = create((set) => ({
   setLocation: ({ latitude, longitude, adresse, quartier, ville, code_postal }) =>
     set({ latitude, longitude, adresse, quartier, ville, code_postal }),
   setTags: (tags) => set({ tags }),
+  setCategoryAndTags: ({ category_id, tag_ids, tags }) =>
+    set({ category_id, tag_ids, tags }),
   setRecompense: (type_recompense, montant_recompense, description_bon_procede) =>
     set({ type_recompense, montant_recompense, description_bon_procede }),
 
   reset: () => set({
     titre: '', description: '', images: [],
     latitude: null, longitude: null, adresse: '', quartier: null, ville: null, code_postal: null,
-    tags: [],
+    category_id: null, tag_ids: [], tags: [],
     type_recompense: 'bon_procede', montant_recompense: null, description_bon_procede: '',
   }),
 }))
