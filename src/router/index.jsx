@@ -51,6 +51,7 @@ const Profile = lazy(() => import('../pages/Profile/index'))
 const EditProfile = lazy(() => import('../pages/Profile/EditProfile'))
 const Reviews = lazy(() => import('../pages/Profile/Reviews'))
 const Favorites = lazy(() => import('../pages/Profile/Favorites'))
+const ProTags = lazy(() => import('../pages/Profile/ProTags'))
 
 // Admin
 const Admin = lazy(() => import('../pages/Admin/index'))
@@ -166,6 +167,7 @@ const router = createBrowserRouter([
       { path: '/profile/edit',        element: <Suspense fallback={<PageLoader />}><EditProfile /></Suspense> },
       { path: '/profile/reviews',     element: <Suspense fallback={<PageLoader />}><Reviews /></Suspense> },
       { path: '/profile/favorites',   element: <Suspense fallback={<PageLoader />}><Favorites /></Suspense> },
+      { path: '/profile/pro-tags',    element: <Suspense fallback={<PageLoader />}><ProTags /></Suspense> },
 
       // Admin
       { path: '/admin',               element: <Suspense fallback={<PageLoader />}><Admin /></Suspense> },

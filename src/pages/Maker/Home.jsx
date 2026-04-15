@@ -16,6 +16,7 @@ import { useMessages } from '../../hooks/useMessages'
 import { fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
 import FavoriteButton from '../../components/ui/FavoriteButton'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
+import { useUserTagSubscriptions } from '../../hooks/useTags'
 
 // Fix default marker icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -408,6 +409,8 @@ export default function MakerHome() {
   const profile = useAuthStore((s) => s.profile)
   const { sortBy, maxDistance, selectedCategories } = useMakerStore()
   const { getAvailableWishes, loading } = useWishes()
+  const { tagIds: subscribedTagIds } = useUserTagSubscriptions()
+  const isProMaker = profile?.type_compte === 'pro'
   const { createConversation, sendMessage } = useMessages()
   const [wishes, setWishes] = useState([])
   const [userLocation, setUserLocation] = useState(null)
@@ -462,7 +465,7 @@ export default function MakerHome() {
       })
 
   // Filtrage par catégories sélectionnées
-  const filtered = selectedCategories.length === 0
+  const categoryFiltered = selectedCategories.length === 0
     ? distanceFiltered
     : distanceFiltered.filter((w) => {
         const wishTags = (w.tags || []).map(t => t.toLowerCase())
@@ -471,6 +474,14 @@ export default function MakerHome() {
           return catTags.some(ct => wishTags.includes(ct))
         })
       })
+
+  // Filtrage pour les Makers pros : seulement les vœux matchant au moins un tag souscrit.
+  // Si aucun tag souscrit, on affiche tout (sinon feed vide = mauvaise UX d'onboarding).
+  const filtered = isProMaker && subscribedTagIds.length > 0
+    ? categoryFiltered.filter((w) =>
+        (w.tag_ids || []).some((tagId) => subscribedTagIds.includes(tagId))
+      )
+    : categoryFiltered
 
   const sponsored = filtered.filter((w) => w.is_sponsored || (w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now()))
   const nonSponsored = [...filtered]
