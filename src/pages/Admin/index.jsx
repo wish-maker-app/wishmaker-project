@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import useAuthStore from '../../store/authStore'
+import TagsAdminTab from './TagsAdminTab'
 
 const CATEGORIES = [
   { value: 'all', label: 'Tous' },
@@ -305,31 +306,31 @@ export default function Admin() {
 
       {/* Toggle */}
       <div className="bg-white px-5 py-3">
-        <div className="flex bg-[#F5F5F5] rounded-full p-1">
-          <button
-            onClick={() => setTab('mots')}
-            className="flex-1 h-10 rounded-full text-sm font-semibold transition-all"
-            style={tab === 'mots'
-              ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
-              : { color: '#8A8A9A' }}
-          >
-            Mots interdits
-          </button>
-          <button
-            onClick={() => setTab('users')}
-            className="flex-1 h-10 rounded-full text-sm font-semibold transition-all"
-            style={tab === 'users'
-              ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
-              : { color: '#8A8A9A' }}
-          >
-            Utilisateurs
-          </button>
+        <div className="flex bg-[#F5F5F5] rounded-full p-1 gap-1">
+          {[
+            { key: 'mots',  label: 'Mots interdits' },
+            { key: 'tags',  label: 'Tags' },
+            { key: 'users', label: 'Utilisateurs' },
+          ].map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className="flex-1 h-10 rounded-full text-[13px] font-semibold transition-all px-2"
+              style={tab === t.key
+                ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
+                : { color: '#8A8A9A' }}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Contenu */}
       <div className="flex-1 overflow-y-auto px-5 py-4 pb-10">
-        {tab === 'mots' ? <MotsInterditsTab /> : <UtilisateursTab />}
+        {tab === 'mots' ? <MotsInterditsTab /> :
+         tab === 'tags' ? <TagsAdminTab /> :
+         <UtilisateursTab />}
       </div>
     </div>
   )
