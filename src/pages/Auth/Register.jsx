@@ -70,21 +70,31 @@ export default function Register() {
       // Session active → on stocke le user + profil et on continue
       if (authData.session) {
         useAuthStore.getState().setUser(user)
-        // Met à jour le profil (le trigger l'a créé, on s'assure que prenom/nom sont corrects)
-        await supabase
+        // UPSERT (plus robuste que UPDATE) — au cas où le trigger n'a pas encore tourné
+        // ou si un des champs n'a pas été copié correctement depuis les metadata
+        const { data: profile, error: upsertErr } = await supabase
           .from('users')
-          .update({ prenom: data.prenom, nom: data.nom, pseudo: data.pseudo, type_compte: typeCompte })
-          .eq('id', user.id)
-        const { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
+          .upsert({
+            id: user.id,
+            email: data.email,
+            prenom: data.prenom,
+            nom: data.nom,
+            pseudo: data.pseudo,
+            type_compte: typeCompte,
+          }, { onConflict: 'id' })
+          .select()
           .single()
-        if (profile) useAuthStore.getState().setProfile(profile)
+        if (upsertErr) {
+          console.error('[register] profile upsert error:', upsertErr)
+          toast.error('Profil créé mais erreur de sauvegarde : ' + upsertErr.message)
+        } else if (profile) {
+          useAuthStore.getState().setProfile(profile)
+        }
       }
 
       setShowSuccess(true)
     } catch (err) {
+      console.error('[register] signup error:', err)
       toast.error(err.message || 'Erreur lors de la création du compte')
     } finally {
       setLoading(false)
