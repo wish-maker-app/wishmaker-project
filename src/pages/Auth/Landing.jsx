@@ -21,7 +21,7 @@ export default function Landing() {
   async function handleGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/splash` },
+      options: { redirectTo: `${window.location.origin}/` },
     })
     if (error) toast.error('Erreur avec Google : ' + error.message)
   }
@@ -29,7 +29,7 @@ export default function Landing() {
   async function handleApple() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'apple',
-      options: { redirectTo: `${window.location.origin}/splash` },
+      options: { redirectTo: `${window.location.origin}/` },
     })
     if (error) toast.error('Erreur avec Apple : ' + error.message)
   }

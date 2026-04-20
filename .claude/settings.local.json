@@ -7,7 +7,30 @@
       "Bash(exit 0)",
       "WebSearch",
       "WebFetch(domain:developers.figma.com)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Skill(update-config)",
+      "Bash(wc:*)",
+      "Bash(git -C /c/Users/mathi/Desktop/wishmaker log --oneline --all)",
+      "Bash(curl:*)",
+      "Bash(SRK=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpdnhuaWlrdHh0ZXhsd2FkcWZpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mzc2MjMxNiwiZXhwIjoyMDg5MzM4MzE2fQ.zV_6_dNWYxOjzuUxbgo8uk-9GDYesSxv4T3u0mXnDFw\")",
+      "Bash(URL=\"https://livxniiktxtexlwadqfi.supabase.co/rest/v1\")",
+      "Bash(__NEW_LINE_00dc29204b01d0ab__ echo:*)",
+      "Bash(grep -r \"useWishes\\\\|useMessages\\\\|useAuth\\\\|supabase\" /c/Users/mathi/Desktop/wishmaker/src/pages --include=*.jsx)",
+      "Bash(grep -r \"import.*store\\\\|useStore\" /c/Users/mathi/Desktop/wishmaker/src/pages --include=*.jsx)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(git pull:*)",
+      "Bash(xargs grep:*)",
+      "Bash(gh run:*)",
+      "Bash(sshpass -p '79yqY.mPZ_v9#tH' ssh -o StrictHostKeyChecking=no -p 65002 u994756226@145.79.20.90 \"echo connected && pwd && ls\")",
+      "Bash(apt-get install:*)",
+      "Bash(where plink:*)",
+      "Bash(python3 -c \"import paramiko; print\\(''ok''\\)\")",
+      "Bash(pip install:*)",
+      "Bash(ssh-keygen -R '[145.79.20.90]:65002')"
     ]
   }
 }

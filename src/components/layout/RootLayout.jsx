@@ -18,7 +18,7 @@ export default function RootLayout() {
     pathname.startsWith('/auth') ||
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/setup') ||
-    pathname === '/splash'
+    pathname === '/'
 
   return (
     <>

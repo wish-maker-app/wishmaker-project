@@ -6,7 +6,7 @@ import RootLayout from '../components/layout/RootLayout'
 // Pages — chargement lazy pour les performances
 import { lazy, Suspense } from 'react'
 
-const Splash = lazy(() => import('../pages/Splash'))
+const RouteResolver = lazy(() => import('../pages/RouteResolver'))
 
 // Onboarding
 const OnboardingStep1 = lazy(() => import('../pages/Onboarding/Step1'))
@@ -117,11 +117,7 @@ const router = createBrowserRouter([
     children: [
   {
     path: '/',
-    element: <Navigate to="/splash" replace />,
-  },
-  {
-    path: '/splash',
-    element: <Suspense fallback={<PageLoader />}><Splash /></Suspense>,
+    element: <Suspense fallback={<PageLoader />}><RouteResolver /></Suspense>,
   },
 
   // Onboarding (public)
@@ -198,8 +194,8 @@ const router = createBrowserRouter([
     ],
   },
 
-  // 404 → splash
-  { path: '*', element: <Navigate to="/splash" replace /> },
+  // 404 → racine (qui route intelligemment)
+  { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
 ])
