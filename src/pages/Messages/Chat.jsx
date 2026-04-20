@@ -95,7 +95,7 @@ export default function Chat() {
   const [input, setInput] = useState('')
   const scrollRef = useRef(null)
   const userId = useAuthStore((s) => s.user?.id)
-  const { messages, loadMessages, sendMessage, createConversation, loadConversations, conversations, loading } = useMessages()
+  const { messages, loadMessages, sendMessage, createConversation, loadConversations, conversations, loading, deleteConversation } = useMessages()
   const { markWishRealized, submitRating, getUserRating } = useWishes()
   const [interlocuteur, setInterlocuteur] = useState({ prenom: 'Utilisateur', nom: '', pseudo: null, is_online: false })
   const [wishTitre, setWishTitre] = useState('')
@@ -109,6 +109,23 @@ export default function Chat() {
   const [convId, setConvId] = useState(isDraft ? null : id)
   const [showMenu, setShowMenu] = useState(false)
   const [reportLoading, setReportLoading] = useState(false)
+  const [showDeleteConv, setShowDeleteConv] = useState(false)
+  const [deletingConv, setDeletingConv] = useState(false)
+
+  async function handleDeleteConv() {
+    if (!convId) return
+    setDeletingConv(true)
+    const { error } = await deleteConversation(convId)
+    setDeletingConv(false)
+    if (error) {
+      toast.error('Impossible de supprimer la conversation')
+      console.error('[chat delete]', error)
+      return
+    }
+    toast.success('Conversation supprimée')
+    setShowDeleteConv(false)
+    navigate(`/messages?tab=${fromTab}`, { replace: true })
+  }
 
   useEffect(() => {
     if (!isDraft) {
@@ -345,6 +362,21 @@ export default function Chat() {
                     </svg>
                     <span className="text-sm font-medium text-[#EF4444] truncate">Signaler</span>
                   </button>
+
+                  <div className="h-px bg-[#F0F0F0]" />
+
+                  <button
+                    disabled={deletingConv}
+                    onClick={() => { setShowMenu(false); setShowDeleteConv(true) }}
+                    className="w-full flex items-center gap-3 px-4 py-3 active:bg-[#FEF2F2] transition-colors text-left disabled:opacity-50"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                      <polyline points="3,6 5,6 21,6"/>
+                      <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                      <path d="M10 11v6M14 11v6"/>
+                    </svg>
+                    <span className="text-sm font-medium text-[#EF4444] truncate">Supprimer la conversation</span>
+                  </button>
                 </motion.div>
               </>
             )}
@@ -517,6 +549,50 @@ export default function Chat() {
           interlocuteurName={interlocuteurName}
           loading={ratingLoading}
         />
+      </AnimatePresence>
+
+      {/* Modal confirmation suppression conversation */}
+      <AnimatePresence>
+        {showDeleteConv && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteConv(false)}
+              className="fixed inset-0 bg-black/40 z-[900]"
+            />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4"
+            >
+              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+              <div className="text-center mb-4">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: '#FEE2E2' }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3,6 5,6 21,6"/>
+                    <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                    <path d="M10 11v6M14 11v6"/>
+                  </svg>
+                </div>
+                <h2 className="text-lg font-bold text-[#1A1A2E]">Supprimer la conversation</h2>
+                <p className="text-sm text-[#8A8A9A] mt-1 max-w-[280px] mx-auto">
+                  Toute la conversation avec {interlocuteurName} et ses messages seront supprimés définitivement. Cette action est irréversible.
+                </p>
+              </div>
+              <button
+                onClick={handleDeleteConv}
+                disabled={deletingConv}
+                className="w-full h-[52px] rounded-full text-white font-bold text-[15px] mb-2 disabled:opacity-50"
+                style={{ background: '#EF4444' }}
+              >
+                {deletingConv ? 'Suppression…' : 'Supprimer définitivement'}
+              </button>
+              <button onClick={() => setShowDeleteConv(false)} className="w-full text-sm text-[#8A8A9A] py-2">
+                Annuler
+              </button>
+            </motion.div>
+          </>
+        )}
       </AnimatePresence>
 
     </div>

@@ -73,6 +73,24 @@ export function useMessages(conversationId = null) {
     if (error) throw error
   }
 
+  /**
+   * Supprime une conversation + tous ses messages (CASCADE en BDD).
+   * Seuls les participants (wisher ou maker) peuvent supprimer.
+   * Le delete est global : supprime pour les deux utilisateurs (pas de soft delete).
+   */
+  async function deleteConversation(convId) {
+    if (!convId) return { error: new Error('convId required') }
+    const { error } = await supabase
+      .from('conversations')
+      .delete()
+      .eq('id', convId)
+    if (!error) {
+      // Update local state pour feedback immédiat
+      setConversations((prev) => prev.filter((c) => c.id !== convId))
+    }
+    return { error }
+  }
+
   async function createConversation(wishId, wisherId) {
     // Cherche si une conversation existe déjà
     const { data: existing } = await supabase
@@ -109,5 +127,6 @@ export function useMessages(conversationId = null) {
     loadMessages,
     sendMessage,
     createConversation,
+    deleteConversation,
   }
 }
