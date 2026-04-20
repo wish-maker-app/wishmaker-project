@@ -38,7 +38,7 @@ export default function CategoryChoice() {
 
   return (
     <div className="h-screen bg-white flex flex-col">
-      <Header title="Nouveau vœu" onBack={() => navigate(-1)} />
+      <Header title="Nouveau vœu" onBack={() => navigate('/wisher')} />
 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
