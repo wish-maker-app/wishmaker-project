@@ -1,20 +1,32 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { requestPushPermission } from '../lib/pushNotifications'
 
+/**
+ * Écran de démarrage avec logo animé.
+ * Redirige immédiatement vers la destination appropriée selon la session + l'état
+ * d'onboarding. Pas de délai pour éviter les unmount/remount si le parent re-render.
+ */
 export default function Splash() {
   const navigate = useNavigate()
+  const hasNavigated = useRef(false)
 
   useEffect(() => {
-    const timer = setTimeout(async () => {
+    if (hasNavigated.current) return
+    hasNavigated.current = true
+
+    ;(async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user) {
           const { data: profile } = await supabase
-            .from('users').select('onboarding_completed, prenom, nom, pseudo, ville').eq('id', session.user.id).single()
-          // Demander la permission push (ne bloque pas la navigation)
+            .from('users')
+            .select('onboarding_completed, prenom, nom, pseudo, ville')
+            .eq('id', session.user.id)
+            .single()
+
           if (profile?.onboarding_completed) {
             requestPushPermission(session.user.id).catch(() => {})
             navigate('/maker', { replace: true })
@@ -30,11 +42,10 @@ export default function Splash() {
           navigate(seen ? '/auth' : '/onboarding/1', { replace: true })
         }
       } catch (err) {
-        console.error('Splash error:', err)
+        console.error('[splash]', err)
         navigate('/onboarding/1', { replace: true })
       }
-    }, 2000)
-    return () => clearTimeout(timer)
+    })()
   }, [navigate])
 
   return (
