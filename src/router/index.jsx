@@ -21,7 +21,8 @@ const ForgotPassword = lazy(() => import('../pages/Auth/ForgotPassword'))
 const NewPassword  = lazy(() => import('../pages/Auth/NewPassword'))
 
 // Setup
-const SelectLanguage    = lazy(() => import('../pages/Setup/SelectLanguage'))
+const SetupProfil       = lazy(() => import('../pages/Setup/Profil'))
+const SetupPseudo       = lazy(() => import('../pages/Setup/Pseudo'))
 const ChooseLocation    = lazy(() => import('../pages/Setup/ChooseLocation'))
 const ChooseLocationMap = lazy(() => import('../pages/Setup/ChooseLocationMap'))
 
@@ -71,10 +72,21 @@ function PageLoader() {
 // Guards
 // ──────────────────────────────────────────────
 
+// Helper: calcule la prochaine étape de setup à effectuer selon les champs renseignés
+function nextSetupStep(profile) {
+  if (!profile) return '/setup/profil'
+  if (!profile.prenom || !profile.nom) return '/setup/profil'
+  if (!profile.pseudo) return '/setup/pseudo'
+  if (!profile.ville)  return '/setup/localisation'
+  return null // tout est OK
+}
+
 function ProtectedRoute() {
   const { user, profile } = useAuthStore()
   if (!user) return <Navigate to="/auth" replace />
-  if (profile && !profile.onboarding_completed) return <Navigate to="/setup/langue" replace />
+  // Onboarding pas terminé → redirige vers le 1er step manquant
+  const missing = nextSetupStep(profile)
+  if (missing && !profile?.onboarding_completed) return <Navigate to={missing} replace />
   return <Outlet />
 }
 
@@ -88,6 +100,11 @@ function SetupRoute() {
 function PublicRoute() {
   const { user, profile } = useAuthStore()
   if (user && profile?.onboarding_completed) return <Navigate to="/maker" replace />
+  // Session active mais setup pas fini → reprendre au bon step
+  if (user && profile) {
+    const missing = nextSetupStep(profile)
+    if (missing) return <Navigate to={missing} replace />
+  }
   return <Outlet />
 }
 
@@ -135,7 +152,8 @@ const router = createBrowserRouter([
     path: '/setup',
     element: <SetupRoute />,
     children: [
-      { path: 'langue',            element: <Suspense fallback={<PageLoader />}><SelectLanguage /></Suspense> },
+      { path: 'profil',            element: <Suspense fallback={<PageLoader />}><SetupProfil /></Suspense> },
+      { path: 'pseudo',            element: <Suspense fallback={<PageLoader />}><SetupPseudo /></Suspense> },
       { path: 'localisation',      element: <Suspense fallback={<PageLoader />}><ChooseLocation /></Suspense> },
       { path: 'localisation-carte', element: <Suspense fallback={<PageLoader />}><ChooseLocationMap /></Suspense> },
     ],

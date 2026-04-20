@@ -10,95 +10,52 @@ import useAuthStore from '../../store/authStore'
 import Header from '../../components/layout/Header'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
-import SuccessModal from '../../components/ui/SuccessModal'
-import { checkContent } from '../../lib/moderation'
 
 const schema = z.object({
-  prenom: z.string().min(2, 'Prénom requis'),
-  nom: z.string().min(2, 'Nom requis'),
-  pseudo: z.string()
-    .min(3, 'Minimum 3 caractères')
-    .max(20, 'Maximum 20 caractères')
-    .regex(/^[a-zA-Z0-9_ ]+$/, 'Lettres, chiffres, espaces et _ uniquement'),
   email: z.string().email('Email invalide'),
   password: z.string().min(8, 'Minimum 8 caractères'),
-  confirm: z.string(),
-}).refine((d) => d.password === d.confirm, {
-  message: 'Les mots de passe ne correspondent pas',
-  path: ['confirm'],
 })
 
 export default function Register() {
   const navigate = useNavigate()
   const location = useLocation()
   const emailFromState = location.state?.email || ''
-  const [showSuccess, setShowSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [typeCompte, setTypeCompte] = useState('particulier')
-  const [pseudoModerationError, setPseudoModerationError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { email: emailFromState },
   })
 
+  const password = watch('password') || ''
+  const pwHasLength = password.length >= 8
+  const pwHasDigit = /\d/.test(password)
+
   async function onSubmit(data) {
     setLoading(true)
     try {
-      // Vérification modération du pseudo
-      const pseudoCheck = await checkContent(data.pseudo)
-      if (!pseudoCheck.isClean) {
-        setPseudoModerationError('Ce pseudo n\'est pas autorisé.')
-        setLoading(false)
-        return
-      }
-      setPseudoModerationError('')
-
-      // Crée le compte — le trigger SQL handle_new_user() crée le profil dans public.users
-      const { data: authData, error: signUpErr } = await supabase.auth.signUp({
+      const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
-        options: {
-          data: { prenom: data.prenom, nom: data.nom, pseudo: data.pseudo, type_compte: typeCompte },
-        },
       })
-      if (signUpErr) throw signUpErr
+      if (error) throw error
 
-      const user = authData.user
-      if (!user) throw new Error('Erreur lors de la création du compte')
-
-      // Session active → on stocke le user + profil et on continue
+      // Le trigger SQL handle_new_user() crée le profil minimal (email uniquement)
+      // Les champs prenom/nom/pseudo seront renseignés dans /setup/*
       if (authData.session) {
-        useAuthStore.getState().setUser(user)
-        // UPSERT (plus robuste que UPDATE) — au cas où le trigger n'a pas encore tourné
-        // ou si un des champs n'a pas été copié correctement depuis les metadata
-        const { data: profile, error: upsertErr } = await supabase
-          .from('users')
-          .upsert({
-            id: user.id,
-            email: data.email,
-            prenom: data.prenom,
-            nom: data.nom,
-            pseudo: data.pseudo,
-            type_compte: typeCompte,
-          }, { onConflict: 'id' })
-          .select()
-          .single()
-        if (upsertErr) {
-          console.error('[register] profile upsert error:', upsertErr)
-          toast.error('Profil créé mais erreur de sauvegarde : ' + upsertErr.message)
-        } else if (profile) {
-          useAuthStore.getState().setProfile(profile)
-        }
+        useAuthStore.getState().setUser(authData.user)
+        const { data: profile } = await supabase
+          .from('users').select('*').eq('id', authData.user.id).single()
+        if (profile) useAuthStore.getState().setProfile(profile)
       }
 
-      setShowSuccess(true)
+      // Redirection vers le tunnel setup (qui routera intelligemment selon ce qui manque)
+      navigate('/setup/profil', { replace: true })
     } catch (err) {
-      console.error('[register] signup error:', err)
+      console.error('[register] error:', err)
       toast.error(err.message || 'Erreur lors de la création du compte')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   return (
@@ -110,54 +67,56 @@ export default function Register() {
         className="flex-1 flex flex-col px-6 pt-2 gap-6 pb-10"
       >
         <div className="flex flex-col gap-1">
-          <h1 className="text-[#1A1A2E] font-bold text-2xl">Complétez votre compte</h1>
-          <p className="text-[#8A8A9A] text-sm">Vous êtes à 2 pas de devenir un génie</p>
+          <h1 className="text-[#1A1A2E] font-bold text-2xl">Créer ton compte</h1>
+          <p className="text-[#8A8A9A] text-sm">On commence par le plus simple : ton email</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <Input label="Prénom" placeholder="Votre prénom"
-            {...register('prenom')} error={errors.prenom?.message} />
-          <Input label="Nom" placeholder="Votre nom"
-            {...register('nom')} error={errors.nom?.message} />
-          <Input label="Pseudo" placeholder="Votre pseudo (ex: wish_maker42)"
-            {...register('pseudo')} error={pseudoModerationError || errors.pseudo?.message} />
-
-          {/* Type de compte */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-[#1A1A2E]">Type de compte</label>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setTypeCompte('particulier')}
-                className="flex-1 py-3 rounded-full text-sm font-semibold transition-all"
-                style={typeCompte === 'particulier'
-                  ? { background: 'linear-gradient(135deg, #5B6BF5, #9B59F5)', color: '#fff' }
-                  : { border: '1.5px solid #D1D5DB', color: '#8A8A9A', background: 'transparent' }
-                }
-              >
-                Particulier
-              </button>
-              <button
-                type="button"
-                onClick={() => setTypeCompte('pro')}
-                className="flex-1 py-3 rounded-full text-sm font-semibold transition-all"
-                style={typeCompte === 'pro'
-                  ? { background: 'linear-gradient(135deg, #5B6BF5, #9B59F5)', color: '#fff' }
-                  : { border: '1.5px solid #D1D5DB', color: '#8A8A9A', background: 'transparent' }
-                }
-              >
-                Professionnel
-              </button>
-            </div>
-          </div>
-
-          <Input label="E-mail" type="email" placeholder="Email"
+          <Input label="E-mail" type="email" placeholder="ton@email.com"
             disabled={!!emailFromState}
             {...register('email')} error={errors.email?.message} />
-          <Input label="Mot de passe" type="password" placeholder="Minimum 8 caractères"
-            {...register('password')} error={errors.password?.message} />
-          <Input label="Confirmez le mot de passe" type="password" placeholder="Répétez le mot de passe"
-            {...register('confirm')} error={errors.confirm?.message} />
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-[#1A1A2E]">Mot de passe</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Minimum 8 caractères"
+                {...register('password')}
+                className="w-full h-12 bg-[#F7F8FC] rounded-xl px-4 pr-12 text-sm text-[#1A1A2E] outline-none focus:ring-2 focus:ring-[#5B6BF5]/20"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-[#8A8A9A]"
+                aria-label={showPassword ? 'Masquer' : 'Afficher'}
+              >
+                {showPassword ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            {errors.password?.message && (
+              <p className="text-xs text-red-500">{errors.password.message}</p>
+            )}
+            {/* Indicateurs de force */}
+            <div className="flex items-center gap-4 mt-1">
+              <span className={`flex items-center gap-1 text-[11px] ${pwHasLength ? 'text-[#059669]' : 'text-[#C0C0C8]'}`}>
+                {pwHasLength ? '✓' : '○'} 8+ caractères
+              </span>
+              <span className={`flex items-center gap-1 text-[11px] ${pwHasDigit ? 'text-[#059669]' : 'text-[#C0C0C8]'}`}>
+                {pwHasDigit ? '✓' : '○'} 1 chiffre
+              </span>
+            </div>
+          </div>
 
           <div className="pt-2">
             <Button type="submit" loading={loading}>Continuer</Button>
@@ -172,12 +131,6 @@ export default function Register() {
           </button>
         </p>
       </motion.div>
-
-      <SuccessModal
-        isOpen={showSuccess}
-        variant="register"
-        onContinue={() => navigate('/setup/langue', { replace: true })}
-      />
     </div>
   )
 }

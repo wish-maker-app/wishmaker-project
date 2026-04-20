@@ -207,7 +207,7 @@ export default function ChooseLocation() {
 
   return (
     <div className="h-screen bg-white flex flex-col">
-      <Header title={t('setup.localisation.titre')} onBack={() => navigate('/setup/langue')} />
+      <Header title={t('setup.localisation.titre')} onBack={() => navigate('/setup/pseudo')} />
 
       <p className="px-5 pb-3 text-xs text-[#8A8A9A]">
         {t('setup.localisation.sous_titre')}

@@ -13,12 +13,18 @@ export default function Splash() {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user) {
           const { data: profile } = await supabase
-            .from('users').select('onboarding_completed').eq('id', session.user.id).single()
+            .from('users').select('onboarding_completed, prenom, nom, pseudo, ville').eq('id', session.user.id).single()
           // Demander la permission push (ne bloque pas la navigation)
           if (profile?.onboarding_completed) {
             requestPushPermission(session.user.id).catch(() => {})
+            navigate('/maker', { replace: true })
+          } else {
+            // Smart redirect : reprendre au 1er step manquant du setup
+            let dest = '/setup/profil'
+            if (profile?.prenom && profile?.nom && !profile?.pseudo) dest = '/setup/pseudo'
+            else if (profile?.prenom && profile?.nom && profile?.pseudo && !profile?.ville) dest = '/setup/localisation'
+            navigate(dest, { replace: true })
           }
-          navigate(profile?.onboarding_completed ? '/maker' : '/setup/langue', { replace: true })
         } else {
           const seen = localStorage.getItem('onboarding_seen')
           navigate(seen ? '/auth' : '/onboarding/1', { replace: true })

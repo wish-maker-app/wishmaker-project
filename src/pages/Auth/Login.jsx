@@ -135,7 +135,13 @@ export default function Login() {
 
       <SuccessModal isOpen={showSuccess} variant="login" onContinue={() => {
         const profile = useAuthStore.getState().profile
-        const dest = profile?.onboarding_completed ? '/maker' : '/setup/langue'
+        // Smart redirect : reprend au 1er step manquant
+        let dest = '/maker'
+        if (!profile?.onboarding_completed) {
+          if (!profile?.prenom || !profile?.nom) dest = '/setup/profil'
+          else if (!profile?.pseudo) dest = '/setup/pseudo'
+          else if (!profile?.ville) dest = '/setup/localisation'
+        }
         navigate(dest, { replace: true })
       }} />
     </div>
