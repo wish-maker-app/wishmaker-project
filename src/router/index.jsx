@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import useAuthStore from '../store/authStore'
+import RootLayout from '../components/layout/RootLayout'
 
 // Pages — chargement lazy pour les performances
 import { lazy, Suspense } from 'react'
@@ -95,6 +96,9 @@ function PublicRoute() {
 // ──────────────────────────────────────────────
 const router = createBrowserRouter([
   {
+    element: <RootLayout />,
+    children: [
+  {
     path: '/',
     element: <Navigate to="/splash" replace />,
   },
@@ -178,6 +182,8 @@ const router = createBrowserRouter([
 
   // 404 → splash
   { path: '*', element: <Navigate to="/splash" replace /> },
+    ],
+  },
 ])
 
 export default router
