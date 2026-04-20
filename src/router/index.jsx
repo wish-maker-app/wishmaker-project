@@ -26,6 +26,7 @@ const ChooseLocationMap = lazy(() => import('../pages/Setup/ChooseLocationMap'))
 
 // Wisher
 const WisherHome    = lazy(() => import('../pages/Wisher/Home'))
+const CreateCategory = lazy(() => import('../pages/Wisher/CreateWish/CategoryChoice'))
 const CreateStep1   = lazy(() => import('../pages/Wisher/CreateWish/Step1'))
 const CreateStep2   = lazy(() => import('../pages/Wisher/CreateWish/Step2'))
 const CreateStep3   = lazy(() => import('../pages/Wisher/CreateWish/Step3'))
@@ -51,6 +52,7 @@ const Profile = lazy(() => import('../pages/Profile/index'))
 const EditProfile = lazy(() => import('../pages/Profile/EditProfile'))
 const Reviews = lazy(() => import('../pages/Profile/Reviews'))
 const Favorites = lazy(() => import('../pages/Profile/Favorites'))
+const ProTags = lazy(() => import('../pages/Profile/ProTags'))
 
 // Admin
 const Admin = lazy(() => import('../pages/Admin/index'))
@@ -141,6 +143,7 @@ const router = createBrowserRouter([
     children: [
       // Wisher
       { path: '/wisher',               element: <Suspense fallback={<PageLoader />}><WisherHome /></Suspense> },
+      { path: '/wisher/create',        element: <Suspense fallback={<PageLoader />}><CreateCategory /></Suspense> },
       { path: '/wisher/create/1',      element: <Suspense fallback={<PageLoader />}><CreateStep1 /></Suspense> },
       { path: '/wisher/create/2',      element: <Suspense fallback={<PageLoader />}><CreateStep2 /></Suspense> },
       { path: '/wisher/create/3',      element: <Suspense fallback={<PageLoader />}><CreateStep3 /></Suspense> },
@@ -166,6 +169,7 @@ const router = createBrowserRouter([
       { path: '/profile/edit',        element: <Suspense fallback={<PageLoader />}><EditProfile /></Suspense> },
       { path: '/profile/reviews',     element: <Suspense fallback={<PageLoader />}><Reviews /></Suspense> },
       { path: '/profile/favorites',   element: <Suspense fallback={<PageLoader />}><Favorites /></Suspense> },
+      { path: '/profile/pro-tags',    element: <Suspense fallback={<PageLoader />}><ProTags /></Suspense> },
 
       // Admin
       { path: '/admin',               element: <Suspense fallback={<PageLoader />}><Admin /></Suspense> },
