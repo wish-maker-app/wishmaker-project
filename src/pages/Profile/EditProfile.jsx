@@ -158,21 +158,27 @@ export default function EditProfile() {
   async function handleAvatarPick(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 5 * 1024 * 1024) { toast.error('Max 5 MB'); return }
+    if (file.size > 10 * 1024 * 1024) { toast.error('Max 10 MB'); return }
 
     setPhotoModal(false)
     setUploading(true)
     try {
-      const ext = file.name.split('.').pop()
-      const url = await uploadImage(file, `${profile.id}/avatar.${ext}`)
+      // Compression côté client : photo iPhone 4 MB → ~50-100 KB (avatar)
+      const { compressImage } = await import('../../lib/imageCompression')
+      const compressed = await compressImage(file, {
+        maxWidth: 400, maxHeight: 400, quality: 0.85,
+      })
+
+      // Nom stable quelle que soit l'extension source (on convertit toujours en jpg)
+      const url = await uploadImage(compressed, `${profile.id}/avatar.jpg`)
 
       await supabase.from('users').update({ avatar_url: url }).eq('id', profile.id)
       setProfile({ ...profile, avatar_url: url })
       setAvatarPreview(url)
       toast.success('Photo mise à jour !')
     } catch (err) {
-      console.error(err)
-      toast.error('Erreur lors de l\'upload')
+      console.error('[avatar upload] error:', err)
+      toast.error(err?.message || 'Erreur lors de l\'upload')
     } finally { setUploading(false) }
   }
 

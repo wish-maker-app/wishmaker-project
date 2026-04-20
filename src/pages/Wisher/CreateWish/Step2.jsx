@@ -43,13 +43,26 @@ export default function Step2() {
   const { images, setImages } = useWishFormStore()
   const inputRef = useRef()
 
-  function handleFiles(e) {
+  async function handleFiles(e) {
     const files = Array.from(e.target.files)
     if (images.length + files.length > 5) {
       toast.error('Maximum 5 photos')
       return
     }
-    const newImages = files.map((file, i) => ({
+    // Compression côté client : photo iPhone 4 MB → ~200-300 KB
+    // Gain ×10-20 sur l'upload + perf affichage
+    const { compressImage } = await import('../../../lib/imageCompression')
+    const compressedFiles = await Promise.all(
+      files.map(async (file, i) => {
+        try {
+          return await compressImage(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 })
+        } catch (err) {
+          console.error('[step2] compression failed, using original:', err)
+          return file
+        }
+      })
+    )
+    const newImages = compressedFiles.map((file, i) => ({
       id: `${Date.now()}-${i}`,
       file,
       preview: URL.createObjectURL(file),
