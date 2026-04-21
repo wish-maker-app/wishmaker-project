@@ -55,10 +55,10 @@ function FavoriteCard({ wish, onClick, userLat, userLng, index }) {
         ) : (
           <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }} />
         )}
-        {/* Pastille avatar + pseudo */}
+        {/* Pastille avatar + prénom */}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full pr-2.5 pl-0.5 py-0.5">
           <SmallAvatar user={wish.wisher} size={24} />
-          <span className="text-white text-[11px] font-medium">{wish.wisher?.pseudo || wish.wisher?.prenom}</span>
+          <span className="text-white text-[11px] font-medium">{wish.wisher?.prenom || wish.wisher?.pseudo}</span>
         </div>
         {/* Cœur toujours actif sur cette page */}
         <div className="absolute top-2 right-2">

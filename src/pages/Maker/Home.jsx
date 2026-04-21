@@ -147,10 +147,10 @@ function WishGridCard({ wish, onClick, userLat, userLng }) {
         ) : (
           <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }} />
         )}
-        {/* Avatar + pseudo en overlay */}
+        {/* Avatar + prénom en overlay */}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full pr-2.5 pl-0.5 py-0.5">
           <SmallAvatar user={wish.wisher} size={24} />
-          <span className="text-white text-[11px] font-medium">{wish.wisher.pseudo || wish.wisher.prenom}</span>
+          <span className="text-white text-[11px] font-medium">{wish.wisher.prenom || wish.wisher.pseudo}</span>
         </div>
         {/* Bouton favoris en overlay top-right */}
         <div className="absolute top-2 right-2">
@@ -203,7 +203,7 @@ function SponsoredCard({ wish, onClick, userLat, userLng }) {
         <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/30 backdrop-blur-sm rounded-full pr-2 pl-0.5 py-0.5 max-w-[calc(100%-12px)]">
           <SmallAvatar user={wish.wisher} size={18} />
           <span className="text-white text-[10px] font-medium truncate">
-            {wish.wisher.pseudo || wish.wisher.prenom}
+            {wish.wisher.prenom || wish.wisher.pseudo}
           </span>
         </div>
       </div>
@@ -265,10 +265,10 @@ function WishPreviewCard({ wish, userLat, userLng, onViewMore, onMessage }) {
         </div>
 
         <div>
-          {/* Avatar + pseudo */}
+          {/* Avatar + prénom */}
           <div className="flex items-center gap-1.5 mb-1.5">
             <SmallAvatar user={wish.wisher} size={20} />
-            <span className="text-xs font-semibold text-[#1A1A2E]">{wish.wisher.pseudo || wish.wisher.prenom}</span>
+            <span className="text-xs font-semibold text-[#1A1A2E]">{wish.wisher.prenom || wish.wisher.pseudo}</span>
           </div>
 
           {/* Distance */}
@@ -351,7 +351,7 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
         {/* Avatar + prénom en overlay (même pastille que la vue Liste) */}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full pr-2.5 pl-0.5 py-0.5">
           <SmallAvatar user={wish.wisher} size={24} />
-          <span className="text-white text-[11px] font-medium">{wish.wisher.pseudo || wish.wisher.prenom}</span>
+          <span className="text-white text-[11px] font-medium">{wish.wisher.prenom || wish.wisher.pseudo}</span>
         </div>
         {wish.is_urgent && (
           <span className="absolute top-3 right-3 text-[11px] font-bold px-2.5 py-1 rounded-full"
