@@ -32,13 +32,11 @@ const DEBUG = true
 
 /**
  * Charge le modèle NSFW.js une seule fois.
- * Le modèle est servi via CDN jsDelivr pour éviter d'héberger 4MB.
+ * Sans argument, nsfwjs utilise le modèle mobilenet_v2 bundlé par Vite.
  */
 async function loadModel() {
   if (!modelPromise) {
-    modelPromise = import('nsfwjs').then((nsfwjs) =>
-      nsfwjs.load('https://cdn.jsdelivr.net/npm/nsfwjs@2.4.2/dist/model/')
-    )
+    modelPromise = import('nsfwjs').then((nsfwjs) => nsfwjs.load())
   }
   return modelPromise
 }
