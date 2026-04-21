@@ -190,7 +190,7 @@ function SponsoredCard({ wish, onClick, userLat, userLng }) {
   return (
     <div
       onClick={onClick}
-      className="flex-shrink-0 w-[300px] bg-white rounded-2xl overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.08)] cursor-pointer flex"
+      className="flex-shrink-0 w-[300px] h-[140px] bg-white rounded-2xl overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.08)] cursor-pointer flex"
     >
       {/* Image côté gauche — avec capsule avatar/nom en overlay (cohérence DA) */}
       <div className="relative w-[120px] flex-shrink-0 bg-[#F0F0F5]">
@@ -208,13 +208,13 @@ function SponsoredCard({ wish, onClick, userLat, userLng }) {
         </div>
       </div>
       {/* Contenu droite */}
-      <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
+      <div className="flex-1 p-2.5 flex flex-col justify-between min-w-0">
         <div>
-          <h3 className="font-bold text-[#1A1A2E] text-sm leading-snug mb-1 line-clamp-2">{wish.titre}</h3>
-          <p className="text-[#8A8A9A] text-[11px] leading-relaxed line-clamp-2 mb-2">{wish.description}</p>
+          <h3 className="font-bold text-[#1A1A2E] text-sm leading-snug line-clamp-1">{wish.titre}</h3>
+          <p className="text-[#8A8A9A] text-[11px] leading-snug line-clamp-1 mt-0.5">{wish.description}</p>
         </div>
         <div>
-          <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold mb-2">
+          <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold mb-1.5">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#5B6BF5"/>
               <circle cx="12" cy="9" r="2.5" fill="white"/>
@@ -222,7 +222,7 @@ function SponsoredCard({ wish, onClick, userLat, userLng }) {
             {dist}
           </div>
           <button
-            className="w-full h-8 rounded-full text-xs font-bold text-white"
+            className="w-full h-7 rounded-full text-[11px] font-bold text-white"
             style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
           >
             Voir plus
