@@ -192,25 +192,34 @@ function SponsoredCard({ wish, onClick, userLat, userLng }) {
       onClick={onClick}
       className="flex-shrink-0 w-[300px] bg-white rounded-2xl overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.08)] cursor-pointer flex"
     >
-      {/* Image côté gauche */}
-      <div className="w-[120px] flex-shrink-0 bg-[#F0F0F5]">
+      {/* Image côté gauche — avec capsule avatar/nom en overlay (cohérence DA) */}
+      <div className="relative w-[120px] flex-shrink-0 bg-[#F0F0F5]">
         {coverUrl ? (
           <img src={coverUrl} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }} />
         )}
+        {/* Capsule avatar + pseudo (identique aux autres cards) */}
+        <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/30 backdrop-blur-sm rounded-full pr-2 pl-0.5 py-0.5 max-w-[calc(100%-12px)]">
+          <SmallAvatar user={wish.wisher} size={18} />
+          <span className="text-white text-[10px] font-medium truncate">
+            {wish.wisher.pseudo || wish.wisher.prenom}
+          </span>
+        </div>
+        {wish.is_urgent && (
+          <span className="absolute bottom-1.5 left-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full"
+            style={{ background: '#FFF4E0', color: '#F59E0B' }}>
+            URGENT
+          </span>
+        )}
       </div>
       {/* Contenu droite */}
-      <div className="flex-1 p-3 flex flex-col justify-between">
+      <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
         <div>
-          <h3 className="font-bold text-[#1A1A2E] text-sm leading-snug mb-1">{wish.titre}</h3>
-          <p className="text-[#8A8A9A] text-[11px] leading-relaxed line-clamp-3 mb-2">{wish.description}</p>
+          <h3 className="font-bold text-[#1A1A2E] text-sm leading-snug mb-1 line-clamp-2">{wish.titre}</h3>
+          <p className="text-[#8A8A9A] text-[11px] leading-relaxed line-clamp-2 mb-2">{wish.description}</p>
         </div>
         <div>
-          <div className="flex items-center gap-1.5 mb-2">
-            <SmallAvatar user={wish.wisher} size={20} />
-            <span className="text-xs font-semibold text-[#1A1A2E]">{wish.wisher.prenom}</span>
-          </div>
           <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold mb-2">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#5B6BF5"/>
