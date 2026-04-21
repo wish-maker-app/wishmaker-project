@@ -107,6 +107,15 @@ function InnerForm({ clientSecret, amount, onSuccess, onCancel, submitLabel }) {
     if (!stripe || !elements) return
 
     setProcessing(true)
+
+    // Stripe exige elements.submit() AVANT toute action async + confirmPayment()
+    const submitResult = await elements.submit()
+    if (submitResult.error) {
+      setProcessing(false)
+      toast.error(submitResult.error.message || 'Informations de carte invalides')
+      return
+    }
+
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       clientSecret,
