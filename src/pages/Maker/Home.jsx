@@ -206,12 +206,6 @@ function SponsoredCard({ wish, onClick, userLat, userLng }) {
             {wish.wisher.pseudo || wish.wisher.prenom}
           </span>
         </div>
-        {wish.is_urgent && (
-          <span className="absolute bottom-1.5 left-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full"
-            style={{ background: '#FFF4E0', color: '#F59E0B' }}>
-            URGENT
-          </span>
-        )}
       </div>
       {/* Contenu droite */}
       <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
