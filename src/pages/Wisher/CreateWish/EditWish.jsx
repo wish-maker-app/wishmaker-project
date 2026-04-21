@@ -69,12 +69,22 @@ export default function EditWish() {
   ]
   const totalImages = allImages.length
 
-  function handleFiles(e) {
+  async function handleFiles(e) {
     const files = Array.from(e.target.files)
     if (totalImages + files.length > 5) {
       toast.error('Maximum 5 photos')
       return
     }
+
+    // Modération NSFW avant acceptation
+    const { moderateImages } = await import('../../../lib/moderationImage')
+    const modResult = await moderateImages(files)
+    if (!modResult.isClean) {
+      toast.error(modResult.reason || 'Une image ne respecte pas nos règles')
+      e.target.value = ''
+      return
+    }
+
     const imgs = files.map((file, i) => ({
       id: `new-${Date.now()}-${i}`,
       file,

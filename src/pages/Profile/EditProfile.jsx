@@ -163,6 +163,15 @@ export default function EditProfile() {
     setPhotoModal(false)
     setUploading(true)
     try {
+      // Modération NSFW avant upload
+      const { moderateImage } = await import('../../lib/moderationImage')
+      const mod = await moderateImage(file)
+      if (!mod.isClean) {
+        toast.error(mod.reason || 'Cette image ne respecte pas nos règles')
+        setUploading(false)
+        return
+      }
+
       // Compression côté client : photo iPhone 4 MB → ~50-100 KB (avatar)
       const { compressImage } = await import('../../lib/imageCompression')
       const compressed = await compressImage(file, {

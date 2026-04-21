@@ -224,6 +224,16 @@ export default function Chat() {
     if (!convData) return
     setRatingLoading(true)
     try {
+      // Modération du commentaire avant envoi
+      if (commentaire && commentaire.trim()) {
+        const mod = await checkContent(commentaire)
+        if (!mod.isClean) {
+          toast.error('Votre commentaire contient des mots non autorisés')
+          setRatingLoading(false)
+          return
+        }
+      }
+
       const wishId = convData.wish_id || convData.wish?.id
       const toUser = isWisher ? convData.maker_id : convData.wisher_id
       await submitRating({ wishId, fromUser: userId, toUser, note, commentaire })

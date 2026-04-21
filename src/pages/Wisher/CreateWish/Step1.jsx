@@ -77,8 +77,17 @@ export default function Step1() {
 
   const hasViolation = titreViolation || descViolation
 
-  function onSubmit(data) {
-    if (hasViolation) return
+  async function onSubmit(data) {
+    // Double-check synchrone à la soumission (évite race condition avec debounce 300ms)
+    const [titreCheck, descCheck] = await Promise.all([
+      checkContent(data.titre),
+      checkContent(data.description),
+    ])
+    if (!titreCheck.isClean || !descCheck.isClean) {
+      setTitreViolation(!titreCheck.isClean)
+      setDescViolation(!descCheck.isClean)
+      return
+    }
     setStep1(data.titre, data.description)
     navigate('/wisher/create/2')
   }

@@ -53,6 +53,15 @@ export default function SetupProfil() {
     if (!file || !profile) return
     setUploading(true)
     try {
+      // Modération NSFW avant upload
+      const { moderateImage } = await import('../../lib/moderationImage')
+      const mod = await moderateImage(file)
+      if (!mod.isClean) {
+        toast.error(mod.reason || 'Cette image ne respecte pas nos règles')
+        setUploading(false)
+        return
+      }
+
       const { compressImage } = await import('../../lib/imageCompression')
       const compressed = await compressImage(file, { maxWidth: 400, maxHeight: 400, quality: 0.85 })
       const { error: upErr } = await supabase.storage

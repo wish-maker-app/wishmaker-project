@@ -12,10 +12,13 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@supabase/supabase-js": "^2.99.2",
+    "@tensorflow/tfjs": "^4.22.0",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^12.38.0",
     "i18next": "^25.8.18",
     "leaflet": "^1.9.4",
+    "leo-profanity": "^1.9.0",
+    "nsfwjs": "^4.3.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-hook-form": "^7.71.2",

@@ -49,6 +49,15 @@ export default function Step2() {
       toast.error('Maximum 5 photos')
       return
     }
+
+    // Modération NSFW avant compression (bloque tout de suite si illicite)
+    const { moderateImages } = await import('../../../lib/moderationImage')
+    const modResult = await moderateImages(files)
+    if (!modResult.isClean) {
+      toast.error(modResult.reason || 'Une image ne respecte pas nos règles')
+      return
+    }
+
     // Compression côté client : photo iPhone 4 MB → ~200-300 KB
     // Gain ×10-20 sur l'upload + perf affichage
     const { compressImage } = await import('../../../lib/imageCompression')
