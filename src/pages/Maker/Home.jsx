@@ -190,7 +190,7 @@ function SponsoredCard({ wish, onClick, userLat, userLng }) {
   return (
     <div
       onClick={onClick}
-      className="flex-shrink-0 w-[300px] h-[140px] bg-white rounded-2xl overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.08)] cursor-pointer flex"
+      className="flex-shrink-0 w-[300px] h-[160px] bg-white rounded-2xl overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.08)] cursor-pointer flex"
     >
       {/* Image côté gauche — avec capsule avatar/nom en overlay (cohérence DA) */}
       <div className="relative w-[120px] flex-shrink-0 bg-[#F0F0F5]">
