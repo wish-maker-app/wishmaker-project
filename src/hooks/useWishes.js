@@ -24,6 +24,7 @@ export function useWishes() {
       .from('wishes')
       .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
       .eq('wisher_id', user.id)
+      .neq('statut', 'pending_payment') // cache les wishes en attente de paiement
       .order('created_at', { ascending: false })
 
     if (statut) query = query.eq('statut', statut)
@@ -162,11 +163,42 @@ export function useWishes() {
   }
 
   async function markWishRealized(wishId) {
+    // 1. Passer le wish en "realise"
     const { error } = await supabase
       .from('wishes')
       .update({ statut: 'realise' })
       .eq('id', wishId)
     if (error) throw error
+
+    // 2. Si paiement Stripe en pré-auth : capturer (débit effectif de la carte)
+    const { data: wish } = await supabase
+      .from('wishes')
+      .select('payment_intent_id, payment_status')
+      .eq('id', wishId)
+      .single()
+
+    if (wish?.payment_intent_id && wish.payment_status === 'authorized') {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        const res = await fetch(`${supabaseUrl}/functions/v1/capture-payment`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ wish_id: wishId }),
+        })
+        if (!res.ok) {
+          const err = await res.json()
+          console.error('[capture-payment] Échec capture:', err)
+          // On ne throw pas : le wish est déjà marqué réalisé, la capture est réconciliée via webhook plus tard
+        }
+      } catch (err) {
+        console.error('[capture-payment]', err)
+      }
+    }
   }
 
   async function submitRating({ wishId, fromUser, toUser, note, commentaire }) {
