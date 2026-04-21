@@ -8,6 +8,8 @@ import { useWishes } from '../../../hooks/useWishes'
 import useAuthStore from '../../../store/authStore'
 import { checkContent } from '../../../lib/moderation'
 import { formatLocation } from '../../../lib/geo'
+import { supabase } from '../../../lib/supabase'
+import PaymentForm from '../../../components/ui/PaymentForm'
 
 const HERO_H = 200
 
@@ -32,6 +34,8 @@ export default function Recap() {
   const [bonProcedeText, setBonProcedeText] = useState(description_bon_procede || '')
   const [isUrgent, setIsUrgent] = useState(false)
   const [showUrgentModal, setShowUrgentModal] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [pendingWish, setPendingWish] = useState(null) // wish créé en statut pending_payment
 
   const cover = images.find((img) => img.is_cover) || images[0]
   const initials = profile ? `${profile.prenom?.[0] || ''}${profile.nom?.[0] || ''}` : '?'
@@ -60,12 +64,66 @@ export default function Recap() {
   async function handlePublish() {
     const valid = await validateFields()
     if (!valid) return
-    // Si urgent activé, montrer le modal de paiement d'abord
+
+    // Si récompense en argent → créer le wish en pending_payment + ouvrir paiement Stripe
+    if (recompenseType === 'argent') {
+      const montantNum = parseFloat(montant)
+      if (!montantNum || montantNum < 1) {
+        setError('Montant invalide (minimum 1€)')
+        return
+      }
+      await startPaymentFlow(montantNum, isUrgent)
+      return
+    }
+
+    // Sinon (bon procédé) → publication directe
     if (isUrgent) {
       setShowUrgentModal(true)
       return
     }
     await doPublish(false)
+  }
+
+  async function startPaymentFlow(montantEur, urgent) {
+    setRecompense(recompenseType, montantEur, bonProcedeText)
+    try {
+      const wish = await createWish({
+        titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, images,
+        category_id, tag_ids,
+        type_recompense: 'argent',
+        montant_recompense: montantEur,
+        is_urgent: urgent,
+        statut: 'pending_payment', // invisible tant que non payé
+      })
+      setPendingWish(wish)
+      setShowPaymentModal(true)
+    } catch (err) {
+      setError(err.message || 'Erreur lors de la création du vœu')
+    }
+  }
+
+  async function handlePaymentSuccess(paymentIntent) {
+    // Passer le wish de pending_payment à en_attente (visible pour les makers)
+    await supabase.from('wishes').update({
+      statut: 'en_attente',
+      payment_status: 'authorized',
+    }).eq('id', pendingWish.id)
+
+    toast.success('💳 Paiement autorisé — votre vœu est publié !')
+    reset()
+    setShowPaymentModal(false)
+    setPendingWish(null)
+    navigate('/wisher/create/success')
+  }
+
+  async function handlePaymentCancel() {
+    // Supprimer le wish draft (et les images + tags via CASCADE)
+    if (pendingWish?.id) {
+      await supabase.from('wishes').delete().eq('id', pendingWish.id)
+    }
+    setShowPaymentModal(false)
+    setPendingWish(null)
+    toast('Paiement annulé, vœu non publié.', { icon: 'ℹ️' })
   }
 
   async function doPublish(urgent) {
@@ -347,7 +405,47 @@ export default function Recap() {
         </div>
       </div>
 
-      {/* Modal paiement urgent */}
+      {/* Modal paiement Stripe (récompense argent) */}
+      <AnimatePresence>
+        {showPaymentModal && pendingWish && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-[900]"
+            />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+              <div className="text-center mb-5">
+                <span className="text-3xl mb-2 block">💳</span>
+                <h2 className="text-lg font-bold text-[#1A1A2E]">Paiement sécurisé</h2>
+                <p className="text-sm text-[#8A8A9A] mt-1">
+                  Récompense de {parseFloat(montant).toFixed(2).replace('.', ',')}€ — pré-autorisée sur votre carte, débitée seulement à la réalisation du vœu.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-[#F7F8FC] p-4 mb-5 text-xs text-[#8A8A9A] leading-relaxed">
+                <p className="mb-1">• <strong className="text-[#1A1A2E]">Pré-autorisation</strong> : le montant est gelé sur votre carte, pas débité.</p>
+                <p className="mb-1">• <strong className="text-[#1A1A2E]">Débit</strong> : uniquement quand vous validez la réalisation du vœu.</p>
+                <p>• <strong className="text-[#1A1A2E]">Annulation</strong> : aucun frais si personne ne prend le vœu.</p>
+              </div>
+              <PaymentForm
+                type="wish_payment"
+                amount_cents={Math.round(parseFloat(montant) * 100)}
+                wish_id={pendingWish.id}
+                metadata={{ is_urgent: isUrgent ? '1' : '0' }}
+                onSuccess={handlePaymentSuccess}
+                onCancel={handlePaymentCancel}
+                submitLabel={`Pré-autoriser ${parseFloat(montant).toFixed(2).replace('.', ',')}€`}
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Modal paiement urgent (bon procédé + urgent) */}
       <AnimatePresence>
         {showUrgentModal && (
           <>
