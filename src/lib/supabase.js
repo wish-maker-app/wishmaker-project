@@ -12,5 +12,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    // Bypass le Web Locks API de Supabase qui peut hang sur refresh (F5)
+    // et laisser getSession()/refreshSession() bloqués indéfiniment.
+    // Sans cette option, les pages restent vides après F5.
+    // https://github.com/supabase/auth-js/issues/768
+    lock: async (_name, _acquireTimeout, fn) => fn(),
   },
 })
