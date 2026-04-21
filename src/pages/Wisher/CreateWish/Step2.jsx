@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,7 @@ import Header from '../../../components/layout/Header'
 import Button from '../../../components/ui/Button'
 import CategoryBadge from '../../../components/ui/CategoryBadge'
 import useWishFormStore from '../../../store/wishFormStore'
+import { prewarmModerationModel } from '../../../lib/moderationImage'
 
 function StepProgress({ current, total = 4 }) {
   return (
@@ -42,6 +43,9 @@ export default function Step2() {
   const { t } = useTranslation()
   const { images, setImages } = useWishFormStore()
   const inputRef = useRef()
+
+  // Prewarm le modèle NSFW.js dès que l'user arrive sur Step2 → 1er upload instantané
+  useEffect(() => { prewarmModerationModel() }, [])
 
   async function handleFiles(e) {
     const files = Array.from(e.target.files)

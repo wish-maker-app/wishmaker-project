@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -6,6 +6,7 @@ import Header from '../../components/layout/Header'
 import Button from '../../components/ui/Button'
 import useAuthStore from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
+import { prewarmModerationModel } from '../../lib/moderationImage'
 
 // ── Modal changement photo ──
 function PhotoModal({ open, onClose, onPickGallery, onDelete, hasPhoto }) {
@@ -103,6 +104,9 @@ export default function EditProfile() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [photoModal, setPhotoModal] = useState(false)
+
+  // Prewarm modèle NSFW.js
+  useEffect(() => { prewarmModerationModel() }, [])
 
   const [avatarPreview, setAvatarPreview] = useState(profile?.avatar_url || null)
 

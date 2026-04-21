@@ -7,6 +7,7 @@ import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
 import { useWishes } from '../../../hooks/useWishes'
 import { checkContent } from '../../../lib/moderation'
+import { prewarmModerationModel } from '../../../lib/moderationImage'
 import { supabase } from '../../../lib/supabase'
 import useAuthStore from '../../../store/authStore'
 import { formatLocation } from '../../../lib/geo'
@@ -39,6 +40,9 @@ export default function EditWish() {
   const [existingImages, setExistingImages] = useState([]) // { id, url, is_cover }
   const [newImages, setNewImages] = useState([]) // { id, file, preview, is_cover }
   const [deletedImageIds, setDeletedImageIds] = useState([])
+
+  // Prewarm modèle NSFW.js en arrière-plan
+  useEffect(() => { prewarmModerationModel() }, [])
 
   useEffect(() => {
     async function load() {
