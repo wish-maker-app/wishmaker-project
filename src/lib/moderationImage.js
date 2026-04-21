@@ -20,15 +20,25 @@ import * as tf from '@tensorflow/tfjs'
 
 let modelPromise = null
 
-// Seuils (ajustables selon tolérance) — plus strict après retours users
+/**
+ * Seuils calibrés pour un marketplace de services (WishMaker).
+ * Pas de raison qu'un user poste du nu → on peut être strict sans gêner les usages normaux.
+ *
+ * Logique :
+ *  - Si une catégorie dépasse son seuil individuel → bloqué
+ *  - OU si la somme (porn + hentai + sexy) dépasse 0.7 → bloqué (attrape les cas borderline)
+ *
+ * Basé sur les retours de la communauté NSFW.js (précision ~93% sur le modèle mid).
+ */
 const THRESHOLDS = {
-  porn: 0.5,    // Bloqué si > 50% de confiance (avant 70%)
-  hentai: 0.5,  // Idem
-  sexy: 0.75,   // Plus permissif (lingerie mainstream ok)
+  porn: 0.4,    // Bloqué si ≥ 40% (strict, aucun besoin de nu)
+  hentai: 0.4,  // Idem pour dessin porn
+  sexy: 0.85,   // Permissif (lingerie, maillot de bain OK, nu partiel bloqué)
+  combined: 0.7, // Somme des 3 scores suspects
 }
 
-// Active les logs pour debug en production
-const DEBUG = true
+// Logs en dev uniquement, silence en prod sauf erreur
+const DEBUG = import.meta.env?.DEV === true
 
 /**
  * Charge le modèle NSFW.js une seule fois.
@@ -74,9 +84,7 @@ export async function moderateImage(file) {
   if (!file) return { isClean: true, reason: null, scores: {}, topCategory: 'neutral' }
 
   try {
-    if (DEBUG) console.log('[moderationImage] loading model...')
     const model = await loadModel()
-    if (DEBUG) console.log('[moderationImage] model loaded, classifying...')
     const img = await fileToImage(file)
     const predictions = await model.classify(img)
 
@@ -92,29 +100,24 @@ export async function moderateImage(file) {
     if (DEBUG) console.log('[moderationImage] scores:', scores, 'top:', topCategory)
 
     // Règles de blocage
-    if ((scores.porn || 0) >= THRESHOLDS.porn) {
-      return {
-        isClean: false,
-        reason: 'Contenu pornographique détecté',
-        scores,
-        topCategory,
-      }
+    const porn = scores.porn || 0
+    const hentai = scores.hentai || 0
+    const sexy = scores.sexy || 0
+    const suspicious = porn + hentai + sexy
+
+    if (porn >= THRESHOLDS.porn) {
+      return { isClean: false, reason: 'Contenu pornographique détecté', scores, topCategory }
     }
-    if ((scores.hentai || 0) >= THRESHOLDS.hentai) {
-      return {
-        isClean: false,
-        reason: 'Contenu pornographique (dessin) détecté',
-        scores,
-        topCategory,
-      }
+    if (hentai >= THRESHOLDS.hentai) {
+      return { isClean: false, reason: 'Contenu pornographique (dessin) détecté', scores, topCategory }
     }
-    if ((scores.sexy || 0) >= THRESHOLDS.sexy) {
-      return {
-        isClean: false,
-        reason: 'Contenu trop suggestif',
-        scores,
-        topCategory,
-      }
+    if (sexy >= THRESHOLDS.sexy) {
+      return { isClean: false, reason: 'Contenu trop suggestif', scores, topCategory }
+    }
+    // Score combiné : attrape les cas où chaque catégorie est juste sous son seuil
+    // (ex: porn=0.3 + sexy=0.5 + hentai=0.1 = 0.9 → bloqué)
+    if (suspicious >= THRESHOLDS.combined) {
+      return { isClean: false, reason: 'Contenu inapproprié détecté', scores, topCategory }
     }
 
     return { isClean: true, reason: null, scores, topCategory }
