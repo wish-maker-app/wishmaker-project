@@ -76,15 +76,36 @@ export function useAuth() {
   }
 
   async function signOut() {
-    if (user) {
-      await supabase
-        .from('users')
-        .update({ is_online: false })
-        .eq('id', user.id)
+    // Tolérant : si une étape rate (réseau, RLS, session déjà morte), on continue quand même.
+    // Le but est TOUJOURS de libérer l'utilisateur même si la BDD répond pas.
+    const userId = user?.id
+    try {
+      if (userId) {
+        // Race contre un timeout : empêche de bloquer 30s sur un update qui traîne
+        await Promise.race([
+          supabase.from('users').update({ is_online: false }).eq('id', userId),
+          new Promise((resolve) => setTimeout(resolve, 2000)),
+        ])
+      }
+    } catch (err) {
+      console.warn('[signOut] is_online update failed, continuing:', err?.message)
     }
-    await supabase.auth.signOut()
+
+    try {
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.warn('[signOut] supabase signOut failed, forcing local logout:', err?.message)
+    }
+
+    // Nettoyage forcé du localStorage Supabase au cas où signOut() a échoué
+    try {
+      const ref = (import.meta.env.VITE_SUPABASE_URL || '').match(/https:\/\/([^.]+)/)?.[1]
+      if (ref) localStorage.removeItem(`sb-${ref}-auth-token`)
+      localStorage.removeItem('wishmaker-auth')
+    } catch {}
+
     logout()
-    navigate('/auth')
+    navigate('/auth', { replace: true })
   }
 
   return { user, profile, signOut, fetchProfile }

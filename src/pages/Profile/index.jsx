@@ -327,7 +327,10 @@ export default function Profile() {
             Annuler
           </button>
           <button
-            onClick={signOut}
+            onClick={() => {
+              setShowLogoutConfirm(false)
+              signOut()
+            }}
             className="flex-1 h-12 rounded-full bg-[#FF4D4D] text-white font-semibold text-sm"
           >
             Se déconnecter

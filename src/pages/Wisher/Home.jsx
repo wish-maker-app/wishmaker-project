@@ -554,12 +554,12 @@ export default function WisherHome() {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={handlePaymentCancel}
-              className="fixed inset-0 bg-black/40 z-[900]"
+              className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop"
             />
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 max-h-[90vh] overflow-y-auto"
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 max-h-[90vh] overflow-y-auto bottom-sheet"
             >
               <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
               <div className="text-center mb-5">
