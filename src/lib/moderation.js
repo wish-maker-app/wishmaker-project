@@ -29,6 +29,16 @@ const FR_CUSTOM_BADWORDS = [
   'weed', 'shit', 'beuh', 'cannabis', 'lsd', 'mdma',
   // Spam / scam
   'bitcoin gratuit', 'crypto gratuit', 'argent facile', 'gagner argent',
+  // Extrémisme / haine / apologie de régimes totalitaires
+  'hitler', 'adolf hitler', 'nazi', 'nazie', 'nazisme', 'heil hitler',
+  'sieg heil', 'ss nazi', 'troisieme reich', 'troisième reich',
+  'holocauste blague', 'shoah blague',
+  'daesh', 'isis', 'al qaeda', 'jihad', 'djihad', 'jihadiste', 'djihadiste',
+  'mein kampf',
+  // Apologie terrorisme / violence
+  'tuer tous', 'mort aux', 'kill all', 'bombe homemade', 'fabriquer bombe',
+  // Pedo (bloquer absolument)
+  'pedo', 'pédo', 'pedophile', 'pédophile', 'cp image', 'cp video', 'lolicon',
 ]
 
 // ---------- Normalisation ----------

@@ -20,12 +20,15 @@ import * as tf from '@tensorflow/tfjs'
 
 let modelPromise = null
 
-// Seuils (ajustables selon tolérance)
+// Seuils (ajustables selon tolérance) — plus strict après retours users
 const THRESHOLDS = {
-  porn: 0.7,    // Bloqué si > 70% de confiance
-  hentai: 0.7,  // Idem
-  sexy: 0.85,   // Plus permissif (peut inclure maillots, lingerie mainstream)
+  porn: 0.5,    // Bloqué si > 50% de confiance (avant 70%)
+  hentai: 0.5,  // Idem
+  sexy: 0.75,   // Plus permissif (lingerie mainstream ok)
 }
+
+// Active les logs pour debug en production
+const DEBUG = true
 
 /**
  * Charge le modèle NSFW.js une seule fois.
@@ -73,7 +76,9 @@ export async function moderateImage(file) {
   if (!file) return { isClean: true, reason: null, scores: {}, topCategory: 'neutral' }
 
   try {
+    if (DEBUG) console.log('[moderationImage] loading model...')
     const model = await loadModel()
+    if (DEBUG) console.log('[moderationImage] model loaded, classifying...')
     const img = await fileToImage(file)
     const predictions = await model.classify(img)
 
@@ -85,6 +90,8 @@ export async function moderateImage(file) {
 
     const top = predictions.sort((a, b) => b.probability - a.probability)[0]
     const topCategory = top.className.toLowerCase()
+
+    if (DEBUG) console.log('[moderationImage] scores:', scores, 'top:', topCategory)
 
     // Règles de blocage
     if ((scores.porn || 0) >= THRESHOLDS.porn) {
@@ -114,7 +121,7 @@ export async function moderateImage(file) {
 
     return { isClean: true, reason: null, scores, topCategory }
   } catch (err) {
-    console.warn('[moderationImage] failed, image allowed by default:', err?.message)
+    console.error('[moderationImage] FAILED, image allowed by default:', err?.message, err)
     // Fail-open : si la modération plante (modèle pas chargé, navigateur trop vieux...)
     // on laisse passer plutôt que de bloquer l'UX. La couche serveur prendra le relais.
     return {
