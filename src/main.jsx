@@ -31,6 +31,29 @@ import useConfigStore from './store/configStore'
 // Enregistrer le Service Worker au démarrage
 registerServiceWorker()
 
+// ────────────────────────────────────────────────────────────────────────
+// Auto-reload après un deploy Vercel — évite l'infinite spinner
+// ────────────────────────────────────────────────────────────────────────
+// 1. Vite émet 'vite:preloadError' quand un chunk hashé n'existe plus
+//    (typique après un deploy où les assets ont changé de hash).
+if (typeof window !== 'undefined') {
+  window.addEventListener('vite:preloadError', (event) => {
+    console.warn('[preloadError] chunk obsolete, reload…', event.payload)
+    window.location.reload()
+  })
+}
+
+// 2. Si un nouveau Service Worker prend le contrôle (après deploy),
+//    on recharge pour être sûr d'avoir le dernier HTML + derniers chunks.
+//    On évite la boucle avec un flag sessionStorage.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (sessionStorage.getItem('__sw_reloaded')) return
+    sessionStorage.setItem('__sw_reloaded', '1')
+    window.location.reload()
+  })
+}
+
 // Charger la config (durées vœux/urgent, rétention) depuis Supabase
 useConfigStore.getState().loadConfig()
 

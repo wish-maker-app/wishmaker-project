@@ -1,4 +1,6 @@
 // Service Worker — Wish Maker PWA Push Notifications
+// Version bump pour forcer update lors d'un deploy : incrémente quand on change ce fichier.
+const SW_VERSION = 'v2-2026-04-22'
 
 self.addEventListener('push', (event) => {
   let data = { title: 'Wish Maker', body: 'Nouvelle notification', url: '/' }
@@ -27,7 +29,6 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Si l'app est déjà ouverte, focus dessus et navigue
       for (const client of clientList) {
         if (client.url.includes(self.location.origin)) {
           client.focus()
@@ -35,12 +36,24 @@ self.addEventListener('notificationclick', (event) => {
           return
         }
       }
-      // Sinon ouvre un nouvel onglet
       return clients.openWindow(url)
     })
   )
 })
 
-// Cache basique pour le mode offline
+// Install : active tout de suite la nouvelle version
 self.addEventListener('install', () => self.skipWaiting())
-self.addEventListener('activate', (event) => event.waitUntil(clients.claim()))
+
+// Activate : clear les vieux caches éventuels + prend le contrôle
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      // Purge tous les anciens caches du SW (si on en ajoute plus tard)
+      const cacheNames = await caches.keys()
+      await Promise.all(
+        cacheNames.filter((n) => !n.includes(SW_VERSION)).map((n) => caches.delete(n))
+      )
+      await self.clients.claim()
+    })()
+  )
+})
