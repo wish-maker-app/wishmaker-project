@@ -58,11 +58,11 @@ function WishGridCard({ wish, userLat, userLng, onClick }) {
         ) : (
           <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }} />
         )}
-        {/* Avatar + prénom en overlay */}
+        {/* Avatar + pseudo en overlay */}
         {wish.wisher && (
           <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full pr-2.5 pl-0.5 py-0.5">
             <SmallAvatar user={wish.wisher} size={24} />
-            <span className="text-white text-[11px] font-medium">{wish.wisher.prenom}</span>
+            <span className="text-white text-[11px] font-medium">{wish.wisher.pseudo || wish.wisher.prenom}</span>
           </div>
         )}
       </div>
