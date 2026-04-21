@@ -9,6 +9,8 @@ import useConfigStore from '../../store/configStore'
 import { useWishes } from '../../hooks/useWishes'
 import { supabase } from '../../lib/supabase'
 import WishPackModal from '../../components/ui/WishPackModal'
+import PaymentForm from '../../components/ui/PaymentForm'
+import { applyPurchase } from '../../lib/stripe'
 import lampeIcon from '../../assets/lampe.svg'
 
 const TABS = ['en_attente', 'realise', 'expire']
@@ -219,6 +221,7 @@ export default function WisherHome() {
   const [modal, setModal] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [showPackModal, setShowPackModal] = useState(false)
+  const [paymentModal, setPaymentModal] = useState(null) // { type, wish_id, label }
   const [showTip, setShowTip] = useState(() => localStorage.getItem('wishmaker-tip-dismissed') !== 'true')
 
   const [, setTick] = useState(0)
@@ -268,32 +271,36 @@ export default function WisherHome() {
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
 
-  async function handleExtend() {
+  function handleExtend() {
     if (!modal?.wish) return
-    setActionLoading(true)
-    try {
-      await extendWish(modal.wish.id)
-      toast.success('Vœu prolongé avec succès !')
-      const updated = await getMyWishes()
-      setWishes(updated)
-      setModal(null)
-    } catch (err) {
-      toast.error(err.message || 'Erreur')
-    } finally { setActionLoading(false) }
+    // Ouvrir le paiement 0.99€ pour la prolongation
+    setPaymentModal({ type: 'extension', wish_id: modal.wish.id, label: 'Prolonger le vœu' })
+    setModal(null)
   }
 
-  async function handleMakeUrgent() {
+  function handleMakeUrgent() {
     if (!modal?.wish) return
-    setActionLoading(true)
+    // Ouvrir le paiement 0.99€ pour l'urgent
+    setPaymentModal({ type: 'urgent_boost', wish_id: modal.wish.id, label: 'Mettre en Urgent' })
+    setModal(null)
+  }
+
+  async function handlePaymentSuccess(paymentIntent) {
     try {
-      await makeUrgent(modal.wish.id)
-      toast.success('Vœu mis en urgent !')
+      await applyPurchase(paymentIntent.id)
+      const action = paymentModal?.type === 'urgent_boost' ? 'Urgent activé' : 'Vœu prolongé'
+      toast.success(`✅ ${action} !`)
       const updated = await getMyWishes()
       setWishes(updated)
-      setModal(null)
+      setPaymentModal(null)
     } catch (err) {
-      toast.error(err.message || 'Erreur')
-    } finally { setActionLoading(false) }
+      toast.error(err.message || 'Erreur activation')
+    }
+  }
+
+  function handlePaymentCancel() {
+    setPaymentModal(null)
+    toast('Paiement annulé', { icon: 'ℹ️' })
   }
 
   async function handleDelete() {
@@ -539,6 +546,44 @@ export default function WisherHome() {
           navigate('/wisher/create')
         }}
       />
+
+      {/* Modal paiement Stripe (Urgent 0.99€ / Prolongation 0.99€) */}
+      <AnimatePresence>
+        {paymentModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={handlePaymentCancel}
+              className="fixed inset-0 bg-black/40 z-[900]"
+            />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+              <div className="text-center mb-5">
+                <span className="text-3xl mb-2 block">
+                  {paymentModal.type === 'urgent_boost' ? '⚡' : '⏱️'}
+                </span>
+                <h2 className="text-lg font-bold text-[#1A1A2E]">{paymentModal.label}</h2>
+                <p className="text-sm text-[#8A8A9A] mt-1">
+                  {paymentModal.type === 'urgent_boost'
+                    ? 'Votre vœu sera mis en avant pendant 24h'
+                    : 'Votre vœu sera prolongé de 48h supplémentaires'}
+                </p>
+              </div>
+              <PaymentForm
+                type={paymentModal.type}
+                wish_id={paymentModal.wish_id}
+                onSuccess={handlePaymentSuccess}
+                onCancel={handlePaymentCancel}
+                submitLabel="Payer 0,99€"
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <BottomTabBar />
     </div>

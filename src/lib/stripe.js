@@ -52,3 +52,28 @@ export async function createPaymentIntent({ type, amount_cents, wish_id, metadat
 export function formatEuros(cents) {
   return `${(cents / 100).toFixed(2).replace('.', ',')}€`
 }
+
+/**
+ * Applique l'action business après un paiement immédiat (pack/urgent/extension).
+ * Appelle l'Edge Function apply-purchase qui vérifie le paiement côté serveur
+ * avant d'appliquer l'action (empêche le bypass client).
+ */
+export async function applyPurchase(paymentIntentId) {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Non authentifié')
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const res = await fetch(`${supabaseUrl}/functions/v1/apply-purchase`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({ payment_intent_id: paymentIntentId }),
+  })
+
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Erreur application achat')
+  return data
+}
