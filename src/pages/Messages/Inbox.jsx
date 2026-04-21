@@ -216,11 +216,12 @@ export default function Inbox() {
   const [toDelete, setToDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const userId = useAuthStore((s) => s.user?.id)
+  const authTick = useAuthStore((s) => s.authTick)
   const { loadConversations, conversations, loading, deleteConversation } = useMessages()
 
   useEffect(() => {
     loadConversations()
-  }, [])
+  }, [authTick])
 
   async function confirmDelete() {
     if (!toDelete) return

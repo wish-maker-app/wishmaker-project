@@ -213,6 +213,7 @@ export default function WisherHome() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.profile)
+  const authTick = useAuthStore((s) => s.authTick)
   const wishDurationHours = useConfigStore((s) => s.wish_duration_hours)
   const { getMyWishes, extendWish, makeUrgent, deleteWish } = useWishes()
   const [wishes, setWishes] = useState([])
@@ -235,7 +236,7 @@ export default function WisherHome() {
       supabase.from('users').select('*').eq('id', user.id).single()
         .then(({ data }) => { if (data) useAuthStore.getState().setProfile(data) })
     }
-  }, [])
+  }, [authTick])
 
   // Rafraîchir le compte à rebours toutes les minutes
   useEffect(() => {

@@ -4,26 +4,46 @@ import { supabase } from '../lib/supabase'
 import useAuthStore from '../store/authStore'
 
 export function useAuth() {
-  const { user, profile, setUser, setProfile, logout } = useAuthStore()
+  const { user, profile, setUser, setProfile, logout, bumpAuthTick } = useAuthStore()
   const navigate = useNavigate()
 
   useEffect(() => {
     // Au mount : on re-synchronise le store Zustand avec la VRAIE session Supabase.
     // Sinon après un refresh, le store persisté peut montrer un user logué alors
     // que la session Supabase a expiré/disparu → queries retournent vide (RLS).
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    ;(async () => {
+      // Au mount, on force un refresh de la session si elle est proche d'expirer.
+      // Ça garantit que le token est frais AVANT que les pages ne fassent leurs queries.
+      const { data: { session } } = await supabase.auth.getSession()
+
       if (session?.user) {
-        setUser(session.user)
-        fetchProfile(session.user.id)
+        // Si le token expire dans <5min, on le refresh maintenant
+        const expiresAt = (session.expires_at || 0) * 1000
+        const now = Date.now()
+        if (expiresAt - now < 5 * 60 * 1000) {
+          try {
+            const { data: refreshed } = await supabase.auth.refreshSession()
+            if (refreshed?.session?.user) {
+              setUser(refreshed.session.user)
+            } else {
+              setUser(session.user)
+            }
+          } catch {
+            setUser(session.user)
+          }
+        } else {
+          setUser(session.user)
+        }
+        await fetchProfile(session.user.id)
+        bumpAuthTick() // signale aux pages de (re)fetcher leur data
       } else {
-        // Session perdue → on nettoie le store (qui était peut-être encore en "logué")
         if (useAuthStore.getState().user) {
           console.warn('[useAuth] Session Supabase introuvable, reset du store')
           logout()
           navigate('/auth', { replace: true })
         }
       }
-    })
+    })()
 
     // Écoute les changements de session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -34,9 +54,10 @@ export function useAuth() {
           await supabase.from('users').update({ is_online: true }).eq('id', session.user.id)
         }
 
-        // Token rafraîchi → on met à jour le user (au cas où)
+        // Token rafraîchi → on met à jour le user + on bump pour déclencher refetch
         if (event === 'TOKEN_REFRESHED' && session?.user) {
           setUser(session.user)
+          bumpAuthTick()
         }
 
         if (event === 'SIGNED_OUT') {

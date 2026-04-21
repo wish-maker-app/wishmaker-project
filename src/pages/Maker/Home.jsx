@@ -410,6 +410,7 @@ export default function MakerHome() {
   const [acceptedWish, setAcceptedWish] = useState(null)
   const [acceptMessage, setAcceptMessage] = useState('')
   const profile = useAuthStore((s) => s.profile)
+  const authTick = useAuthStore((s) => s.authTick)
   const { sortBy, maxDistance, selectedCategories } = useMakerStore()
   const { getAvailableWishes, loading } = useWishes()
   const { tagIds: subscribedTagIds } = useUserTagSubscriptions()
@@ -434,7 +435,7 @@ export default function MakerHome() {
 
   useEffect(() => {
     getAvailableWishes().then(setWishes).catch(() => {})
-  }, [])
+  }, [authTick])
 
   // Position : géoloc temps réel > profil > fallback Toulouse
   const center = userLocation || [
