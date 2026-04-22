@@ -69,7 +69,7 @@ function zoomForRadius(radiusKm) {
 // Formule : mpp = 156543.03 * cos(lat) / 2^zoom, donc
 //          zoom = log2(156543.03 * cos(lat) * targetWidthPx / (2 * r * 1000))
 // Plus la valeur est haute, plus le cercle est petit dans la map.
-const CIRCLE_PADDING_PX = 80
+const CIRCLE_PADDING_PX = 120
 
 function computeZoom(mapWidthPx, radiusKm, lat) {
   const targetWidthPx = Math.max(100, mapWidthPx - 2 * CIRCLE_PADDING_PX)
