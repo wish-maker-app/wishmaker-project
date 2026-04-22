@@ -64,10 +64,10 @@ function zoomForRadius(radiusKm) {
   return 6
 }
 
-// Auto-fit continu : fitBounds avec un padding factor ajustable
-// pour obtenir un zoom non-entier entre 2 paliers Leaflet.
-// paddingFactor 1.1 = cercle fait ~90% de la map (presque collé aux bords).
-const PADDING_FACTOR = 1.1
+// Auto-fit de la map sur le cercle exact du rayon, avec un padding visuel
+// constant en pixels (1rem = 16px). Peu importe le palier, le cercle garde
+// la même marge autour — c'est ce que l'œil attend (pas de calcul flou).
+const CIRCLE_PADDING_PX = 16
 
 function MapAutoFit({ center, radiusKm }) {
   const map = useMap()
@@ -81,7 +81,8 @@ function MapAutoFit({ center, radiusKm }) {
       map.flyTo(center, 6, { duration: 0.4 })
       return
     }
-    const radiusM = radiusKm * 1000 * PADDING_FACTOR
+    // Bounds exacts du cercle (sans padding factor artificiel)
+    const radiusM = radiusKm * 1000
     const latDelta = radiusM / 111000
     const lngDelta = radiusM / (111000 * Math.cos(center[0] * Math.PI / 180))
     map.flyToBounds(
@@ -89,7 +90,7 @@ function MapAutoFit({ center, radiusKm }) {
         [center[0] - latDelta, center[1] - lngDelta],
         [center[0] + latDelta, center[1] + lngDelta],
       ],
-      { padding: [8, 8], duration: 0.4 }
+      { padding: [CIRCLE_PADDING_PX, CIRCLE_PADDING_PX], duration: 0.4 }
     )
   }, [map, center, radiusKm])
   return null
