@@ -150,9 +150,6 @@ export default function Step4() {
                       : { background: '#fff', borderColor: '#E8E8E8', color: '#1A1A2E' }
                     }
                   >
-                    {tag.is_suggested_primary && !active && (
-                      <span className="mr-1">★</span>
-                    )}
                     {tag.label}
                   </motion.button>
                 )
