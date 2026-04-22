@@ -30,6 +30,18 @@ const SORT_OPTIONS = [
   { id: 'recent', label: 'Récents', Icon: IconClock },
 ]
 
+// Paliers de distance (à la TooGoodToGo / Leboncoin) — plus clean qu'un slider
+// libre. Le palier 100 représente "illimité".
+const DISTANCE_STEPS = [
+  { value: 1, label: '1 km' },
+  { value: 2, label: '2 km' },
+  { value: 5, label: '5 km' },
+  { value: 10, label: '10 km' },
+  { value: 20, label: '20 km' },
+  { value: 50, label: '50 km' },
+  { value: 100, label: 'Illimité' },
+]
+
 export default function Filters() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -119,7 +131,7 @@ export default function Filters() {
           </div>
         </section>
 
-        {/* ─────────── Section 2 : Rayon ─────────── */}
+        {/* ─────────── Section 2 : Rayon (chips à paliers) ─────────── */}
         <section>
           <div className="flex items-baseline justify-between mb-3">
             <h2 className="text-[15px] font-bold text-[#1A1A2E] tracking-[-0.01em]">Rayon de recherche</h2>
@@ -135,22 +147,29 @@ export default function Filters() {
             </span>
           </div>
 
-          <div className="bg-[#F7F8FC] rounded-2xl px-5 py-5">
-            <input
-              type="range"
-              min={1}
-              max={100}
-              value={maxDistance}
-              onChange={(e) => setMaxDistance(Number(e.target.value))}
-              className="w-full h-2 rounded-full appearance-none cursor-pointer"
-              style={{
-                background: `linear-gradient(to right, #5B6BF5 0%, #9B59F5 ${maxDistance}%, #E5E5EA ${maxDistance}%)`,
-              }}
-            />
-            <div className="flex justify-between mt-2.5">
-              <span className="text-[10.5px] text-[#8A8A9A] font-medium">1 km</span>
-              <span className="text-[10.5px] text-[#8A8A9A] font-medium">100+ km</span>
-            </div>
+          <div className="flex flex-wrap gap-2">
+            {DISTANCE_STEPS.map((step) => {
+              const active = maxDistance === step.value
+              return (
+                <motion.button
+                  key={step.value}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setMaxDistance(step.value)}
+                  className="h-10 rounded-full text-[13px] font-semibold transition-all"
+                  style={{
+                    padding: '0 16px',
+                    background: active
+                      ? 'linear-gradient(135deg,#5B6BF5,#9B59F5)'
+                      : '#fff',
+                    color: active ? '#fff' : '#1A1A2E',
+                    border: `1.5px solid ${active ? 'transparent' : '#EEEEF2'}`,
+                    boxShadow: active ? '0 4px 12px rgba(91,107,245,0.25)' : 'none',
+                  }}
+                >
+                  {step.label}
+                </motion.button>
+              )
+            })}
           </div>
         </section>
 
