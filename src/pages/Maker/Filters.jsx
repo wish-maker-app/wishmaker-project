@@ -1,7 +1,11 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
+import { MapContainer, TileLayer, Circle, useMap } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 import Header from '../../components/layout/Header'
 import useMakerStore from '../../store/makerStore'
+import useAuthStore from '../../store/authStore'
 import { useCatalog } from '../../hooks/useTags'
 import { CATEGORY_ICONS, CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from '../../lib/categoryIcons'
 
@@ -42,17 +46,54 @@ const DISTANCE_STEPS = [
   { value: 100, label: 'Illimité' },
 ]
 
+// Icône close pour la chip ville
+const IconX = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 6L6 18M6 6l12 12" />
+  </svg>
+)
+
+// Auto-resize + auto-fit de la map au changement de rayon
+function MapAutoFit({ center, radiusKm }) {
+  const map = useMap()
+  useEffect(() => {
+    setTimeout(() => map.invalidateSize(), 100)
+  }, [map])
+  useEffect(() => {
+    if (!center || radiusKm >= 100) return
+    const radiusM = radiusKm * 1000
+    // bounds = carré autour du centre ± rayon (approximatif)
+    const latDelta = radiusM / 111000
+    const lngDelta = radiusM / (111000 * Math.cos(center[0] * Math.PI / 180))
+    map.fitBounds(
+      [
+        [center[0] - latDelta, center[1] - lngDelta],
+        [center[0] + latDelta, center[1] + lngDelta],
+      ],
+      { padding: [20, 20], animate: true, duration: 0.4 }
+    )
+  }, [map, center, radiusKm])
+  return null
+}
+
 export default function Filters() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const fromView = searchParams.get('from') || 'liste'
   const { categories, loaded } = useCatalog()
+  const profile = useAuthStore((s) => s.profile)
   const {
     sortBy, setSortBy,
     maxDistance, setMaxDistance,
     selectedCategories, setSelectedCategories,
     resetFilters,
   } = useMakerStore()
+
+  // Centre de la map : ville du user en priorité, sinon fallback Toulouse
+  const userCenter = (profile?.latitude && profile?.longitude)
+    ? [profile.latitude, profile.longitude]
+    : [43.6047, 1.4442]
+  const cityLabel = profile?.ville || 'Ma position'
 
   function toggleCategory(id) {
     if (selectedCategories.includes(id)) {
@@ -131,10 +172,32 @@ export default function Filters() {
           </div>
         </section>
 
-        {/* ─────────── Section 2 : Rayon (slider à paliers aimantés) ─────────── */}
+        {/* ─────────── Section 2 : Localisation + rayon (type Leboncoin) ─────────── */}
         <section>
+          {/* Chip ville (cliquable pour reset à "Illimité" = voir partout) */}
+          <div className="mb-3 flex">
+            <div
+              className="inline-flex items-center gap-2 rounded-full pl-3 pr-1 h-9"
+              style={{
+                background: '#EAEDFF',
+                border: '1px solid #D4DAFF',
+              }}
+            >
+              <span className="text-[13px] font-semibold text-[#2A337A]">{cityLabel}</span>
+              <button
+                onClick={() => setMaxDistance(100)}
+                className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/60 transition-colors"
+                style={{ color: '#5B6BF5' }}
+                aria-label="Désactiver le filtre de distance"
+              >
+                <IconX size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* Titre + valeur actuelle */}
           <div className="flex items-baseline justify-between mb-3">
-            <h2 className="text-[15px] font-bold text-[#1A1A2E] tracking-[-0.01em]">Rayon de recherche</h2>
+            <h2 className="text-[15px] font-bold text-[#1A1A2E] tracking-[-0.01em]">Dans un rayon de</h2>
             <span
               className="text-[15px] font-bold"
               style={{
@@ -147,68 +210,97 @@ export default function Filters() {
             </span>
           </div>
 
-          <div className="bg-[#F7F8FC] rounded-2xl px-5 py-5">
-            <div className="relative">
-              {/* Slider : value = index dans DISTANCE_STEPS (0..6) */}
-              <input
-                type="range"
-                min={0}
-                max={DISTANCE_STEPS.length - 1}
-                step={1}
-                value={Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))}
-                onChange={(e) => {
-                  const idx = Number(e.target.value)
-                  setMaxDistance(DISTANCE_STEPS[idx].value)
-                }}
-                className="w-full h-2 rounded-full appearance-none cursor-pointer relative z-10 stepped-slider"
-                style={{
-                  background: (() => {
-                    const idx = Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))
-                    const pct = (idx / (DISTANCE_STEPS.length - 1)) * 100
-                    return `linear-gradient(to right, #5B6BF5 0%, #9B59F5 ${pct}%, #E5E5EA ${pct}%)`
-                  })(),
-                }}
-              />
-              {/* Tick marks (points visuels sur chaque palier) */}
-              <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between pointer-events-none z-0 px-[4px]">
-                {DISTANCE_STEPS.map((step, i) => {
-                  const currentIdx = Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))
-                  const passed = i <= currentIdx
-                  return (
-                    <span
-                      key={step.value}
-                      className="rounded-full"
-                      style={{
-                        width: 6,
-                        height: 6,
-                        background: passed ? '#FFFFFF' : '#C5C5CC',
-                        border: passed ? '1.5px solid #5B6BF5' : 'none',
-                      }}
-                    />
-                  )
-                })}
-              </div>
-            </div>
-            {/* Labels sous chaque palier */}
-            <div className="flex justify-between mt-3 px-[2px]">
-              {DISTANCE_STEPS.map((step) => {
-                const active = maxDistance === step.value
+          {/* Slider à paliers aimantés */}
+          <div className="relative mb-1">
+            <input
+              type="range"
+              min={0}
+              max={DISTANCE_STEPS.length - 1}
+              step={1}
+              value={Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))}
+              onChange={(e) => {
+                const idx = Number(e.target.value)
+                setMaxDistance(DISTANCE_STEPS[idx].value)
+              }}
+              className="w-full h-2 rounded-full appearance-none cursor-pointer relative z-10 stepped-slider"
+              style={{
+                background: (() => {
+                  const idx = Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))
+                  const pct = (idx / (DISTANCE_STEPS.length - 1)) * 100
+                  return `linear-gradient(to right, #5B6BF5 0%, #9B59F5 ${pct}%, #E5E5EA ${pct}%)`
+                })(),
+              }}
+            />
+            <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between pointer-events-none z-0 px-[4px]">
+              {DISTANCE_STEPS.map((step, i) => {
+                const currentIdx = Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))
+                const passed = i <= currentIdx
                 return (
-                  <button
+                  <span
                     key={step.value}
-                    onClick={() => setMaxDistance(step.value)}
-                    className="text-[10px] font-semibold transition-colors"
+                    className="rounded-full"
                     style={{
-                      color: active ? '#5B6BF5' : '#8A8A9A',
-                      minWidth: 24,
+                      width: 6,
+                      height: 6,
+                      background: passed ? '#FFFFFF' : '#C5C5CC',
+                      border: passed ? '1.5px solid #5B6BF5' : 'none',
                     }}
-                  >
-                    {step.label.replace(' km', '')}
-                  </button>
+                  />
                 )
               })}
             </div>
           </div>
+          <div className="flex justify-between px-[2px] mb-3">
+            <span className="text-[10.5px] font-medium text-[#8A8A9A]">1 km</span>
+            <span className="text-[10.5px] font-medium text-[#8A8A9A]">Illimité</span>
+          </div>
+
+          {/* Mini-map avec cercle du rayon — style Leboncoin */}
+          {maxDistance < 100 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 180 }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="rounded-2xl overflow-hidden border border-[#EEEEF2] relative"
+              style={{ height: 180 }}
+            >
+              <MapContainer
+                center={userCenter}
+                zoom={10}
+                zoomControl={false}
+                scrollWheelZoom={false}
+                dragging={false}
+                doubleClickZoom={false}
+                attributionControl={false}
+                style={{ width: '100%', height: '100%' }}
+              >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <Circle
+                  center={userCenter}
+                  radius={maxDistance * 1000}
+                  pathOptions={{
+                    color: '#5B6BF5',
+                    weight: 2,
+                    fillColor: '#5B6BF5',
+                    fillOpacity: 0.12,
+                  }}
+                />
+                {/* Point central (user) */}
+                <Circle
+                  center={userCenter}
+                  radius={Math.max(maxDistance * 40, 100)}
+                  pathOptions={{
+                    color: '#fff',
+                    weight: 3,
+                    fillColor: '#5B6BF5',
+                    fillOpacity: 1,
+                  }}
+                />
+                <MapAutoFit center={userCenter} radiusKm={maxDistance} />
+              </MapContainer>
+            </motion.div>
+          )}
         </section>
 
         {/* ─────────── Section 3 : Intentions ─────────── */}
