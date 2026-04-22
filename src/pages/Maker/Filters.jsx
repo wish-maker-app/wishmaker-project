@@ -66,8 +66,8 @@ function zoomForRadius(radiusKm) {
 
 // Auto-fit continu : fitBounds avec un padding factor ajustable
 // pour obtenir un zoom non-entier entre 2 paliers Leaflet.
-// paddingFactor 2.3 = cercle fait ~45% de la map (entre 40% et 55%).
-const PADDING_FACTOR = 2.3
+// paddingFactor 1.8 = cercle fait ~55% de la map.
+const PADDING_FACTOR = 1.8
 
 function MapAutoFit({ center, radiusKm }) {
   const map = useMap()
