@@ -53,27 +53,27 @@ const IconX = ({ size = 14 }) => (
   </svg>
 )
 
-// Auto-resize + auto-fit de la map au changement de rayon.
-// On affiche le cercle mais avec de l'air autour : le cercle fait ~55% de
-// la largeur du cadre (style Leboncoin). On étend les bounds à 1.9× le rayon.
+// Zoom Leaflet suggéré selon le rayon affiché (pour que le cercle
+// occupe ~55-60% de la largeur de la map, style Leboncoin).
+function zoomForRadius(radiusKm) {
+  if (radiusKm <= 1) return 13
+  if (radiusKm <= 2) return 12
+  if (radiusKm <= 5) return 11
+  if (radiusKm <= 10) return 10
+  if (radiusKm <= 20) return 9
+  if (radiusKm <= 50) return 8
+  return 7 // illimité (100+ km) → zoom régional large
+}
+
+// Auto-resize + auto-zoom de la map au changement de rayon.
 function MapAutoFit({ center, radiusKm }) {
   const map = useMap()
   useEffect(() => {
     setTimeout(() => map.invalidateSize(), 100)
   }, [map])
   useEffect(() => {
-    if (!center || radiusKm >= 100) return
-    const paddingFactor = 1.9 // > 1 = zoom plus large (plus de contexte autour du cercle)
-    const radiusM = radiusKm * 1000 * paddingFactor
-    const latDelta = radiusM / 111000
-    const lngDelta = radiusM / (111000 * Math.cos(center[0] * Math.PI / 180))
-    map.fitBounds(
-      [
-        [center[0] - latDelta, center[1] - lngDelta],
-        [center[0] + latDelta, center[1] + lngDelta],
-      ],
-      { padding: [8, 8], animate: true, duration: 0.4 }
-    )
+    if (!center) return
+    map.flyTo(center, zoomForRadius(radiusKm), { duration: 0.4 })
   }, [map, center, radiusKm])
   return null
 }
@@ -237,27 +237,24 @@ export default function Filters() {
             <span className="text-[10.5px] font-medium text-[#8A8A9A]">Illimité</span>
           </div>
 
-          {/* Mini-map avec cercle du rayon — style Leboncoin */}
-          {maxDistance < 100 && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 180 }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="rounded-2xl overflow-hidden border border-[#EEEEF2] relative"
-              style={{ height: 180 }}
+          {/* Mini-map avec cercle du rayon — toujours visible */}
+          <div
+            className="rounded-2xl overflow-hidden border border-[#EEEEF2] relative"
+            style={{ height: 180 }}
+          >
+            <MapContainer
+              center={userCenter}
+              zoom={zoomForRadius(maxDistance)}
+              zoomControl={false}
+              scrollWheelZoom={false}
+              dragging={false}
+              doubleClickZoom={false}
+              attributionControl={false}
+              style={{ width: '100%', height: '100%' }}
             >
-              <MapContainer
-                center={userCenter}
-                zoom={10}
-                zoomControl={false}
-                scrollWheelZoom={false}
-                dragging={false}
-                doubleClickZoom={false}
-                attributionControl={false}
-                style={{ width: '100%', height: '100%' }}
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              {/* Cercle du rayon (caché en "Illimité") */}
+              {maxDistance < 100 && (
                 <Circle
                   center={userCenter}
                   radius={maxDistance * 1000}
@@ -268,21 +265,27 @@ export default function Filters() {
                     fillOpacity: 0.12,
                   }}
                 />
-                {/* Point central (user) */}
-                <Circle
-                  center={userCenter}
-                  radius={Math.max(maxDistance * 40, 100)}
-                  pathOptions={{
-                    color: '#fff',
-                    weight: 3,
-                    fillColor: '#5B6BF5',
-                    fillOpacity: 1,
-                  }}
-                />
-                <MapAutoFit center={userCenter} radiusKm={maxDistance} />
-              </MapContainer>
-            </motion.div>
-          )}
+              )}
+              {/* Point central (user position) — taille fixe en px via SVG icon */}
+              <Circle
+                center={userCenter}
+                radius={maxDistance < 100 ? maxDistance * 15 : 500}
+                pathOptions={{
+                  color: '#fff',
+                  weight: 3,
+                  fillColor: '#5B6BF5',
+                  fillOpacity: 1,
+                }}
+              />
+              <MapAutoFit center={userCenter} radiusKm={maxDistance} />
+            </MapContainer>
+            {/* Badge "Illimité" en overlay quand pas de cercle */}
+            {maxDistance >= 100 && (
+              <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-[11px] font-bold text-[#5B6BF5] shadow-sm">
+                Recherche illimitée
+              </div>
+            )}
+          </div>
         </section>
 
         {/* ─────────── Section 3 : Intentions ─────────── */}
