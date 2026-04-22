@@ -53,7 +53,9 @@ const IconX = ({ size = 14 }) => (
   </svg>
 )
 
-// Auto-resize + auto-fit de la map au changement de rayon
+// Auto-resize + auto-fit de la map au changement de rayon.
+// On affiche le cercle mais avec de l'air autour : le cercle fait ~55% de
+// la largeur du cadre (style Leboncoin). On étend les bounds à 1.9× le rayon.
 function MapAutoFit({ center, radiusKm }) {
   const map = useMap()
   useEffect(() => {
@@ -61,8 +63,8 @@ function MapAutoFit({ center, radiusKm }) {
   }, [map])
   useEffect(() => {
     if (!center || radiusKm >= 100) return
-    const radiusM = radiusKm * 1000
-    // bounds = carré autour du centre ± rayon (approximatif)
+    const paddingFactor = 1.9 // > 1 = zoom plus large (plus de contexte autour du cercle)
+    const radiusM = radiusKm * 1000 * paddingFactor
     const latDelta = radiusM / 111000
     const lngDelta = radiusM / (111000 * Math.cos(center[0] * Math.PI / 180))
     map.fitBounds(
@@ -70,7 +72,7 @@ function MapAutoFit({ center, radiusKm }) {
         [center[0] - latDelta, center[1] - lngDelta],
         [center[0] + latDelta, center[1] + lngDelta],
       ],
-      { padding: [20, 20], animate: true, duration: 0.4 }
+      { padding: [8, 8], animate: true, duration: 0.4 }
     )
   }, [map, center, radiusKm])
   return null
@@ -210,46 +212,26 @@ export default function Filters() {
             </span>
           </div>
 
-          {/* Slider à paliers aimantés */}
-          <div className="relative mb-1">
-            <input
-              type="range"
-              min={0}
-              max={DISTANCE_STEPS.length - 1}
-              step={1}
-              value={Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))}
-              onChange={(e) => {
-                const idx = Number(e.target.value)
-                setMaxDistance(DISTANCE_STEPS[idx].value)
-              }}
-              className="w-full h-2 rounded-full appearance-none cursor-pointer relative z-10 stepped-slider"
-              style={{
-                background: (() => {
-                  const idx = Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))
-                  const pct = (idx / (DISTANCE_STEPS.length - 1)) * 100
-                  return `linear-gradient(to right, #5B6BF5 0%, #9B59F5 ${pct}%, #E5E5EA ${pct}%)`
-                })(),
-              }}
-            />
-            <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between pointer-events-none z-0 px-[4px]">
-              {DISTANCE_STEPS.map((step, i) => {
-                const currentIdx = Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))
-                const passed = i <= currentIdx
-                return (
-                  <span
-                    key={step.value}
-                    className="rounded-full"
-                    style={{
-                      width: 6,
-                      height: 6,
-                      background: passed ? '#FFFFFF' : '#C5C5CC',
-                      border: passed ? '1.5px solid #5B6BF5' : 'none',
-                    }}
-                  />
-                )
-              })}
-            </div>
-          </div>
+          {/* Slider à paliers aimantés (épuré, sans tick marks) */}
+          <input
+            type="range"
+            min={0}
+            max={DISTANCE_STEPS.length - 1}
+            step={1}
+            value={Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))}
+            onChange={(e) => {
+              const idx = Number(e.target.value)
+              setMaxDistance(DISTANCE_STEPS[idx].value)
+            }}
+            className="w-full h-2 rounded-full appearance-none cursor-pointer stepped-slider mb-2"
+            style={{
+              background: (() => {
+                const idx = Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))
+                const pct = (idx / (DISTANCE_STEPS.length - 1)) * 100
+                return `linear-gradient(to right, #5B6BF5 0%, #9B59F5 ${pct}%, #E5E5EA ${pct}%)`
+              })(),
+            }}
+          />
           <div className="flex justify-between px-[2px] mb-3">
             <span className="text-[10.5px] font-medium text-[#8A8A9A]">1 km</span>
             <span className="text-[10.5px] font-medium text-[#8A8A9A]">Illimité</span>
