@@ -65,14 +65,12 @@ function zoomForRadius(radiusKm) {
 }
 
 // Calcule précisément le zoom Leaflet pour que le cercle du rayon occupe
-// (mapWidthPx - 2 * padding) de la largeur visible de la map.
-// Formule : mpp = 156543.03 * cos(lat) / 2^zoom, donc
-//          zoom = log2(156543.03 * cos(lat) * targetWidthPx / (2 * r * 1000))
-// Plus la valeur est haute, plus le cercle est petit dans la map.
-const CIRCLE_PADDING_PX = 100
+// un POURCENTAGE de la largeur visible de la map (responsive : donne le même
+// rendu quelle que soit la taille d'écran).
+const CIRCLE_WIDTH_RATIO = 0.65 // 65% de la largeur map (ajuste ici)
 
 function computeZoom(mapWidthPx, radiusKm, lat) {
-  const targetWidthPx = Math.max(100, mapWidthPx - 2 * CIRCLE_PADDING_PX)
+  const targetWidthPx = Math.max(100, mapWidthPx * CIRCLE_WIDTH_RATIO)
   const earthCirc = 156543.03 * Math.cos((lat * Math.PI) / 180)
   const diameterM = 2 * radiusKm * 1000
   return Math.log2((earthCirc * targetWidthPx) / diameterM)
