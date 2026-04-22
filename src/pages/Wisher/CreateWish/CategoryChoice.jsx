@@ -27,25 +27,30 @@ export default function CategoryChoice() {
   const [selected, setSelected] = useState(savedCategoryId)
 
   function handlePick(catId) {
+    // Sélection uniquement — on n'enchaîne pas sur l'étape suivante automatiquement.
+    // L'user valide en cliquant sur le bouton "Continuer" en bas.
     setSelected(catId)
-    const cat = categories.find((c) => c.id === catId)
+  }
+
+  function handleContinue() {
+    if (!selected) return
     // Si on change de catégorie, on reset les tags (incompatibles)
-    if (catId !== savedCategoryId) {
-      setCategoryAndTags({ category_id: catId, tag_ids: [], tags: [] })
+    if (selected !== savedCategoryId) {
+      setCategoryAndTags({ category_id: selected, tag_ids: [], tags: [] })
     } else {
-      setCategoryAndTags({ category_id: catId, tag_ids: savedTagIds, tags: [] })
+      setCategoryAndTags({ category_id: selected, tag_ids: savedTagIds, tags: [] })
     }
-    setTimeout(() => navigate('/wisher/create/1'), 180)
+    navigate('/wisher/create/1')
   }
 
   return (
-    <div className="h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col relative">
       <Header title="Nouveau vœu" onBack={() => navigate('/wisher')} />
 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex-1 flex flex-col px-5 pt-1 pb-8 overflow-y-auto"
+        className="flex-1 flex flex-col px-5 pt-1 pb-32 overflow-y-auto"
       >
         <div className="mb-6">
           <h1 className="text-2xl font-extrabold tracking-[-0.02em] text-[#1A1A2E] mb-1">
@@ -177,6 +182,37 @@ export default function CategoryChoice() {
           </div>
         )}
       </motion.div>
+
+      {/* Bouton Continuer fixé en bas (avec fade blanc pour lisibilité) */}
+      <div
+        className="absolute left-0 right-0 bottom-0 px-5 pt-4 pb-6"
+        style={{
+          background: 'linear-gradient(to top, #FFFFFF 70%, rgba(255,255,255,0))',
+        }}
+      >
+        <motion.button
+          whileTap={selected ? { scale: 0.98 } : undefined}
+          onClick={handleContinue}
+          disabled={!selected}
+          className="w-full h-[52px] rounded-2xl font-bold text-[15px] flex items-center justify-center gap-2 transition-all"
+          style={{
+            background: selected
+              ? 'linear-gradient(135deg,#5B6BF5 0%,#9B59F5 100%)'
+              : '#F0F0F5',
+            color: selected ? '#fff' : '#8A8A9A',
+            letterSpacing: '-0.01em',
+            boxShadow: selected ? '0 6px 20px rgba(91,107,245,0.3)' : 'none',
+            cursor: selected ? 'pointer' : 'not-allowed',
+          }}
+        >
+          {selected ? 'Continuer' : 'Choisis une intention'}
+          {selected && (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 5l7 7-7 7" />
+            </svg>
+          )}
+        </motion.button>
+      </div>
     </div>
   )
 }
