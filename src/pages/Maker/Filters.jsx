@@ -53,8 +53,7 @@ const IconX = ({ size = 14 }) => (
   </svg>
 )
 
-// Zoom Leaflet par palier — dézoomé d'un cran pour que le cercle reste bien
-// dans les bords de la carte (~40% de la largeur, pas débordant).
+// Zoom initial (entier) — approximatif, sera affiné par fitBounds.
 function zoomForRadius(radiusKm) {
   if (radiusKm <= 1) return 12
   if (radiusKm <= 2) return 11
@@ -62,10 +61,14 @@ function zoomForRadius(radiusKm) {
   if (radiusKm <= 10) return 9
   if (radiusKm <= 20) return 8
   if (radiusKm <= 50) return 7
-  return 6 // illimité (100+ km)
+  return 6
 }
 
-// Auto-resize + auto-zoom de la map au changement de rayon.
+// Auto-fit continu : fitBounds avec un padding factor ajustable
+// pour obtenir un zoom non-entier entre 2 paliers Leaflet.
+// paddingFactor 2.3 = cercle fait ~45% de la map (entre 40% et 55%).
+const PADDING_FACTOR = 2.3
+
 function MapAutoFit({ center, radiusKm }) {
   const map = useMap()
   useEffect(() => {
@@ -73,7 +76,21 @@ function MapAutoFit({ center, radiusKm }) {
   }, [map])
   useEffect(() => {
     if (!center) return
-    map.flyTo(center, zoomForRadius(radiusKm), { duration: 0.4 })
+    if (radiusKm >= 100) {
+      // illimité : zoom régional fixe
+      map.flyTo(center, 6, { duration: 0.4 })
+      return
+    }
+    const radiusM = radiusKm * 1000 * PADDING_FACTOR
+    const latDelta = radiusM / 111000
+    const lngDelta = radiusM / (111000 * Math.cos(center[0] * Math.PI / 180))
+    map.flyToBounds(
+      [
+        [center[0] - latDelta, center[1] - lngDelta],
+        [center[0] + latDelta, center[1] + lngDelta],
+      ],
+      { padding: [8, 8], duration: 0.4 }
+    )
   }, [map, center, radiusKm])
   return null
 }
