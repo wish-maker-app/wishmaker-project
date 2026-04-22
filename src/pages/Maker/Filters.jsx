@@ -64,10 +64,18 @@ function zoomForRadius(radiusKm) {
   return 6
 }
 
-// Auto-fit de la map sur le cercle exact du rayon, avec un padding visuel
-// constant en pixels (1rem = 16px). Peu importe le palier, le cercle garde
-// la même marge autour — c'est ce que l'œil attend (pas de calcul flou).
+// Calcule précisément le zoom Leaflet pour que le cercle du rayon occupe
+// (mapWidthPx - 2 * padding) de la largeur visible de la map.
+// Formule : mpp = 156543.03 * cos(lat) / 2^zoom, donc
+//          zoom = log2(156543.03 * cos(lat) * targetWidthPx / (2 * r * 1000))
 const CIRCLE_PADDING_PX = 16
+
+function computeZoom(mapWidthPx, radiusKm, lat) {
+  const targetWidthPx = Math.max(100, mapWidthPx - 2 * CIRCLE_PADDING_PX)
+  const earthCirc = 156543.03 * Math.cos((lat * Math.PI) / 180)
+  const diameterM = 2 * radiusKm * 1000
+  return Math.log2((earthCirc * targetWidthPx) / diameterM)
+}
 
 function MapAutoFit({ center, radiusKm }) {
   const map = useMap()
@@ -77,21 +85,13 @@ function MapAutoFit({ center, radiusKm }) {
   useEffect(() => {
     if (!center) return
     if (radiusKm >= 100) {
-      // illimité : zoom régional fixe
       map.flyTo(center, 6, { duration: 0.4 })
       return
     }
-    // Bounds exacts du cercle (sans padding factor artificiel)
-    const radiusM = radiusKm * 1000
-    const latDelta = radiusM / 111000
-    const lngDelta = radiusM / (111000 * Math.cos(center[0] * Math.PI / 180))
-    map.flyToBounds(
-      [
-        [center[0] - latDelta, center[1] - lngDelta],
-        [center[0] + latDelta, center[1] + lngDelta],
-      ],
-      { padding: [CIRCLE_PADDING_PX, CIRCLE_PADDING_PX], duration: 0.4 }
-    )
+    // width réelle du map container (en px) — après invalidateSize
+    const size = map.getSize()
+    const zoom = computeZoom(size.x, radiusKm, center[0])
+    map.flyTo(center, zoom, { duration: 0.4 })
   }, [map, center, radiusKm])
   return null
 }
@@ -263,6 +263,9 @@ export default function Filters() {
             <MapContainer
               center={userCenter}
               zoom={zoomForRadius(maxDistance)}
+              zoomSnap={0}
+              zoomDelta={0.25}
+              wheelPxPerZoomLevel={120}
               zoomControl={false}
               scrollWheelZoom={false}
               dragging={false}
