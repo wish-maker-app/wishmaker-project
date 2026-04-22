@@ -53,16 +53,16 @@ const IconX = ({ size = 14 }) => (
   </svg>
 )
 
-// Zoom Leaflet suggéré selon le rayon affiché (pour que le cercle
-// occupe ~55-60% de la largeur de la map, style Leboncoin).
+// Zoom Leaflet par palier — dézoomé d'un cran pour que le cercle reste bien
+// dans les bords de la carte (~40% de la largeur, pas débordant).
 function zoomForRadius(radiusKm) {
-  if (radiusKm <= 1) return 13
-  if (radiusKm <= 2) return 12
-  if (radiusKm <= 5) return 11
-  if (radiusKm <= 10) return 10
-  if (radiusKm <= 20) return 9
-  if (radiusKm <= 50) return 8
-  return 7 // illimité (100+ km) → zoom régional large
+  if (radiusKm <= 1) return 12
+  if (radiusKm <= 2) return 11
+  if (radiusKm <= 5) return 10
+  if (radiusKm <= 10) return 9
+  if (radiusKm <= 20) return 8
+  if (radiusKm <= 50) return 7
+  return 6 // illimité (100+ km)
 }
 
 // Auto-resize + auto-zoom de la map au changement de rayon.
