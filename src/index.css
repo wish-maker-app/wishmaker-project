@@ -123,6 +123,41 @@ body {
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
+/* ─── Slider à paliers (Filters page) ─── */
+.stepped-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+}
+.stepped-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #5B6BF5;
+  box-shadow: 0 2px 8px rgba(91, 107, 245, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease-out;
+}
+.stepped-slider::-webkit-slider-thumb:active {
+  transform: scale(1.15);
+}
+.stepped-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #5B6BF5;
+  box-shadow: 0 2px 8px rgba(91, 107, 245, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease-out;
+}
+.stepped-slider::-moz-range-thumb:active {
+  transform: scale(1.15);
+}
+
 /* ─── Animations utilitaires ─── */
 @keyframes pulse-dot {
   0%, 100% { transform: scale(1); opacity: 1; }

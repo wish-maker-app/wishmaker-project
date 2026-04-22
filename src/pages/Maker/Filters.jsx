@@ -131,7 +131,7 @@ export default function Filters() {
           </div>
         </section>
 
-        {/* ─────────── Section 2 : Rayon (chips à paliers) ─────────── */}
+        {/* ─────────── Section 2 : Rayon (slider à paliers aimantés) ─────────── */}
         <section>
           <div className="flex items-baseline justify-between mb-3">
             <h2 className="text-[15px] font-bold text-[#1A1A2E] tracking-[-0.01em]">Rayon de recherche</h2>
@@ -143,33 +143,71 @@ export default function Filters() {
                 WebkitTextFillColor: 'transparent',
               }}
             >
-              {maxDistance >= 100 ? 'Illimité' : `${maxDistance} km`}
+              {DISTANCE_STEPS.find((s) => s.value === maxDistance)?.label || `${maxDistance} km`}
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {DISTANCE_STEPS.map((step) => {
-              const active = maxDistance === step.value
-              return (
-                <motion.button
-                  key={step.value}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setMaxDistance(step.value)}
-                  className="h-10 rounded-full text-[13px] font-semibold transition-all"
-                  style={{
-                    padding: '0 16px',
-                    background: active
-                      ? 'linear-gradient(135deg,#5B6BF5,#9B59F5)'
-                      : '#fff',
-                    color: active ? '#fff' : '#1A1A2E',
-                    border: `1.5px solid ${active ? 'transparent' : '#EEEEF2'}`,
-                    boxShadow: active ? '0 4px 12px rgba(91,107,245,0.25)' : 'none',
-                  }}
-                >
-                  {step.label}
-                </motion.button>
-              )
-            })}
+          <div className="bg-[#F7F8FC] rounded-2xl px-5 py-5">
+            <div className="relative">
+              {/* Slider : value = index dans DISTANCE_STEPS (0..6) */}
+              <input
+                type="range"
+                min={0}
+                max={DISTANCE_STEPS.length - 1}
+                step={1}
+                value={Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))}
+                onChange={(e) => {
+                  const idx = Number(e.target.value)
+                  setMaxDistance(DISTANCE_STEPS[idx].value)
+                }}
+                className="w-full h-2 rounded-full appearance-none cursor-pointer relative z-10 stepped-slider"
+                style={{
+                  background: (() => {
+                    const idx = Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))
+                    const pct = (idx / (DISTANCE_STEPS.length - 1)) * 100
+                    return `linear-gradient(to right, #5B6BF5 0%, #9B59F5 ${pct}%, #E5E5EA ${pct}%)`
+                  })(),
+                }}
+              />
+              {/* Tick marks (points visuels sur chaque palier) */}
+              <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between pointer-events-none z-0 px-[4px]">
+                {DISTANCE_STEPS.map((step, i) => {
+                  const currentIdx = Math.max(0, DISTANCE_STEPS.findIndex((s) => s.value === maxDistance))
+                  const passed = i <= currentIdx
+                  return (
+                    <span
+                      key={step.value}
+                      className="rounded-full"
+                      style={{
+                        width: 6,
+                        height: 6,
+                        background: passed ? '#FFFFFF' : '#C5C5CC',
+                        border: passed ? '1.5px solid #5B6BF5' : 'none',
+                      }}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+            {/* Labels sous chaque palier */}
+            <div className="flex justify-between mt-3 px-[2px]">
+              {DISTANCE_STEPS.map((step) => {
+                const active = maxDistance === step.value
+                return (
+                  <button
+                    key={step.value}
+                    onClick={() => setMaxDistance(step.value)}
+                    className="text-[10px] font-semibold transition-colors"
+                    style={{
+                      color: active ? '#5B6BF5' : '#8A8A9A',
+                      minWidth: 24,
+                    }}
+                  >
+                    {step.label.replace(' km', '')}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </section>
 
