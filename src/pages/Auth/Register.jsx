@@ -22,6 +22,8 @@ export default function Register() {
   const emailFromState = location.state?.email || ''
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [acceptCGU, setAcceptCGU] = useState(false)
+  const [emailConsent, setEmailConsent] = useState(false)
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
@@ -45,6 +47,13 @@ export default function Register() {
       // Les champs prenom/nom/pseudo seront renseignés dans /setup/*
       if (authData.session) {
         useAuthStore.getState().setUser(authData.user)
+        // Sauvegarder le consentement email
+        if (emailConsent) {
+          await supabase.from('users').update({
+            email_consent: true,
+            email_consent_at: new Date().toISOString(),
+          }).eq('id', authData.user.id)
+        }
         const { data: profile } = await supabase
           .from('users').select('*').eq('id', authData.user.id).single()
         if (profile) useAuthStore.getState().setProfile(profile)
@@ -118,8 +127,34 @@ export default function Register() {
             </div>
           </div>
 
+          {/* Cases RGPD */}
+          <div className="flex flex-col gap-3 pt-1">
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={acceptCGU}
+                onChange={(e) => setAcceptCGU(e.target.checked)}
+                className="w-4 h-4 mt-0.5 rounded accent-[#5B6BF5] flex-shrink-0"
+              />
+              <span className="text-[12px] text-[#8A8A9A] leading-relaxed">
+                J'accepte les <span className="text-[#5B6BF5] font-medium">CGU</span> et la <span className="text-[#5B6BF5] font-medium">politique de confidentialité</span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={emailConsent}
+                onChange={(e) => setEmailConsent(e.target.checked)}
+                className="w-4 h-4 mt-0.5 rounded accent-[#5B6BF5] flex-shrink-0"
+              />
+              <span className="text-[12px] text-[#8A8A9A] leading-relaxed">
+                J'accepte de recevoir des emails (expiration de vœux, actualités). Désinscription possible à tout moment.
+              </span>
+            </label>
+          </div>
+
           <div className="pt-2">
-            <Button type="submit" loading={loading}>Continuer</Button>
+            <Button type="submit" loading={loading} disabled={!acceptCGU}>Continuer</Button>
           </div>
         </form>
 

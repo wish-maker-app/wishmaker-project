@@ -96,7 +96,10 @@ export default function WishPackModal({ open, onClose, onSuccess }) {
                 </svg>
               </button>
             </div>
-            <p className="text-sm text-[#8A8A9A] mb-5">Vous avez atteint votre limite. Choisissez un pack pour continuer.</p>
+            <p className="text-sm text-[#8A8A9A] mb-2">Vous avez atteint votre limite. Choisissez un pack pour continuer.</p>
+            <p className="text-xs text-[#B0B0B0] mb-4">
+              Vos 3 vœux gratuits se renouvellent chaque mois. Les packs achetés restent valables jusqu'à utilisation.
+            </p>
 
             <div className="flex flex-col gap-3">
               {PACKS.map((pack) => (

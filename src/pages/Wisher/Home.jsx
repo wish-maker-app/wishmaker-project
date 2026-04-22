@@ -340,21 +340,34 @@ export default function WisherHome() {
         </div>
         {/* Compteur quota mini */}
         {(() => {
-          const quota = user.wishes_quota || 3
-          const used = user.wishes_used || 0
-          const remaining = Math.max(0, quota - used)
-          const percent = Math.min(100, Math.round((used / quota) * 100))
-          const barColor = percent >= 80 ? '#EF4444' : percent >= 50 ? '#F59E0B' : '#22C55E'
+          const freeRemaining = Math.max(0, 3 - (user.monthly_free_used || 0))
+          const packSlots = user.pack_slots || 0
+          const totalRemaining = freeRemaining + packSlots
+          if (totalRemaining === 0) {
+            return (
+              <button
+                onClick={() => setShowPackModal(true)}
+                className="flex items-center gap-2 active:scale-95 transition-transform"
+              >
+                <span className="text-[11px] font-bold text-[#EF4444]">0 restant</span>
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', boxShadow: '0 2px 6px rgba(91,107,245,0.3)' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+                  </svg>
+                </div>
+              </button>
+            )
+          }
           return (
-            <button
-              onClick={() => remaining === 0 ? setShowPackModal(true) : null}
-              className="flex flex-col items-end gap-1"
-            >
-              <span className="text-[11px] font-semibold text-[#8A8A9A]">{used}/{quota} vœux</span>
-              <div className="w-16 h-1.5 bg-[#F0F0F0] rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, background: barColor }} />
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#EEF0FF]">
+                <span className="text-[12px]">✨</span>
+                <span className="text-[12px] font-bold text-[#5B6BF5]">{totalRemaining}</span>
               </div>
-            </button>
+            </div>
           )
         })()}
       </div>
@@ -367,9 +380,9 @@ export default function WisherHome() {
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => {
-              const quota = user.wishes_quota || 3
-              const used = user.wishes_used || 0
-              if (used >= quota) {
+              const freeRemaining = Math.max(0, 3 - (user.monthly_free_used || 0))
+              const totalRemaining = freeRemaining + (user.pack_slots || 0)
+              if (totalRemaining <= 0) {
                 setShowPackModal(true)
               } else {
                 navigate('/wisher/create')

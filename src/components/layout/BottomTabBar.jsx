@@ -1,6 +1,9 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useNotifications } from '../../hooks/useNotifications'
+import useAuthStore from '../../store/authStore'
+import WishPackModal from '../ui/WishPackModal'
 
 // Icônes SVG inline pour éviter une dépendance supplémentaire
 function IconWisher({ active }) {
@@ -91,9 +94,12 @@ function IconProfile({ active }) {
   )
 }
 
-const TABS = [
+const TABS_LEFT = [
   { to: '/wisher', labelKey: 'nav.accueil', Icon: IconWisher },
   { to: '/maker',  labelKey: 'nav.explorer', Icon: IconMaker },
+]
+
+const TABS_RIGHT = [
   { to: '/messages', labelKey: 'nav.messages', Icon: IconMessages },
   { to: '/profile',  labelKey: 'nav.profil',   Icon: IconProfile },
 ]
@@ -101,7 +107,10 @@ const TABS = [
 export default function BottomTabBar() {
   const { t } = useTranslation()
   const location = useLocation()
+  const navigate = useNavigate()
   const { unreadMessagesCount, expiringWishesCount } = useNotifications()
+  const profile = useAuthStore((s) => s.profile)
+  const [showPackModal, setShowPackModal] = useState(false)
 
   function getBadge(to) {
     if (to === '/messages' && unreadMessagesCount > 0) {
@@ -113,44 +122,88 @@ export default function BottomTabBar() {
     return null
   }
 
-  return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white z-40
-                    flex items-center justify-around px-2 pt-2
-                    shadow-[0_-2px_16px_rgba(0,0,0,0.07)]"
-      style={{ paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))' }}>
-      {TABS.map(({ to, labelKey, Icon }) => {
-        const active = location.pathname.startsWith(to)
-        const badge = getBadge(to)
-        return (
-          <NavLink
-            key={to}
-            to={to}
-            className="flex flex-col items-center gap-1 flex-1 py-2 relative"
-          >
-            <div className="relative">
-              <Icon active={active} />
-              {badge && (
-                <span
-                  className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-white text-[11px] font-bold px-1"
-                  style={{ background: badge.color }}
-                >
-                  {badge.count}
-                </span>
-              )}
-            </div>
+  function handleCreateWish() {
+    const freeRemaining = Math.max(0, 3 - (profile?.monthly_free_used || 0))
+    const totalRemaining = freeRemaining + (profile?.pack_slots || 0)
+    if (totalRemaining <= 0) {
+      setShowPackModal(true)
+    } else {
+      navigate('/wisher/create')
+    }
+  }
+
+  function renderTab({ to, labelKey, Icon }) {
+    const active = location.pathname.startsWith(to)
+    const badge = getBadge(to)
+    return (
+      <NavLink
+        key={to}
+        to={to}
+        className="flex flex-col items-center gap-1 flex-1 py-2 relative"
+      >
+        <div className="relative">
+          <Icon active={active} />
+          {badge && (
             <span
-              className="text-[10px] font-semibold"
-              style={
-                active
-                  ? { background: 'linear-gradient(135deg, #5B6BF5, #9B59F5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }
-                  : { color: '#C0C0C0' }
-              }
+              className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-white text-[11px] font-bold px-1"
+              style={{ background: badge.color }}
             >
-              {t(labelKey)}
+              {badge.count}
             </span>
-          </NavLink>
-        )
-      })}
-    </nav>
+          )}
+        </div>
+        <span
+          className="text-[10px] font-semibold"
+          style={
+            active
+              ? { background: 'linear-gradient(135deg, #5B6BF5, #9B59F5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }
+              : { color: '#C0C0C0' }
+          }
+        >
+          {t(labelKey)}
+        </span>
+      </NavLink>
+    )
+  }
+
+  return (
+    <>
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white z-40
+                      flex items-center justify-around px-2 pt-2
+                      shadow-[0_-2px_16px_rgba(0,0,0,0.07)]"
+        style={{ paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))' }}>
+
+        {/* Onglets gauche */}
+        {TABS_LEFT.map(renderTab)}
+
+        {/* Bouton + central */}
+        <div className="flex flex-col items-center gap-1 flex-1 py-2">
+          <button
+            onClick={handleCreateWish}
+            className="w-12 h-12 rounded-full flex items-center justify-center active:scale-95 transition-transform"
+            style={{
+              background: 'linear-gradient(135deg, #5B6BF5, #9B59F5)',
+              boxShadow: '0 2px 8px rgba(91,107,245,0.3)',
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Onglets droite */}
+        {TABS_RIGHT.map(renderTab)}
+      </nav>
+
+      <WishPackModal
+        open={showPackModal}
+        onClose={() => setShowPackModal(false)}
+        onSuccess={() => {
+          setShowPackModal(false)
+          navigate('/wisher/create')
+        }}
+      />
+    </>
   )
 }

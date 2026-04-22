@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { requestPushPermission } from '../lib/pushNotifications'
 
@@ -18,6 +19,8 @@ import { requestPushPermission } from '../lib/pushNotifications'
 export default function RouteResolver() {
   const navigate = useNavigate()
   const resolved = useRef(false)
+  const [showPushPrompt, setShowPushPrompt] = useState(false)
+  const pendingUserId = useRef(null)
 
   useEffect(() => {
     if (resolved.current) return
@@ -34,18 +37,30 @@ export default function RouteResolver() {
             .maybeSingle()
 
           if (profile?.onboarding_completed) {
-            requestPushPermission(session.user.id).catch(() => {})
+            // Vérifier si on doit montrer le pré-écran push
+            const pushAsked = localStorage.getItem('push_asked')
+            const pushDenied = localStorage.getItem('push_denied')
+            const hasNotifAPI = 'Notification' in window && 'PushManager' in window
+            const alreadyGranted = hasNotifAPI && Notification.permission === 'granted'
+
+            if (!pushAsked && !pushDenied && hasNotifAPI && !alreadyGranted) {
+              pendingUserId.current = session.user.id
+              setShowPushPrompt(true)
+              return
+            }
+            // Si déjà accordé, s'assurer que la subscription est enregistrée
+            if (alreadyGranted) {
+              requestPushPermission(session.user.id).catch(() => {})
+            }
             navigate('/maker', { replace: true })
             return
           }
-          // Smart redirect : reprendre au 1er step manquant
           let dest = '/setup/profil'
           if (profile?.prenom && profile?.nom && !profile?.pseudo) dest = '/setup/pseudo'
           else if (profile?.prenom && profile?.nom && profile?.pseudo && !profile?.ville) dest = '/setup/localisation'
           navigate(dest, { replace: true })
           return
         }
-        // Pas de session
         const seen = localStorage.getItem('onboarding_seen')
         navigate(seen ? '/auth' : '/onboarding/1', { replace: true })
       } catch (err) {
@@ -55,7 +70,56 @@ export default function RouteResolver() {
     })()
   }, [navigate])
 
-  // Spinner discret, souvent invisible (la résolution prend généralement <100ms)
+  async function handleAcceptPush() {
+    localStorage.setItem('push_asked', 'true')
+    if (pendingUserId.current) {
+      await requestPushPermission(pendingUserId.current)
+    }
+    setShowPushPrompt(false)
+    navigate('/maker', { replace: true })
+  }
+
+  function handleDeclinePush() {
+    localStorage.setItem('push_asked', 'true')
+    setShowPushPrompt(false)
+    navigate('/maker', { replace: true })
+  }
+
+  // Pré-écran notifications
+  if (showPushPrompt) {
+    return (
+      <div className="fixed inset-0 bg-white flex flex-col items-center justify-center px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center text-center max-w-[340px]"
+        >
+          <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6"
+            style={{ background: 'linear-gradient(135deg,#EEF0FF,#E8E0FF)' }}>
+            <span className="text-4xl">🔔</span>
+          </div>
+          <h2 className="text-xl font-bold text-[#1A1A2E] mb-2">Restez informé</h2>
+          <p className="text-sm text-[#8A8A9A] leading-relaxed mb-8">
+            Activez les notifications pour être prévenu quand un Maker répond à votre vœu ou vous envoie un message.
+          </p>
+          <button
+            onClick={handleAcceptPush}
+            className="w-full h-14 rounded-full text-white font-bold text-[15px] mb-3"
+            style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+          >
+            Activer les notifications
+          </button>
+          <button
+            onClick={handleDeclinePush}
+            className="text-sm text-[#8A8A9A] font-medium py-2"
+          >
+            Plus tard
+          </button>
+        </motion.div>
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-white">
       <div className="w-6 h-6 rounded-full border-2 border-[#5B6BF5] border-t-transparent animate-spin" />
