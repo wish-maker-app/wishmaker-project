@@ -450,16 +450,6 @@ export default function MakerHome() {
     (w.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()))
   )
 
-  // Mapping catégories → tags pour le filtrage
-  const CATEGORY_TAGS = {
-    depannage: ['Plomberie', 'Électricité', 'Serrurerie', 'Peinture', 'Carrelage', 'Maçonnerie'],
-    immobilier: ['Meubles', 'Montage de meubles', 'Décoration d\'intérieur', 'Déménagement', 'Rangement'],
-    services: ['Ménage', 'Aide à domicile', 'Repassage', 'Nettoyage', 'Baby-sitting', 'Cuisine'],
-    animaux: ['Garde animaux', 'Promenade chien', 'Jardinage', 'Entretien jardin', 'Vétérinaire'],
-    transport: ['Livraison', 'Courses', 'Transport de personnes', 'Déplacement'],
-    cours: ['Cours particuliers', 'Musique', 'Informatique', 'Langues', 'Sport', 'Soutien scolaire'],
-  }
-
   // Filtrage par rayon de distance
   const distanceFiltered = maxDistance >= 100
     ? textFiltered
@@ -468,16 +458,10 @@ export default function MakerHome() {
         return distanceKm(center[0], center[1], w.latitude, w.longitude) <= maxDistance
       })
 
-  // Filtrage par catégories sélectionnées
+  // Filtrage par intentions (category_id UUID matching — nouveau système émotionnel)
   const categoryFiltered = selectedCategories.length === 0
     ? distanceFiltered
-    : distanceFiltered.filter((w) => {
-        const wishTags = (w.tags || []).map(t => t.toLowerCase())
-        return selectedCategories.some((catId) => {
-          const catTags = (CATEGORY_TAGS[catId] || []).map(t => t.toLowerCase())
-          return catTags.some(ct => wishTags.includes(ct))
-        })
-      })
+    : distanceFiltered.filter((w) => selectedCategories.includes(w.category_id))
 
   // Filtrage pour les Makers pros : seulement les vœux matchant au moins un tag souscrit.
   // Si aucun tag souscrit, on affiche tout (sinon feed vide = mauvaise UX d'onboarding).
