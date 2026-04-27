@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import useAuthStore from '../store/authStore'
+import { getCached, setCached } from '../lib/wishesCache'
 
 export function useMessages(conversationId = null) {
   const { user } = useAuthStore()
   const [messages, setMessages] = useState([])
-  const [conversations, setConversations] = useState([])
+  // Hydrate les conversations depuis le cache → pas d'écran vide au retour
+  const [conversations, setConversations] = useState(() => getCached('conversations')?.value || [])
   const [loading, setLoading] = useState(false)
   const channelRef = useRef(null)
   const mountedRef = useRef(true)
@@ -13,7 +15,10 @@ export function useMessages(conversationId = null) {
   // Charge les conversations de l'utilisateur
   async function loadConversations() {
     if (!user) return
-    setLoading(true)
+    // On ne déclenche un loading "blocking" que s'il n'y a rien en cache.
+    // Sinon le user voit ses conversations cachées et le refetch se fait silencieux.
+    const hasCache = !!getCached('conversations')
+    if (!hasCache) setLoading(true)
     try {
       const { data, error } = await supabase
         .from('conversations')
@@ -27,7 +32,9 @@ export function useMessages(conversationId = null) {
         .or(`wisher_id.eq.${user.id},maker_id.eq.${user.id}`)
         .order('created_at', { ascending: false })
       if (error) throw error
-      setConversations(data || [])
+      const list = data || []
+      setConversations(list)
+      setCached('conversations', list)
     } finally {
       setLoading(false)
     }
@@ -36,7 +43,11 @@ export function useMessages(conversationId = null) {
   // Charge les messages d'une conversation + Realtime
   async function loadMessages(convId) {
     if (!convId) return
-    setLoading(true)
+    // Hydrate depuis cache pour éviter écran vide pendant le fetch
+    const cacheKey = `messages_${convId}`
+    const cached = getCached(cacheKey)?.value
+    if (cached) setMessages(cached)
+    if (!cached) setLoading(true)
     try {
       const { data, error } = await supabase
         .from('messages')
@@ -44,7 +55,9 @@ export function useMessages(conversationId = null) {
         .eq('conversation_id', convId)
         .order('created_at', { ascending: true })
       if (error) throw error
-      setMessages(data || [])
+      const list = data || []
+      setMessages(list)
+      setCached(cacheKey, list)
 
       // Marque les messages non lus comme lus (best-effort, on ne throw pas si ça rate)
       await supabase
@@ -69,7 +82,11 @@ export function useMessages(conversationId = null) {
           { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` },
           (payload) => {
             if (!mountedRef.current) return
-            setMessages((prev) => [...prev, payload.new])
+            setMessages((prev) => {
+              const next = [...prev, payload.new]
+              setCached(cacheKey, next)
+              return next
+            })
           }
         )
         .subscribe()
