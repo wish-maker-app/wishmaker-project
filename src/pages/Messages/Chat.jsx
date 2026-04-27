@@ -96,7 +96,7 @@ export default function Chat() {
   const scrollRef = useRef(null)
   const userId = useAuthStore((s) => s.user?.id)
   const { messages, loadMessages, sendMessage, createConversation, loadConversations, conversations, loading, deleteConversation } = useMessages()
-  const { markWishRealized, submitRating, getUserRating } = useWishes()
+  const { markWishRealized, markRealizedByMaker, confirmRealization, submitRating, getUserRating } = useWishes()
   const [interlocuteur, setInterlocuteur] = useState({ prenom: 'Utilisateur', nom: '', pseudo: null, is_online: false })
   const [wishTitre, setWishTitre] = useState('')
   const [convData, setConvData] = useState(null)
@@ -106,6 +106,10 @@ export default function Chat() {
   const [alreadyRated, setAlreadyRated] = useState(false)
   const [ratingLoading, setRatingLoading] = useState(false)
   const [showConfirmRealise, setShowConfirmRealise] = useState(false)
+  const [showWisherConfirm, setShowWisherConfirm] = useState(false)
+  const [markedRealizedAt, setMarkedRealizedAt] = useState(null)
+  const [markedRealizedBy, setMarkedRealizedBy] = useState(null)
+  const [actionLoading, setActionLoading] = useState(false)
   const [convId, setConvId] = useState(isDraft ? null : id)
   const [showMenu, setShowMenu] = useState(false)
   const [reportLoading, setReportLoading] = useState(false)
@@ -157,6 +161,8 @@ export default function Chat() {
       setInterlocuteur(wisher ? conv.maker : conv.wisher)
       setWishTitre(conv.wish?.titre || '')
       setWishStatut(conv.wish?.statut || '')
+      setMarkedRealizedAt(conv.wish?.marked_realized_at || null)
+      setMarkedRealizedBy(conv.wish?.marked_realized_by || null)
       setConvData(conv)
 
       // Vérifier si l'utilisateur a déjà noté
@@ -213,10 +219,42 @@ export default function Chat() {
       setWishStatut('realise')
       setShowConfirmRealise(false)
       toast.success('Vœu marqué comme réalisé ! 🎉')
-      // Montrer directement la modal de notation
       setShowRating(true)
     } catch (err) {
       toast.error(err.message || 'Erreur')
+    }
+  }
+
+  // Maker → indique avoir réalisé le vœu
+  async function handleMakerMarkRealized() {
+    setActionLoading(true)
+    try {
+      const wishId = convData.wish_id || convData.wish?.id
+      await markRealizedByMaker(wishId)
+      setMarkedRealizedAt(new Date().toISOString())
+      setMarkedRealizedBy(userId)
+      toast.success('En attente de confirmation du Wisher')
+    } catch (err) {
+      toast.error(err.message || 'Erreur')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Wisher → confirme la réalisation
+  async function handleWisherConfirm() {
+    setActionLoading(true)
+    try {
+      const wishId = convData.wish_id || convData.wish?.id
+      await confirmRealization(wishId)
+      setWishStatut('realise')
+      setShowWisherConfirm(false)
+      toast.success('Vœu confirmé comme réalisé ! 🎉')
+      setShowRating(true)
+    } catch (err) {
+      toast.error(err.message || 'Erreur')
+    } finally {
+      setActionLoading(false)
     }
   }
 
@@ -442,16 +480,54 @@ export default function Chat() {
         </div>
       )}
 
-      {/* Bouton "Marquer comme réalisé" pour le Wisher */}
-      {isWisher && wishStatut === 'en_attente' && (
+      {/* MAKER : bouton "J'ai réalisé ce vœu" */}
+      {!isWisher && wishStatut !== 'realise' && wishStatut !== 'expire' && !markedRealizedAt && (
         <div className="bg-white px-4 py-3 border-b border-[#F0F0F0]">
           <button
-            onClick={() => setShowConfirmRealise(true)}
-            className="w-full h-11 rounded-full text-sm font-bold text-white"
+            onClick={handleMakerMarkRealized}
+            disabled={actionLoading}
+            className="w-full h-11 rounded-full text-sm font-bold text-white disabled:opacity-60"
             style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}
           >
-            Marquer comme réalisé
+            ✅ J'ai réalisé ce vœu
           </button>
+        </div>
+      )}
+
+      {/* MAKER : en attente de confirmation */}
+      {!isWisher && wishStatut !== 'realise' && markedRealizedAt && markedRealizedBy === userId && (
+        <div className="bg-[#FFF7ED] px-4 py-3 border-b border-[#FFEDD5] flex items-center justify-center gap-2">
+          <span className="text-base">⏳</span>
+          <span className="text-xs font-semibold text-[#EA580C]">
+            En attente de confirmation par le Wisher…
+          </span>
+        </div>
+      )}
+
+      {/* WISHER : bannière de confirmation */}
+      {isWisher && wishStatut !== 'realise' && markedRealizedAt && (
+        <div className="bg-[#EEF0FF] px-4 py-3 border-b border-[#E0E5FF]">
+          <p className="text-xs font-semibold text-[#1A1A2E] mb-2 text-center">
+            @{interlocuteur.pseudo || interlocuteur.prenom} indique avoir réalisé votre vœu.
+            Confirmez-vous ?
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleWisherConfirm}
+              disabled={actionLoading}
+              className="flex-1 h-10 rounded-full text-xs font-bold text-white disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}
+            >
+              ✓ Oui, confirmer
+            </button>
+            <button
+              onClick={() => setShowMenu(true)}
+              disabled={actionLoading}
+              className="flex-1 h-10 rounded-full text-xs font-bold text-[#EF4444] border border-[#EF4444] bg-white disabled:opacity-60"
+            >
+              ✕ Signaler un problème
+            </button>
+          </div>
         </div>
       )}
 

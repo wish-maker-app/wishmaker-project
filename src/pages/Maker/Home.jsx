@@ -15,6 +15,7 @@ import { useWishes } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
 import { fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
 import FavoriteButton from '../../components/ui/FavoriteButton'
+import { useFavorites } from '../../hooks/useFavorites'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import { useUserTagSubscriptions } from '../../hooks/useTags'
 import { getCached, setCached } from '../../lib/wishesCache'
@@ -404,6 +405,7 @@ export default function MakerHome() {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const [view, setView] = useState(searchParams.get('view') || 'liste')
+  const [favoritesMode, setFavoritesMode] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedWish, setSelectedWish] = useState(null)
   const [swipeIndex, setSwipeIndex] = useState(0)
@@ -414,6 +416,7 @@ export default function MakerHome() {
   const authTick = useAuthStore((s) => s.authTick)
   const { sortBy, maxDistance, selectedCategories } = useMakerStore()
   const { getAvailableWishes, loading } = useWishes()
+  const { favoriteIds } = useFavorites()
   const { tagIds: subscribedTagIds } = useUserTagSubscriptions()
   const isProMaker = profile?.type_compte === 'pro'
   const { createConversation, sendMessage } = useMessages()
@@ -513,9 +516,14 @@ export default function MakerHome() {
       )
     : categoryFiltered
 
-  const sponsored = filtered.filter((w) => w.is_sponsored || (w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now()))
-  const nonSponsored = [...filtered]
-    .filter((w) => !w.is_sponsored && !(w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now()))
+  // Filtre favoris : si actif, on garde uniquement les vœux que l'user a mis en favori
+  const afterFavorites = favoritesMode
+    ? filtered.filter((w) => favoriteIds.has(w.id))
+    : filtered
+
+  const sponsored = favoritesMode ? [] : afterFavorites.filter((w) => w.is_sponsored || (w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now()))
+  const nonSponsored = [...afterFavorites]
+    .filter((w) => favoritesMode || (!w.is_sponsored && !(w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now())))
     .sort((a, b) => {
       // Tri selon filtre actif
       if (sortBy === 'urgent') {
@@ -592,31 +600,48 @@ export default function MakerHome() {
 
       {/* Search bar + toggle — toujours au-dessus */}
       <div className="relative z-[500] px-4 pt-4 pb-2 flex-shrink-0 pointer-events-none">
-        {/* Search — désactivé en mode Swipe */}
-        <div className={`relative flex items-center mb-3 transition-opacity ${view === 'swipe' ? 'opacity-40 pointer-events-none' : 'pointer-events-auto'}`}>
-          <svg className="absolute left-4" width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <circle cx="11" cy="11" r="7" stroke="#8A8A9A" strokeWidth="2"/>
-            <path d="M21 21l-3.5-3.5" stroke="#8A8A9A" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={view === 'swipe' ? 'Recherche non disponible en mode Swipe' : 'Recherchez'}
-            disabled={view === 'swipe'}
-            className="w-full h-12 bg-white border border-[#E8E8E8] rounded-full pl-10 pr-12 text-sm text-[#1A1A2E] placeholder-[#B0B0B0] outline-none shadow-sm disabled:cursor-not-allowed"
-          />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <button className="relative p-1" onClick={() => navigate(`/maker/filters?from=${view}`)} disabled={view === 'swipe'}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M4 6h16M8 12h8M11 18h2" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              {(sortBy || maxDistance !== 100) && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
-                  {(sortBy ? 1 : 0) + (maxDistance !== 100 ? 1 : 0)}
-                </span>
-              )}
-            </button>
+        {/* Search + favoris — désactivé en mode Swipe */}
+        <div className={`flex items-center gap-2 mb-3 transition-opacity ${view === 'swipe' ? 'opacity-40 pointer-events-none' : 'pointer-events-auto'}`}>
+          {/* Barre de recherche avec filtre intégré */}
+          <div className="relative flex-1 flex items-center">
+            <svg className="absolute left-4" width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="11" cy="11" r="7" stroke="#8A8A9A" strokeWidth="2"/>
+              <path d="M21 21l-3.5-3.5" stroke="#8A8A9A" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={view === 'swipe' ? 'Recherche non disponible' : 'Recherchez'}
+              disabled={view === 'swipe'}
+              className="w-full h-12 bg-white border border-[#E8E8E8] rounded-full pl-10 pr-12 text-sm text-[#1A1A2E] placeholder-[#B0B0B0] outline-none shadow-sm disabled:cursor-not-allowed"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <button className="relative p-1" onClick={() => navigate(`/maker/filters?from=${view}`)} disabled={view === 'swipe'}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 6h16M8 12h8M11 18h2" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                {(sortBy || maxDistance !== 100) && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                    {(sortBy ? 1 : 0) + (maxDistance !== 100 ? 1 : 0)}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
+          {/* Bouton favoris séparé */}
+          <motion.button
+            onClick={() => setFavoritesMode((v) => !v)}
+            disabled={view === 'swipe'}
+            whileTap={{ scale: 1.1 }}
+            className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-all border border-[#E8E8E8] shadow-sm bg-white"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24"
+              fill={favoritesMode ? '#EF4444' : 'none'}
+              stroke={favoritesMode ? '#EF4444' : '#8A8A9A'}
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+          </motion.button>
         </div>
 
         {/* Toggle Liste / Carte / Swipe */}
@@ -747,9 +772,9 @@ export default function MakerHome() {
               </div>
             )}
 
-            {/* Section vœux trouvés */}
+            {/* Section vœux trouvés / favoris */}
             <h2 className="font-bold text-[#1A1A2E] text-base mb-3">
-              Vœux trouvés ({nonSponsored.length})
+              {favoritesMode ? 'Mes favoris' : 'Vœux trouvés'} ({nonSponsored.length})
             </h2>
 
             <AnimatePresence mode="popLayout">
@@ -780,6 +805,17 @@ export default function MakerHome() {
                   >
                     Réessayer
                   </button>
+                </motion.div>
+              ) : favoritesMode ? (
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="flex flex-col items-center justify-center py-20 gap-3 px-6 text-center"
+                >
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#E0E0E0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                  <p className="text-[#1A1A2E] font-bold text-sm">Aucun favori pour le moment</p>
+                  <p className="text-[#8A8A9A] text-xs max-w-[260px]">Appuyez sur ♡ sur un vœu pour l'ajouter à vos favoris</p>
                 </motion.div>
               ) : (
                 <motion.div

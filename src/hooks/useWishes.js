@@ -242,5 +242,52 @@ export function useWishes() {
     }
   }
 
-  return { loading, getMyWishes, getAvailableWishes, getWishesByUser, getWishById, createWish, updateWish, updateWishStatus, extendWish, makeUrgent, markWishRealized, submitRating, getUserRating, deleteWish }
+  // Étape 1 : le Maker indique avoir réalisé le vœu (en attente de confirmation Wisher)
+  async function markRealizedByMaker(wishId) {
+    const { error } = await supabase
+      .from('wishes')
+      .update({
+        marked_realized_at: new Date().toISOString(),
+        marked_realized_by: user.id,
+      })
+      .eq('id', wishId)
+    if (error) throw error
+  }
+
+  // Étape 2 : le Wisher confirme la réalisation → statut passe à 'realise'
+  async function confirmRealization(wishId) {
+    const { error } = await supabase
+      .from('wishes')
+      .update({ statut: 'realise' })
+      .eq('id', wishId)
+      .eq('wisher_id', user.id)
+    if (error) throw error
+
+    // Capture du paiement si Stripe
+    const { data: wish } = await supabase
+      .from('wishes')
+      .select('payment_intent_id, payment_status')
+      .eq('id', wishId)
+      .single()
+
+    if (wish?.payment_intent_id && wish.payment_status === 'authorized') {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        await fetch(`${supabaseUrl}/functions/v1/capture-payment`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ wish_id: wishId }),
+        })
+      } catch (err) {
+        console.error('[capture-payment]', err)
+      }
+    }
+  }
+
+  return { loading, getMyWishes, getAvailableWishes, getWishesByUser, getWishById, createWish, updateWish, updateWishStatus, extendWish, makeUrgent, markWishRealized, markRealizedByMaker, confirmRealization, submitRating, getUserRating, deleteWish }
 }

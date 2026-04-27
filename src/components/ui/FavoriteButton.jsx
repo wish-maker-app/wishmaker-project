@@ -50,8 +50,8 @@ export default function FavoriteButton({ wish, variant = 'overlay', size = 20 })
         width={size}
         height={size}
         viewBox="0 0 24 24"
-        fill={active ? '#EF4444' : 'none'}
-        stroke={active ? '#EF4444' : variant === 'overlay' ? '#FFFFFF' : '#1A1A2E'}
+        fill={active ? '#FFFFFF' : 'none'}
+        stroke="#FFFFFF"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
