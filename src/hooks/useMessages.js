@@ -8,61 +8,74 @@ export function useMessages(conversationId = null) {
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(false)
   const channelRef = useRef(null)
+  const mountedRef = useRef(true)
 
   // Charge les conversations de l'utilisateur
   async function loadConversations() {
     if (!user) return
     setLoading(true)
-    const { data, error } = await supabase
-      .from('conversations')
-      .select(`
-        *,
-        wish:wishes(id, titre, statut, type_recompense, montant_recompense, wish_images(url, is_cover)),
-        wisher:users!wisher_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
-        maker:users!maker_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
-        messages(contenu, created_at, is_read, sender_id)
-      `)
-      .or(`wisher_id.eq.${user.id},maker_id.eq.${user.id}`)
-      .order('created_at', { ascending: false })
-
-    setLoading(false)
-    if (error) throw error
-    setConversations(data || [])
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .select(`
+          *,
+          wish:wishes(id, titre, statut, type_recompense, montant_recompense, wish_images(url, is_cover)),
+          wisher:users!wisher_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
+          maker:users!maker_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
+          messages(contenu, created_at, is_read, sender_id)
+        `)
+        .or(`wisher_id.eq.${user.id},maker_id.eq.${user.id}`)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      setConversations(data || [])
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Charge les messages d'une conversation + Realtime
   async function loadMessages(convId) {
     if (!convId) return
     setLoading(true)
-    const { data, error } = await supabase
-      .from('messages')
-      .select(`*, sender:users!sender_id(id, prenom, nom, avatar_url)`)
-      .eq('conversation_id', convId)
-      .order('created_at', { ascending: true })
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select(`*, sender:users!sender_id(id, prenom, nom, avatar_url)`)
+        .eq('conversation_id', convId)
+        .order('created_at', { ascending: true })
+      if (error) throw error
+      setMessages(data || [])
 
-    setLoading(false)
-    if (error) throw error
-    setMessages(data || [])
+      // Marque les messages non lus comme lus (best-effort, on ne throw pas si ça rate)
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('conversation_id', convId)
+        .neq('sender_id', user?.id)
+        .eq('is_read', false)
 
-    // Marque les messages non lus comme lus
-    await supabase
-      .from('messages')
-      .update({ is_read: true })
-      .eq('conversation_id', convId)
-      .neq('sender_id', user?.id)
-      .eq('is_read', false)
+      // Cleanup ancien channel avant d'en créer un nouveau (évite le leak si on
+      // change de conversation sans démonter le composant)
+      if (channelRef.current) {
+        try { await channelRef.current.unsubscribe() } catch {}
+        channelRef.current = null
+      }
 
-    // Souscription Realtime
-    channelRef.current = supabase
-      .channel(`messages:${convId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` },
-        (payload) => {
-          setMessages((prev) => [...prev, payload.new])
-        }
-      )
-      .subscribe()
+      // Souscription Realtime — guard contre les updates sur composant unmounted
+      channelRef.current = supabase
+        .channel(`messages:${convId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` },
+          (payload) => {
+            if (!mountedRef.current) return
+            setMessages((prev) => [...prev, payload.new])
+          }
+        )
+        .subscribe()
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function sendMessage(convId, contenu) {
@@ -73,11 +86,6 @@ export function useMessages(conversationId = null) {
     if (error) throw error
   }
 
-  /**
-   * Supprime une conversation + tous ses messages (CASCADE en BDD).
-   * Seuls les participants (wisher ou maker) peuvent supprimer.
-   * Le delete est global : supprime pour les deux utilisateurs (pas de soft delete).
-   */
   async function deleteConversation(convId) {
     if (!convId) return { error: new Error('convId required') }
     const { error } = await supabase
@@ -85,21 +93,18 @@ export function useMessages(conversationId = null) {
       .delete()
       .eq('id', convId)
     if (!error) {
-      // Update local state pour feedback immédiat
       setConversations((prev) => prev.filter((c) => c.id !== convId))
     }
     return { error }
   }
 
   async function createConversation(wishId, wisherId) {
-    // Cherche si une conversation existe déjà
     const { data: existing } = await supabase
       .from('conversations')
       .select('id')
       .eq('wish_id', wishId)
       .eq('maker_id', user.id)
       .single()
-
     if (existing) return existing.id
 
     const { data, error } = await supabase
@@ -107,15 +112,19 @@ export function useMessages(conversationId = null) {
       .insert({ wish_id: wishId, wisher_id: wisherId, maker_id: user.id })
       .select()
       .single()
-
     if (error) throw error
     return data.id
   }
 
-  // Nettoyage Realtime
+  // Cleanup Realtime + flag mounted (évite warnings sur unmounted)
   useEffect(() => {
+    mountedRef.current = true
     return () => {
-      channelRef.current?.unsubscribe()
+      mountedRef.current = false
+      if (channelRef.current) {
+        try { channelRef.current.unsubscribe() } catch {}
+        channelRef.current = null
+      }
     }
   }, [])
 

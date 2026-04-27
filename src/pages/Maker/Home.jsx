@@ -433,8 +433,16 @@ export default function MakerHome() {
     return () => navigator.geolocation.clearWatch(watchId)
   }, [])
 
+  const [loadError, setLoadError] = useState(null)
   useEffect(() => {
-    getAvailableWishes().then(setWishes).catch(() => {})
+    setLoadError(null)
+    getAvailableWishes()
+      .then((w) => { setWishes(w); setLoadError(null) })
+      .catch((err) => {
+        console.error('[MakerHome] getAvailableWishes:', err)
+        setLoadError(err?.message || 'Erreur de chargement')
+        toast.error('Erreur de chargement des vœux')
+      })
   }, [authTick])
 
   // Position : géoloc temps réel > profil > fallback Toulouse
@@ -723,6 +731,22 @@ export default function MakerHome() {
                     />
                   ))}
                 </div>
+              ) : loadError ? (
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="flex flex-col items-center justify-center py-16 gap-3 px-6 text-center"
+                >
+                  <span className="text-3xl mb-1">⚠️</span>
+                  <p className="text-[#1A1A2E] font-bold text-sm">Erreur de chargement</p>
+                  <p className="text-[#8A8A9A] text-xs">Vérifie ta connexion et réessaie</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="mt-3 h-9 px-4 rounded-full text-white font-bold text-xs"
+                    style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+                  >
+                    Réessayer
+                  </button>
+                </motion.div>
               ) : (
                 <motion.div
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }}

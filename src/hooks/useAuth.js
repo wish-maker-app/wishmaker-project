@@ -12,53 +12,29 @@ export function useAuth() {
     // Sinon après un refresh, le store persisté peut montrer un user logué alors
     // que la session Supabase a expiré/disparu → queries retournent vide (RLS).
     ;(async () => {
-      console.log('[useAuth] mount — recuperation session…')
       const { data: { session } } = await supabase.auth.getSession()
-      console.log('[useAuth] session:', session ? 'OK user=' + session.user.id.slice(0, 8) : 'NONE')
 
       if (session?.user) {
         const expiresAt = (session.expires_at || 0) * 1000
-        const secondsLeft = Math.round((expiresAt - Date.now()) / 1000)
-        console.log('[useAuth] token expire dans', secondsLeft, 's')
-
+        // Si le token expire dans <5min, refresh anticipé pour éviter les
+        // queries ratées juste après le mount.
         if (expiresAt - Date.now() < 5 * 60 * 1000) {
-          console.log('[useAuth] token proche expiration, refresh force…')
           try {
-            const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession()
-            if (refreshErr) console.warn('[useAuth] refreshSession error:', refreshErr.message)
-            if (refreshed?.session?.user) {
-              console.log('[useAuth] refresh OK, nouveau expires_at=', refreshed.session.expires_at)
-              setUser(refreshed.session.user)
-            } else {
-              console.warn('[useAuth] refresh a echoue, on garde la session actuelle (peut-etre invalide)')
-              setUser(session.user)
-            }
-          } catch (e) {
-            console.error('[useAuth] refreshSession exception:', e)
+            const { data: refreshed } = await supabase.auth.refreshSession()
+            setUser(refreshed?.session?.user || session.user)
+          } catch {
             setUser(session.user)
           }
         } else {
           setUser(session.user)
         }
 
-        // Test diagnostic : query la BDD pour verifier que la session est valide
-        const { data: testData, error: testErr } = await supabase
-          .from('users').select('id').eq('id', session.user.id).maybeSingle()
-        if (testErr) {
-          console.error('[useAuth] test query a echoue:', testErr.message)
-        } else {
-          console.log('[useAuth] test query OK, session valide. profil trouve:', !!testData)
-        }
-
         await fetchProfile(session.user.id)
         bumpAuthTick()
-        console.log('[useAuth] authTick bumped — pages vont refetch')
-      } else {
-        if (useAuthStore.getState().user) {
-          console.warn('[useAuth] Session Supabase introuvable, reset du store')
-          logout()
-          navigate('/auth', { replace: true })
-        }
+      } else if (useAuthStore.getState().user) {
+        // Store dit "logué" mais Supabase n'a plus de session → reset
+        logout()
+        navigate('/auth', { replace: true })
       }
     })()
 

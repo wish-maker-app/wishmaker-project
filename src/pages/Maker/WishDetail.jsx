@@ -226,17 +226,71 @@ export default function WishDetail() {
   const imgScale = useTransform(scrollY, [0, HERO_H], [1, 1.12])
   const imgOpacity = useTransform(scrollY, [0, HERO_H * 0.6], [1, 0.6])
 
+  const [loadStatus, setLoadStatus] = useState('loading') // 'loading' | 'ok' | 'error' | 'not-found'
+
   useEffect(() => {
-    getWishById(id).then(setWish).catch(() => {})
+    setLoadStatus('loading')
+    getWishById(id)
+      .then((w) => {
+        if (!w) {
+          setLoadStatus('not-found')
+          return
+        }
+        setWish(w)
+        setLoadStatus('ok')
+      })
+      .catch((err) => {
+        console.error('[WishDetail]', err)
+        // Code Supabase PGRST116 = "ressource introuvable" via .single()
+        if (err?.code === 'PGRST116' || err?.message?.includes('not found')) {
+          setLoadStatus('not-found')
+        } else {
+          setLoadStatus('error')
+        }
+      })
   }, [id])
 
-  if (!wish) {
+  // ---- Fallbacks : pas de spinner infini ----
+  if (loadStatus === 'loading' && !wish) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-4 border-[#5B6BF5] border-t-transparent animate-spin" />
       </div>
     )
   }
+  if (loadStatus === 'not-found') {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <span className="text-5xl mb-2">🔎</span>
+        <h2 className="text-lg font-bold text-[#1A1A2E]">Vœu introuvable</h2>
+        <p className="text-sm text-[#8A8A9A] max-w-xs">Ce vœu a peut-être été supprimé ou n'existe plus.</p>
+        <button
+          onClick={() => navigate(-1)}
+          className="mt-4 h-11 px-6 rounded-full text-white font-bold text-sm"
+          style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+        >
+          Retour
+        </button>
+      </div>
+    )
+  }
+  if (loadStatus === 'error') {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <span className="text-5xl mb-2">⚠️</span>
+        <h2 className="text-lg font-bold text-[#1A1A2E]">Erreur de chargement</h2>
+        <p className="text-sm text-[#8A8A9A] max-w-xs">Une erreur est survenue. Vérifie ta connexion et réessaie.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 h-11 px-6 rounded-full text-white font-bold text-sm"
+          style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+        >
+          Réessayer
+        </button>
+      </div>
+    )
+  }
+  if (!wish) return null
 
   const userLat = profile?.latitude || 43.6047
   const userLng = profile?.longitude || 1.4442

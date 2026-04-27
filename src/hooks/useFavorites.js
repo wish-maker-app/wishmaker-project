@@ -76,6 +76,8 @@ export function useFavoriteWishes() {
   const [wishes, setWishes] = useState([])
   const [loading, setLoading] = useState(true)
 
+  const [error, setError] = useState(null)
+
   useEffect(() => {
     if (!userId) {
       setLoading(false)
@@ -83,6 +85,8 @@ export function useFavoriteWishes() {
     }
     let cancelled = false
     setLoading(true)
+    setError(null)
+
     supabase
       .from('wish_favorites')
       .select(`
@@ -96,22 +100,31 @@ export function useFavoriteWishes() {
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
+      .then(({ data, error: queryError }) => {
         if (cancelled) return
-        if (error) console.error('[favorites] fetch wishes error:', error)
-        const normalized = (data || [])
-          .filter((r) => r.wish && r.wish.statut === 'en_attente')
-          .map((r) => ({
-            ...r.wish,
-            tags: r.wish.wish_tags?.map((wt) => wt.tag) || [],
-            images: r.wish.wish_images?.map((wi) => ({ url: wi.url, is_cover: wi.is_cover })) || [],
-            favorited_at: r.created_at,
-          }))
-        setWishes(normalized)
-        setLoading(false)
+        if (queryError) {
+          console.error('[favorites] fetch wishes error:', queryError)
+          setError(queryError.message || 'Erreur de chargement des favoris')
+          setWishes([])
+        } else {
+          const normalized = (data || [])
+            .filter((r) => r.wish && r.wish.statut === 'en_attente')
+            .map((r) => ({
+              ...r.wish,
+              tags: r.wish.wish_tags?.map((wt) => wt.tag) || [],
+              images: r.wish.wish_images?.map((wi) => ({ url: wi.url, is_cover: wi.is_cover })) || [],
+              favorited_at: r.created_at,
+            }))
+          setWishes(normalized)
+        }
       })
+      .finally(() => {
+        // setLoading(false) TOUJOURS appelé, même en cas d'erreur ou rejection
+        if (!cancelled) setLoading(false)
+      })
+
     return () => { cancelled = true }
   }, [userId])
 
-  return { wishes, loading }
+  return { wishes, loading, error }
 }

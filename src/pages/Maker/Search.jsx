@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
+import toast from 'react-hot-toast'
 import Header from '../../components/layout/Header'
 import { useWishes } from '../../hooks/useWishes'
 import { formatLocation } from '../../lib/geo'
@@ -42,7 +43,12 @@ export default function Search() {
   const [history, setHistory] = useState(getHistory)
 
   useEffect(() => {
-    getAvailableWishes().then(setWishes).catch(() => {})
+    getAvailableWishes()
+      .then(setWishes)
+      .catch((err) => {
+        console.error('[Search]', err)
+        toast.error('Erreur de chargement')
+      })
   }, [])
 
   useEffect(() => {

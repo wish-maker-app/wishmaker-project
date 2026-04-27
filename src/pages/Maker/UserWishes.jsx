@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import toast from 'react-hot-toast'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
 import { useWishes } from '../../hooks/useWishes'
@@ -108,7 +109,12 @@ export default function UserWishes() {
   }, [])
 
   useEffect(() => {
-    getWishesByUser(userId).then(setWishes).catch(() => {})
+    getWishesByUser(userId)
+      .then(setWishes)
+      .catch((err) => {
+        console.error('[UserWishes]', err)
+        toast.error('Erreur de chargement des vœux')
+      })
     supabase.from('users').select('id, prenom, nom, pseudo, avatar_url, rating, rating_count, type_compte').eq('id', userId).single()
       .then(({ data }) => setUserData(data))
     supabase
