@@ -99,7 +99,7 @@ export default function Filters() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const fromView = searchParams.get('from') || 'liste'
-  const { categories, loaded } = useCatalog()
+  const { categories, loaded, loading, error: catalogError, reload: reloadCatalog } = useCatalog()
   const profile = useAuthStore((s) => s.profile)
   const {
     sortBy, setSortBy,
@@ -322,9 +322,20 @@ export default function Filters() {
             )}
           </div>
 
-          {!loaded ? (
+          {!loaded && loading ? (
             <div className="h-16 flex items-center justify-center">
               <div className="w-4 h-4 rounded-full border-2 border-[#5B6BF5] border-t-transparent animate-spin" />
+            </div>
+          ) : catalogError && categories.length === 0 ? (
+            <div className="rounded-2xl border border-[#FFE0E0] bg-[#FFF6F6] px-4 py-5 text-center">
+              <p className="text-sm font-bold text-[#1A1A2E] mb-1">⚠️ Erreur de chargement</p>
+              <p className="text-xs text-[#8A8A9A] mb-3">Impossible de charger les intentions</p>
+              <button
+                onClick={reloadCatalog}
+                className="text-xs font-semibold px-4 h-8 rounded-full bg-[#5B6BF5] text-white"
+              >
+                Réessayer
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2.5">

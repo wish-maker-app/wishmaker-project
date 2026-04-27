@@ -13,33 +13,43 @@ const useCatalogStore = create((set, get) => ({
   categoryTags: [],         // [{ category_id, tag_id, is_suggested_primary, sort_order }]
   loaded: false,
   loading: false,
+  error: null,
 
   loadCatalog: async () => {
     const state = get()
     if (state.loaded || state.loading) return
-    set({ loading: true })
+    set({ loading: true, error: null })
 
-    const [catsRes, tagsRes, ctRes] = await Promise.all([
-      supabase.from('categories').select('*').order('sort_order'),
-      supabase.from('tags').select('*').eq('is_active', true).order('label'),
-      supabase.from('category_tags').select('*').order('sort_order'),
-    ])
+    try {
+      const [catsRes, tagsRes, ctRes] = await Promise.all([
+        supabase.from('categories').select('*').order('sort_order'),
+        supabase.from('tags').select('*').eq('is_active', true).order('label'),
+        supabase.from('category_tags').select('*').order('sort_order'),
+      ])
 
-    if (catsRes.error) console.error('[catalog] cats error:', catsRes.error)
-    if (tagsRes.error) console.error('[catalog] tags error:', tagsRes.error)
-    if (ctRes.error) console.error('[catalog] category_tags error:', ctRes.error)
+      if (catsRes.error) throw catsRes.error
+      if (tagsRes.error) throw tagsRes.error
+      if (ctRes.error) throw ctRes.error
 
-    set({
-      categories: catsRes.data || [],
-      tags: tagsRes.data || [],
-      categoryTags: ctRes.data || [],
-      loaded: true,
-      loading: false,
-    })
+      set({
+        categories: catsRes.data || [],
+        tags: tagsRes.data || [],
+        categoryTags: ctRes.data || [],
+        loaded: true,
+        error: null,
+      })
+    } catch (err) {
+      console.error('[catalog] load error:', err)
+      // On NE bloque PAS le store sur loaded:false — on garde error pour
+      // permettre un retry. Sans ça, loading restait true à vie après un échec.
+      set({ error: err.message || 'Erreur de chargement', loaded: false })
+    } finally {
+      set({ loading: false })
+    }
   },
 
   reload: async () => {
-    set({ loaded: false, loading: false })
+    set({ loaded: false, loading: false, error: null })
     await get().loadCatalog()
   },
 }))
@@ -52,10 +62,14 @@ export function useCatalog() {
   const tags = useCatalogStore((s) => s.tags)
   const categoryTags = useCatalogStore((s) => s.categoryTags)
   const loaded = useCatalogStore((s) => s.loaded)
+  const loading = useCatalogStore((s) => s.loading)
+  const error = useCatalogStore((s) => s.error)
   const reload = useCatalogStore((s) => s.reload)
 
   useEffect(() => {
-    useCatalogStore.getState().loadCatalog()
+    // Si le store est en erreur ou pas encore chargé → on tente de charger
+    const s = useCatalogStore.getState()
+    if (!s.loaded && !s.loading) s.loadCatalog()
   }, [])
 
   // Map catégorie → tags (avec is_suggested_primary + sort_order pour tri)
@@ -77,7 +91,7 @@ export function useCatalog() {
     [tags, categoryTags]
   )
 
-  return { categories, tags, categoryTags, loaded, reload, getTagsForCategory }
+  return { categories, tags, categoryTags, loaded, loading, error, reload, getTagsForCategory }
 }
 
 /**
