@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase'
 import WishPackModal from '../../components/ui/WishPackModal'
 import PaymentForm from '../../components/ui/PaymentForm'
 import { applyPurchase } from '../../lib/stripe'
+import { getCached, setCached } from '../../lib/wishesCache'
 import lampeIcon from '../../assets/lampe.svg'
 
 const TABS = ['en_attente', 'realise', 'expire']
@@ -216,8 +217,9 @@ export default function WisherHome() {
   const authTick = useAuthStore((s) => s.authTick)
   const wishDurationHours = useConfigStore((s) => s.wish_duration_hours)
   const { getMyWishes, extendWish, makeUrgent, deleteWish } = useWishes()
-  const [wishes, setWishes] = useState([])
-  const [loading, setLoading] = useState(true)
+  // Hydratation depuis le cache (évite l'écran vide à chaque retour sur la page)
+  const [wishes, setWishes] = useState(() => getCached('my_wishes')?.value || [])
+  const [loading, setLoading] = useState(() => !getCached('my_wishes'))
   const [activeTab, setActiveTab] = useState('en_attente')
   const [modal, setModal] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
@@ -227,16 +229,43 @@ export default function WisherHome() {
 
   const [, setTick] = useState(0)
 
-  useEffect(() => {
+  const refetchWishes = useCallback(() => {
     getMyWishes()
-      .then((w) => { setWishes(w); setLoading(false) })
-      .catch(() => setLoading(false))
-    // Rafraîchir le profil pour avoir le quota à jour
+      .then((w) => {
+        setWishes(w)
+        setCached('my_wishes', w)
+        setLoading(false)
+      })
+      .catch((err) => {
+        console.error('[WisherHome] getMyWishes:', err)
+        setLoading(false)
+        // Pas de toast si on a déjà un cache (UX silencieuse)
+        if (!getCached('my_wishes')) toast.error('Erreur de chargement')
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    refetchWishes()
     if (user?.id) {
       supabase.from('users').select('*').eq('id', user.id).single()
         .then(({ data }) => { if (data) useAuthStore.getState().setProfile(data) })
     }
-  }, [authTick])
+  }, [authTick, refetchWishes])
+
+  // Refetch quand l'user revient sur l'onglet (focus / visibilité)
+  useEffect(() => {
+    function onFocus() { refetchWishes() }
+    function onVisibility() {
+      if (document.visibilityState === 'visible') refetchWishes()
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [refetchWishes])
 
   // Rafraîchir le compte à rebours toutes les minutes
   useEffect(() => {

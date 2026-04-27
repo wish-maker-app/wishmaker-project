@@ -17,6 +17,7 @@ import { fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
 import FavoriteButton from '../../components/ui/FavoriteButton'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import { useUserTagSubscriptions } from '../../hooks/useTags'
+import { getCached, setCached } from '../../lib/wishesCache'
 
 // Fix default marker icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -416,7 +417,8 @@ export default function MakerHome() {
   const { tagIds: subscribedTagIds } = useUserTagSubscriptions()
   const isProMaker = profile?.type_compte === 'pro'
   const { createConversation, sendMessage } = useMessages()
-  const [wishes, setWishes] = useState([])
+  // Hydratation depuis le cache → pas d'écran vide quand l'user revient sur la page
+  const [wishes, setWishes] = useState(() => getCached('available_wishes')?.value || [])
   const [userLocation, setUserLocation] = useState(null)
   const mapRef = useRef(null)
 
@@ -434,16 +436,48 @@ export default function MakerHome() {
   }, [])
 
   const [loadError, setLoadError] = useState(null)
-  useEffect(() => {
-    setLoadError(null)
+
+  const refetchWishes = useCallback(() => {
     getAvailableWishes()
-      .then((w) => { setWishes(w); setLoadError(null) })
+      .then((w) => {
+        setWishes(w)
+        setCached('available_wishes', w)
+        setLoadError(null)
+      })
       .catch((err) => {
         console.error('[MakerHome] getAvailableWishes:', err)
-        setLoadError(err?.message || 'Erreur de chargement')
-        toast.error('Erreur de chargement des vœux')
+        // Si on a déjà des wishes en cache → on les garde + toast non bloquant
+        // Si rien en cache → on affiche l'écran d'erreur
+        if (!getCached('available_wishes')) {
+          setLoadError(err?.message || 'Erreur de chargement')
+          toast.error('Erreur de chargement des vœux')
+        } else {
+          toast('Données peut-être désynchronisées', { icon: '⚠️' })
+        }
       })
-  }, [authTick])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    refetchWishes()
+  }, [authTick, refetchWishes])
+
+  // Refetch quand l'user revient sur l'onglet (focus / visibilité)
+  useEffect(() => {
+    function onFocus() {
+      // Refetch silencieux : on garde les données affichées pendant l'update
+      refetchWishes()
+    }
+    function onVisibility() {
+      if (document.visibilityState === 'visible') refetchWishes()
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [refetchWishes])
 
   // Position : géoloc temps réel > profil > fallback Toulouse
   const center = userLocation || [

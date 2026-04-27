@@ -220,8 +220,25 @@ export default function Inbox() {
   const { loadConversations, conversations, loading, deleteConversation } = useMessages()
 
   useEffect(() => {
-    loadConversations()
+    loadConversations().catch((err) => console.error('[Inbox]', err))
   }, [authTick])
+
+  // Refetch quand l'user revient sur l'onglet
+  useEffect(() => {
+    function onFocus() {
+      loadConversations().catch((err) => console.error('[Inbox refocus]', err))
+    }
+    function onVisibility() {
+      if (document.visibilityState === 'visible') onFocus()
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function confirmDelete() {
     if (!toDelete) return
