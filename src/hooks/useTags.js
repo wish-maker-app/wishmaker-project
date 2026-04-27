@@ -110,13 +110,19 @@ export function useUserTagSubscriptions() {
       return
     }
     setLoading(true)
-    const { data, error } = await supabase
-      .from('user_tag_subscriptions')
-      .select('tag_id')
-      .eq('user_id', userId)
-    if (error) console.error('[user_tag_sub] load error:', error)
-    setTagIds((data || []).map((r) => r.tag_id))
-    setLoading(false)
+    try {
+      const { data, error } = await supabase
+        .from('user_tag_subscriptions')
+        .select('tag_id')
+        .eq('user_id', userId)
+      if (error) {
+        console.error('[user_tag_sub] load error:', error)
+        return
+      }
+      setTagIds((data || []).map((r) => r.tag_id))
+    } finally {
+      setLoading(false)
+    }
   }, [userId])
 
   useEffect(() => { reload() }, [reload])

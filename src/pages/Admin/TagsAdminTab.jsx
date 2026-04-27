@@ -30,15 +30,20 @@ export default function TagsAdminTab() {
 
   async function loadAll() {
     setLoading(true)
-    const [tagsRes, catsRes, ctRes] = await Promise.all([
-      supabase.from('tags').select('*').order('label'),
-      supabase.from('categories').select('*').order('sort_order'),
-      supabase.from('category_tags').select('*'),
-    ])
-    setTags(tagsRes.data || [])
-    setCategories(catsRes.data || [])
-    setCategoryTags(ctRes.data || [])
-    setLoading(false)
+    try {
+      const [tagsRes, catsRes, ctRes] = await Promise.all([
+        supabase.from('tags').select('*').order('label'),
+        supabase.from('categories').select('*').order('sort_order'),
+        supabase.from('category_tags').select('*'),
+      ])
+      setTags(tagsRes.data || [])
+      setCategories(catsRes.data || [])
+      setCategoryTags(ctRes.data || [])
+    } catch (err) {
+      console.error('[TagsAdmin] loadAll:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { loadAll() }, [])
