@@ -137,8 +137,17 @@ export default function Reviews() {
   const [activeTab, setActiveTab] = useState('received')
   const [loading, setLoading] = useState(true)
 
+  const [error, setError] = useState(null)
+
   useEffect(() => {
-    if (!profile?.id) return
+    if (!profile?.id) {
+      setLoading(false)
+      return
+    }
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+
     Promise.all([
       supabase
         .from('ratings')
@@ -150,13 +159,28 @@ export default function Reviews() {
         .select('id, note, commentaire, created_at, to_user:users!ratings_to_user_fkey(id, prenom, nom, avatar_url)')
         .eq('from_user', profile.id)
         .order('created_at', { ascending: false }),
-    ]).then(([received, given]) => {
-      if (received.error) console.error('[Reviews] received error:', received.error)
-      if (given.error) console.error('[Reviews] given error:', given.error)
-      setReviewsReceived(received.data || [])
-      setReviewsGiven(given.data || [])
-      setLoading(false)
-    })
+    ])
+      .then(([received, given]) => {
+        if (cancelled) return
+        if (received.error) console.error('[Reviews] received error:', received.error)
+        if (given.error) console.error('[Reviews] given error:', given.error)
+        if (received.error && given.error) {
+          setError('Erreur de chargement des avis')
+        }
+        setReviewsReceived(received.data || [])
+        setReviewsGiven(given.data || [])
+      })
+      .catch((err) => {
+        if (cancelled) return
+        console.error('[Reviews] fatal:', err)
+        setError(err?.message || 'Erreur de chargement')
+      })
+      .finally(() => {
+        // setLoading(false) TOUJOURS, plus de spinner infini
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => { cancelled = true }
   }, [profile?.id])
 
   // Note moyenne arrondie au dixième
@@ -212,6 +236,19 @@ export default function Reviews() {
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-5 h-5 rounded-full border-[2px] border-[#5B6BF5] border-t-transparent animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-16 px-6 gap-3 text-center">
+            <span className="text-3xl mb-1">⚠️</span>
+            <p className="text-sm font-bold text-[#1A1A2E]">Erreur de chargement</p>
+            <p className="text-xs text-[#8A8A9A]">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-3 h-9 px-4 rounded-full text-white font-bold text-xs"
+              style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+            >
+              Réessayer
+            </button>
           </div>
         ) : (
           <AnimatePresence mode="wait">
