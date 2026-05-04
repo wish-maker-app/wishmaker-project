@@ -10,6 +10,7 @@ function normalizeWish(wish) {
     tag_ids: wish.wish_tag_links?.map((wtl) => wtl.tag_id) || [],
     images: wish.wish_images?.map((wi) => ({ url: wi.url, is_cover: wi.is_cover })) || [],
     wisher: wish.wisher || undefined,
+    category_slug: wish.category?.slug || null,
   }
 }
 
@@ -26,7 +27,7 @@ export function useWishes() {
     try {
       let query = supabase
         .from('wishes')
-        .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
+        .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
         .eq('wisher_id', user.id)
         .neq('statut', 'pending_payment')
         .order('created_at', { ascending: false })
@@ -44,7 +45,7 @@ export function useWishes() {
     try {
       const { data, error } = await supabase
         .from('wishes')
-        .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
+        .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
         .eq('statut', 'en_attente')
         .gte('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
@@ -60,7 +61,7 @@ export function useWishes() {
     try {
       const { data, error } = await supabase
         .from('wishes')
-        .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
+        .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
         .eq('wisher_id', userId)
         .eq('statut', 'en_attente')
         .order('created_at', { ascending: false })
@@ -76,7 +77,7 @@ export function useWishes() {
     try {
       const { data, error } = await supabase
         .from('wishes')
-        .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
+        .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
         .eq('id', id)
         .single()
       if (error) throw error

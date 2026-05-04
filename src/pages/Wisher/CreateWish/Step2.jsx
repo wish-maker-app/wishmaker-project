@@ -6,7 +6,9 @@ import toast from 'react-hot-toast'
 import Header from '../../../components/layout/Header'
 import Button from '../../../components/ui/Button'
 import CategoryBadge from '../../../components/ui/CategoryBadge'
+import CategoryFallback from '../../../components/ui/CategoryFallback'
 import useWishFormStore from '../../../store/wishFormStore'
+import { useCatalog } from '../../../hooks/useTags'
 import { prewarmModerationModel } from '../../../lib/moderationImage'
 
 function StepProgress({ current, total = 4 }) {
@@ -41,8 +43,10 @@ function StepProgress({ current, total = 4 }) {
 export default function Step2() {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { images, setImages } = useWishFormStore()
+  const { images, setImages, category_id } = useWishFormStore()
+  const { categories } = useCatalog()
   const inputRef = useRef()
+  const categorySlug = categories.find((c) => c.id === category_id)?.slug
 
   // Prewarm le modèle NSFW.js dès que l'user arrive sur Step2 → 1er upload instantané
   useEffect(() => { prewarmModerationModel() }, [])
@@ -111,11 +115,23 @@ export default function Step2() {
         className="flex-1 flex flex-col px-5 pt-2 pb-10 gap-5"
       >
         <p className="text-sm text-[#8A8A9A]">
-          Ajoutez au moins 1 photo (max 5). La première sera la photo principale.
+          Ajoutez jusqu'à 5 photos (optionnel). La première sera la photo principale.
         </p>
 
         {/* Grille de photos */}
         <div className="grid grid-cols-3 gap-3">
+          {/* Prévisualisation icône catégorie = ce qu'on verra si pas de photo */}
+          {images.length === 0 && categorySlug && (
+            <div className="relative aspect-square rounded-2xl overflow-hidden">
+              <CategoryFallback slug={categorySlug} iconSize={36} />
+              <div className="absolute bottom-1.5 inset-x-0 text-center">
+                <span className="text-[9px] font-medium text-white/80 bg-black/20 px-2 py-0.5 rounded-full">
+                  Aperçu sans photo
+                </span>
+              </div>
+            </div>
+          )}
+
           <AnimatePresence>
             {images.map((img) => (
               <motion.div
@@ -174,16 +190,8 @@ export default function Step2() {
         <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
 
         <div className="mt-auto flex flex-col gap-3">
-          <Button
-            onClick={() => {
-              if (images.length === 0) {
-                toast.error('Veuillez ajouter une image')
-                return
-              }
-              navigate('/wisher/create/3')
-            }}
-          >
-            {t('common.continuer')}
+          <Button onClick={() => navigate('/wisher/create/3')}>
+            {images.length === 0 ? 'Passer cette étape' : t('common.continuer')}
           </Button>
         </div>
       </motion.div>

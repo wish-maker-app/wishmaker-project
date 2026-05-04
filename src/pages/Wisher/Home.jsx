@@ -13,6 +13,7 @@ import PaymentForm from '../../components/ui/PaymentForm'
 import { applyPurchase } from '../../lib/stripe'
 import { getCached, setCached } from '../../lib/wishesCache'
 import lampeIcon from '../../assets/lampe.svg'
+import CategoryFallback from '../../components/ui/CategoryFallback'
 
 const TABS = ['en_attente', 'realise', 'expire']
 const TAB_LABELS = { en_attente: 'En attente', realise: 'Réalisé', expire: 'Expiré' }
@@ -79,6 +80,7 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const exp = expirationInfo(wish.expires_at)
   const isActive = wish.statut === 'en_attente' || wish.statut === 'en_cours'
+  const isExpired = wish.statut === 'expire' || wish.statut === 'annule' || (isActive && exp?.expired)
   const coverUrl = wish.images?.[0]?.url || null
 
   return (
@@ -126,6 +128,18 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
                   Modifier ce vœu
                 </button>
               )}
+              {isExpired && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onExtend(wish) }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#1A1A2E] hover:bg-[#F5F5F7] transition-colors"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="9" stroke="#1A1A2E" strokeWidth="1.8"/>
+                    <path d="M12 7v5l3 2" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Prolonger
+                </button>
+              )}
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(wish) }}
                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#EF4444] hover:bg-red-50 transition-colors"
@@ -141,18 +155,20 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
       </AnimatePresence>
 
       <div onClick={() => navigate(`/maker/wish/${wish.id}?owner=1`)} className="cursor-pointer">
-        {/* Photo de couverture */}
-        {coverUrl && (
-          <div className="relative h-[200px] bg-[#F0F0F5]">
+        {/* Photo de couverture ou fallback catégorie */}
+        <div className="relative h-[200px] bg-[#F0F0F5]">
+          {coverUrl ? (
             <img src={coverUrl} alt="" className="w-full h-full object-cover" />
-            {wish.is_urgent && (
-              <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-1 rounded-full"
-                style={{ background: '#FFF4E0', color: '#F59E0B' }}>
-                URGENT
-              </span>
-            )}
-          </div>
-        )}
+          ) : (
+            <CategoryFallback slug={wish.category_slug} iconSize={72} />
+          )}
+          {wish.is_urgent && (
+            <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-1 rounded-full"
+              style={{ background: '#FFF4E0', color: '#F59E0B' }}>
+              URGENT
+            </span>
+          )}
+        </div>
         <div className="p-4">
           <h3 className="font-bold text-[#1A1A2E] text-base leading-snug mb-1">{wish.titre}</h3>
           <p className="text-[#8A8A9A] text-xs leading-relaxed line-clamp-2 mb-3">{wish.description}</p>
@@ -390,14 +406,31 @@ export default function WisherHome() {
               </button>
             )
           }
-          return (
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#EEF0FF]">
-                <span className="text-[12px]">✨</span>
-                <span className="text-[12px] font-bold text-[#5B6BF5]">{totalRemaining}</span>
-              </div>
-            </div>
-          )
+          {
+            const totalCapacity = 3 + packSlots
+            const used = totalCapacity - totalRemaining
+            const pct = Math.max(0, Math.min(100, (used / totalCapacity) * 100))
+            return (
+              <button
+                onClick={() => setShowPackModal(true)}
+                className="flex flex-col items-end gap-1 active:scale-95 transition-transform"
+              >
+                <span className="text-[11px] font-semibold flex items-center gap-1">
+                  <span className="text-[#8A8A9A] font-medium">vœu</span>
+                  <span className="text-[#5B6BF5]">{used}/{totalCapacity}</span>
+                </span>
+                <div className="w-20 h-1.5 rounded-full bg-[#EEF0FF] overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${pct}%`,
+                      background: 'linear-gradient(90deg,#5B6BF5,#9B59F5)',
+                    }}
+                  />
+                </div>
+              </button>
+            )
+          }
         })()}
       </div>
 

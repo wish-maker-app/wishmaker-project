@@ -6,6 +6,7 @@ import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
 import { useWishes } from '../../hooks/useWishes'
 import { supabase } from '../../lib/supabase'
+import CategoryFallback from '../../components/ui/CategoryFallback'
 
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000
@@ -57,7 +58,7 @@ function WishGridCard({ wish, userLat, userLng, onClick }) {
         {coverUrl ? (
           <img src={coverUrl} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }} />
+          <CategoryFallback slug={wish.category_slug} iconSize={56} />
         )}
         {/* Avatar + prénom en overlay */}
         {wish.wisher && (

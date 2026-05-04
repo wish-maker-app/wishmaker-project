@@ -16,6 +16,7 @@ import { useMessages } from '../../hooks/useMessages'
 import { fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
 import FavoriteButton from '../../components/ui/FavoriteButton'
 import { useFavorites } from '../../hooks/useFavorites'
+import CategoryFallback from '../../components/ui/CategoryFallback'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import { useUserTagSubscriptions } from '../../hooks/useTags'
 import { getCached, setCached } from '../../lib/wishesCache'
@@ -147,7 +148,7 @@ function WishGridCard({ wish, onClick, userLat, userLng }) {
         {coverUrl ? (
           <img src={coverUrl} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }} />
+          <CategoryFallback slug={wish.category_slug} iconSize={56} />
         )}
         {/* Avatar + prénom en overlay */}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full pr-2.5 pl-0.5 py-0.5">
@@ -199,7 +200,7 @@ function SponsoredCard({ wish, onClick, userLat, userLng }) {
         {coverUrl ? (
           <img src={coverUrl} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }} />
+          <CategoryFallback slug={wish.category_slug} iconSize={42} />
         )}
         {/* Capsule avatar + pseudo (identique aux autres cards) */}
         <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/30 backdrop-blur-sm rounded-full pr-2 pl-0.5 py-0.5 max-w-[calc(100%-12px)]">
@@ -255,7 +256,7 @@ function WishPreviewCard({ wish, userLat, userLng, onViewMore, onMessage }) {
         {coverUrl ? (
           <img src={coverUrl} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }} />
+          <CategoryFallback slug={wish.category_slug} iconSize={42} />
         )}
       </div>
 
@@ -348,7 +349,7 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
         {coverUrl ? (
           <img src={coverUrl} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full" style={{ background: 'linear-gradient(160deg,#5B6BF5 0%,#9B59F5 100%)' }} />
+          <CategoryFallback slug={wish.category_slug} iconSize={64} />
         )}
         {/* Avatar + prénom en overlay (même pastille que la vue Liste) */}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full pr-2.5 pl-0.5 py-0.5">

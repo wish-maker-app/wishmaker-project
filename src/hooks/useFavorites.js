@@ -95,6 +95,7 @@ export function useFavoriteWishes() {
           *,
           wish_images(url, is_cover),
           wish_tags(tag),
+          category:categories(slug),
           wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)
         )
       `)
@@ -113,6 +114,7 @@ export function useFavoriteWishes() {
               ...r.wish,
               tags: r.wish.wish_tags?.map((wt) => wt.tag) || [],
               images: r.wish.wish_images?.map((wi) => ({ url: wi.url, is_cover: wi.is_cover })) || [],
+              category_slug: r.wish.category?.slug || null,
               favorited_at: r.created_at,
             }))
           setWishes(normalized)

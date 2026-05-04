@@ -16,6 +16,7 @@ import { useWishes } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
 import { formatLocation, fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
 import FavoriteButton from '../../components/ui/FavoriteButton'
+import CategoryFallback from '../../components/ui/CategoryFallback'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -351,8 +352,9 @@ export default function WishDetail() {
             }} />
           </motion.div>
         ) : (
-          <div className="relative h-full"
-            style={{ background: 'linear-gradient(160deg,#5B6BF5 0%,#9B59F5 100%)' }} />
+          <div className="relative h-full">
+            <CategoryFallback slug={wish.category_slug} iconSize={96} />
+          </div>
         )}
         <Header transparent onBack={() => {
             const fromView = searchParams.get('from')

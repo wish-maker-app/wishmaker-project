@@ -114,7 +114,6 @@ export default function EditWish() {
   async function handleSave() {
     if (titre.length < 5) { toast.error('Titre min. 5 caractères'); return }
     if (description.length < 10) { toast.error('Description min. 10 caractères'); return }
-    if (totalImages === 0) { toast.error('Ajoutez au moins une photo'); return }
 
     const [titreCheck, descCheck] = await Promise.all([checkContent(titre), checkContent(description)])
     if (!titreCheck.isClean || !descCheck.isClean) {

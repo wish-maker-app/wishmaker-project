@@ -7,6 +7,7 @@ import useAuthStore from '../../store/authStore'
 import { useFavoriteWishes } from '../../hooks/useFavorites'
 import { formatLocation } from '../../lib/geo'
 import { formatDistance, getDistance } from '../../lib/utils'
+import CategoryFallback from '../../components/ui/CategoryFallback'
 
 function timeAgo(iso) {
   if (!iso) return ''
@@ -53,7 +54,7 @@ function FavoriteCard({ wish, onClick, userLat, userLng, index }) {
         {coverUrl ? (
           <img src={coverUrl} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#E8EAFF,#D5C8FF)' }} />
+          <CategoryFallback slug={wish.category_slug} iconSize={56} />
         )}
         {/* Pastille avatar + prénom */}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full pr-2.5 pl-0.5 py-0.5">
