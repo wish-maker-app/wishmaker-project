@@ -1,4 +1,4 @@
-// Wish Maker v1.6
+// Wish Maker v1.7
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
