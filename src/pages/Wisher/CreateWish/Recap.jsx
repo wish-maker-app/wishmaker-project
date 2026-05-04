@@ -10,6 +10,8 @@ import { checkContent } from '../../../lib/moderation'
 import { formatLocation } from '../../../lib/geo'
 import { supabase } from '../../../lib/supabase'
 import PaymentForm from '../../../components/ui/PaymentForm'
+import CategoryFallback from '../../../components/ui/CategoryFallback'
+import { useCatalog } from '../../../hooks/useTags'
 
 const HERO_H = 200
 
@@ -39,6 +41,8 @@ export default function Recap() {
 
   const cover = images.find((img) => img.is_cover) || images[0]
   const initials = profile ? `${profile.prenom?.[0] || ''}${profile.nom?.[0] || ''}` : '?'
+  const { categories } = useCatalog()
+  const categorySlug = categories.find((c) => c.id === category_id)?.slug
 
   const scrollRef = useRef(null)
   const { scrollY } = useScroll({ container: scrollRef })
@@ -167,10 +171,11 @@ export default function Recap() {
             )}
           </motion.div>
         ) : (
-          <div className="relative h-full" style={{ background: 'linear-gradient(160deg,#5B6BF5 0%,#9B59F5 100%)' }}>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-5xl">✨</span>
-            </div>
+          <div className="relative h-full overflow-hidden">
+            <CategoryFallback slug={categorySlug} iconSize={72} />
+            <div className="absolute inset-0" style={{
+              background: 'linear-gradient(to top, rgba(0,0,0,0.30) 0%, transparent 50%)',
+            }} />
           </div>
         )}
 

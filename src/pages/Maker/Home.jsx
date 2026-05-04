@@ -20,6 +20,7 @@ import CategoryFallback from '../../components/ui/CategoryFallback'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import { useUserTagSubscriptions } from '../../hooks/useTags'
 import { getCached, setCached } from '../../lib/wishesCache'
+import { CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR, getCategorySvgHtml } from '../../lib/categoryIcons'
 
 // Fix default marker icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -31,13 +32,17 @@ L.Icon.Default.mergeOptions({
 
 function createWishMarker(wish) {
   const cover = wish.images?.find((img) => img.is_cover) || wish.images?.[0]
-  const initials = `${wish.wisher?.prenom?.[0] || ''}${wish.wisher?.nom?.[0] || ''}`
   const rating = wish.wisher?.rating
 
-  // Si une photo existe → on l'affiche, sinon fallback initiales (gradient or)
-  const visual = cover?.url
-    ? `<div style="width:48px;height:48px;border-radius:12px;background:#F5F5F7 center/cover no-repeat url('${cover.url}');border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.15);"></div>`
-    : `<div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#F5C542,#E8A820);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:14px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.15);">${initials}</div>`
+  // Si une photo existe → on l'affiche, sinon fallback icône catégorie sur gradient signature
+  let visual
+  if (cover?.url) {
+    visual = `<div style="width:48px;height:48px;border-radius:12px;background:#F5F5F7 center/cover no-repeat url('${cover.url}');border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.15);"></div>`
+  } else {
+    const theme = (wish.category_slug && CATEGORY_COLORS[wish.category_slug]) || DEFAULT_CATEGORY_COLOR
+    const iconHtml = getCategorySvgHtml(wish.category_slug, { size: 26 })
+    visual = `<div style="width:48px;height:48px;border-radius:12px;background:${theme.grad};display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.15);">${iconHtml}</div>`
+  }
 
   return L.divIcon({
     className: '',
