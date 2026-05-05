@@ -488,26 +488,6 @@ export default function MakerHome() {
     }
   }, [refetchWishes])
 
-  // Realtime : nouveau wish publié / modifié / supprimé → refetch silencieux
-  useEffect(() => {
-    const channel = supabase
-      .channel('maker-wishes-feed')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'wishes' },
-        () => { refetchWishes() }
-      )
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [refetchWishes])
-
-  // Polling fallback toutes les 30s (au cas où Realtime drop)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') refetchWishes()
-    }, 30000)
-    return () => clearInterval(interval)
-  }, [refetchWishes])
-
   // Position : géoloc temps réel > profil > fallback Toulouse
   const center = userLocation || [
     profile?.latitude || 43.6047,
