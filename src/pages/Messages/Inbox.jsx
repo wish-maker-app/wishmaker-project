@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
 import { useMessages } from '../../hooks/useMessages'
+import { supabase } from '../../lib/supabase'
 
 const SWIPE_REVEAL = 80  // px que le bouton occupe quand révélé
 const SWIPE_THRESHOLD = 50  // px minimum à draguer pour snap ouvert
@@ -223,7 +224,47 @@ export default function Inbox() {
     loadConversations().catch((err) => console.error('[Inbox]', err))
   }, [authTick])
 
-  // Refetch quand l'user revient sur l'onglet
+  // Realtime : nouveau message dans n'importe quelle conv → refetch silencieux
+  // pour mettre à jour le compteur "non lus" et le dernier aperçu
+  useEffect(() => {
+    if (!userId) return
+    const channel = supabase
+      .channel('inbox-messages')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        () => {
+          loadConversations().catch(() => {})
+        }
+      )
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'conversations' },
+        () => {
+          loadConversations().catch(() => {})
+        }
+      )
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        () => {
+          loadConversations().catch(() => {})
+        }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
+
+  // Polling fallback toutes les 30s (au cas où Realtime drop)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadConversations().catch(() => {})
+      }
+    }, 30000)
+    return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Refetch quand l'user revient sur l'onglet (focus / visibility)
   useEffect(() => {
     function onFocus() {
       loadConversations().catch((err) => console.error('[Inbox refocus]', err))
