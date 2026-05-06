@@ -240,6 +240,16 @@
         "min_required": "At least 1 required",
         "btn_terminer": "Finish"
       },
+      "keywords": {
+        "header": "Keywords",
+        "intro": "Pick 1 to {{max}} keywords to describe your wish",
+        "search_ph": "Search a keyword…",
+        "aucun": "No keyword matches",
+        "compteur": "{{n}} / {{max}} selected",
+        "min_required": "At least 1 required",
+        "max_atteint": "{{max}} maximum",
+        "btn_terminer": "Finish"
+      },
       "recap": {
         "label": "Recap",
         "titre_default": "Wish title",

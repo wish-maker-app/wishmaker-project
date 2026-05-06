@@ -7,7 +7,6 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import Header from '../../../components/layout/Header'
 import Button from '../../../components/ui/Button'
-import CategoryBadge from '../../../components/ui/CategoryBadge'
 import Input from '../../../components/ui/Input'
 import useWishFormStore from '../../../store/wishFormStore'
 import { checkContent } from '../../../lib/moderation'
@@ -97,9 +96,8 @@ export default function Step1() {
 
   return (
     <div className="h-screen bg-white flex flex-col">
-      <Header title={t('wisher.create.step1_titre')} onBack={() => navigate('/wisher/create')} />
+      <Header title={t('wisher.create.step1_titre')} onBack={() => navigate('/wisher')} />
       <StepProgress current={1} />
-      <CategoryBadge />
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}

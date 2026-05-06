@@ -1,14 +1,14 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import Header from '../../../components/layout/Header'
 import Button from '../../../components/ui/Button'
-import CategoryBadge from '../../../components/ui/CategoryBadge'
+import KeywordPicker from '../../../components/ui/KeywordPicker'
 import useWishFormStore from '../../../store/wishFormStore'
 import { useCatalog } from '../../../hooks/useTags'
 
-const MAX_TAGS = 3
+const MAX_KEYWORDS = 5
 
 function StepProgress({ current, total = 4 }) {
   return (
@@ -37,57 +37,44 @@ function StepProgress({ current, total = 4 }) {
   )
 }
 
+/**
+ * Dérive la catégorie principale d'un vœu à partir du PREMIER mot-clé sélectionné.
+ *
+ * Règle : on prend la category_tags row où is_suggested_primary=true en
+ * priorité, sinon la première trouvée. Sert uniquement pour le visuel
+ * (couleur du marker carte + fallback photo) — l'user ne voit pas la
+ * catégorie. C'est le remplacement de l'ancien CategoryChoice.
+ */
+function deriveCategory(tagIds, categoryTags) {
+  const firstTagId = tagIds[0]
+  if (!firstTagId) return null
+  const candidates = categoryTags.filter((ct) => ct.tag_id === firstTagId)
+  if (candidates.length === 0) return null
+  const primary = candidates.find((c) => c.is_suggested_primary)
+  return (primary || candidates[0]).category_id
+}
+
 export default function Step4() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const {
-    category_id: categoryId,
     tag_ids: savedTagIds,
     setCategoryAndTags,
   } = useWishFormStore()
-  const { categories, getTagsForCategory, loaded } = useCatalog()
+  const { tags, categoryTags, loaded } = useCatalog()
 
   const [selectedTagIds, setSelectedTagIds] = useState(savedTagIds || [])
-  const [search, setSearch] = useState('')
-
-  // Safety : si l'utilisateur atterrit ici sans catégorie (lien direct ou refresh),
-  // on le renvoie gentiment au choix de catégorie.
-  useEffect(() => {
-    if (loaded && !categoryId) {
-      navigate('/wisher/create', { replace: true })
-    }
-  }, [loaded, categoryId, navigate])
-
-  const currentCategory = useMemo(
-    () => categories.find((c) => c.id === categoryId),
-    [categories, categoryId]
-  )
-
-  const availableTags = useMemo(
-    () => (categoryId ? getTagsForCategory(categoryId) : []),
-    [categoryId, getTagsForCategory]
-  )
-
-  const filteredTags = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return availableTags
-    return availableTags.filter((tag) => tag.label.toLowerCase().includes(q))
-  }, [availableTags, search])
-
-  function toggleTag(tagId) {
-    setSelectedTagIds((prev) => {
-      if (prev.includes(tagId)) return prev.filter((id) => id !== tagId)
-      if (prev.length >= MAX_TAGS) return prev
-      return [...prev, tagId]
-    })
-  }
 
   function handleContinue() {
-    const tagLabels = availableTags
-      .filter((tg) => selectedTagIds.includes(tg.id))
-      .map((tg) => tg.label)
+    if (selectedTagIds.length === 0) return
+    // Catégorie dérivée du premier mot-clé (invisible pour l'user, sert juste au visuel)
+    const derivedCategoryId = deriveCategory(selectedTagIds, categoryTags)
+    // Labels des tags sélectionnés (rétrocompat avec l'ancien champ tags string[])
+    const tagsById = new Map(tags.map((t) => [t.id, t]))
+    const tagLabels = selectedTagIds.map((id) => tagsById.get(id)?.label).filter(Boolean)
+
     setCategoryAndTags({
-      category_id: categoryId,
+      category_id: derivedCategoryId,
       tag_ids: selectedTagIds,
       tags: tagLabels,
     })
@@ -98,11 +85,10 @@ export default function Step4() {
 
   return (
     <div className="h-screen bg-white flex flex-col">
-      <Header title={t('wisher.create.step4.header')} onBack={() => navigate('/wisher/create/3')} />
+      <Header title={t('wisher.create.keywords.header')} onBack={() => navigate('/wisher/create/3')} />
       <StepProgress current={4} />
-      <CategoryBadge />
 
-      {!loaded || !currentCategory ? (
+      {!loaded ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="w-5 h-5 rounded-full border-[2px] border-[#5B6BF5] border-t-transparent animate-spin" />
         </div>
@@ -112,62 +98,22 @@ export default function Step4() {
           animate={{ opacity: 1, y: 0 }}
           className="flex-1 flex flex-col px-5 pb-10"
         >
-          <p className="text-sm text-[#8A8A9A] mb-3">
-            {t('wisher.create.step4.intro', { n: MAX_TAGS })}
+          <p className="text-sm text-[#8A8A9A] mb-4">
+            {t('wisher.create.keywords.intro', { max: MAX_KEYWORDS })}
           </p>
 
-          <div className="relative mb-3">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('wisher.create.step4.search_ph')}
-              className="w-full h-11 bg-[#F5F5F7] rounded-full pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-[#5B6BF5]/20"
-            />
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A9A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-            </svg>
-          </div>
-
           <div className="flex-1 overflow-y-auto -mx-1 px-1">
-            <div className="flex flex-wrap gap-2 pb-4">
-              {filteredTags.length === 0 && (
-                <p className="text-sm text-[#8A8A9A] text-center w-full py-8">
-                  {t('wisher.create.step4.aucun_match')}
-                </p>
-              )}
-              {filteredTags.map((tag) => {
-                const active = selectedTagIds.includes(tag.id)
-                const locked = !active && selectedTagIds.length >= MAX_TAGS
-                return (
-                  <motion.button
-                    key={tag.id}
-                    whileTap={{ scale: 0.94 }}
-                    onClick={() => toggleTag(tag.id)}
-                    disabled={locked}
-                    className="h-9 px-4 rounded-full text-[13px] font-semibold border transition-colors disabled:opacity-40"
-                    style={active
-                      ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', borderColor: 'transparent', color: '#fff' }
-                      : { background: '#fff', borderColor: '#E8E8E8', color: '#1A1A2E' }
-                    }
-                  >
-                    {tag.label}
-                  </motion.button>
-                )
-              })}
-            </div>
+            <KeywordPicker
+              value={selectedTagIds}
+              onChange={setSelectedTagIds}
+              max={MAX_KEYWORDS}
+              autoFocus
+            />
           </div>
 
-          <div className="flex flex-col gap-2 pt-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[#8A8A9A]">
-                {t('wisher.create.step4.compteur', { n: selectedTagIds.length, max: MAX_TAGS })}
-              </span>
-              {selectedTagIds.length === 0 && (
-                <span className="text-[#F59E0B] font-medium">{t('wisher.create.step4.min_required')}</span>
-              )}
-            </div>
+          <div className="pt-2">
             <Button onClick={handleContinue} disabled={!canContinue}>
-              {t('wisher.create.step4.btn_terminer')}
+              {t('wisher.create.keywords.btn_terminer')}
             </Button>
           </div>
         </motion.div>

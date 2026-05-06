@@ -240,6 +240,16 @@
         "min_required": "Au moins 1 requise",
         "btn_terminer": "Terminer"
       },
+      "keywords": {
+        "header": "Mots-clés",
+        "intro": "Choisis 1 à {{max}} mots-clés pour décrire ton vœu",
+        "search_ph": "Rechercher un mot-clé…",
+        "aucun": "Aucun mot-clé ne correspond",
+        "compteur": "{{n}} / {{max}} sélectionné",
+        "min_required": "Au moins 1 requis",
+        "max_atteint": "{{max}} maximum",
+        "btn_terminer": "Terminer"
+      },
       "recap": {
         "label": "Récap",
         "titre_default": "Titre du vœu",

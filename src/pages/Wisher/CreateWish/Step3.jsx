@@ -8,7 +8,6 @@ import 'leaflet/dist/leaflet.css'
 import toast from 'react-hot-toast'
 import Header from '../../../components/layout/Header'
 import Button from '../../../components/ui/Button'
-import CategoryBadge from '../../../components/ui/CategoryBadge'
 import useWishFormStore from '../../../store/wishFormStore'
 import useOnboardingStore from '../../../store/onboardingStore'
 import { parseNominatim, formatLocation } from '../../../lib/geo'
@@ -208,7 +207,6 @@ export default function Step3() {
     <div className="h-screen bg-white flex flex-col">
       <Header title={t('wisher.create.step3_titre')} onBack={() => navigate('/wisher/create/2')} />
       <StepProgress current={3} />
-      <CategoryBadge />
 
       {/* Info */}
       <p className="px-5 pb-3 text-xs text-[#8A8A9A]">

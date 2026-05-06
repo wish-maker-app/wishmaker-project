@@ -4,10 +4,9 @@ import { motion } from 'framer-motion'
 import { MapContainer, TileLayer, Circle, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import Header from '../../components/layout/Header'
+import KeywordPicker from '../../components/ui/KeywordPicker'
 import useMakerStore from '../../store/makerStore'
 import useAuthStore from '../../store/authStore'
-import { useCatalog } from '../../hooks/useTags'
-import { CATEGORY_ICONS, CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from '../../lib/categoryIcons'
 
 // Icônes SVG trait pour les options de tri (cohérent avec l'iconographie du produit)
 const IconZap = ({ size = 18 }) => (
@@ -99,12 +98,11 @@ export default function Filters() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const fromView = searchParams.get('from') || 'liste'
-  const { categories, loaded, loading, error: catalogError, reload: reloadCatalog } = useCatalog()
   const profile = useAuthStore((s) => s.profile)
   const {
     sortBy, setSortBy,
     maxDistance, setMaxDistance,
-    selectedCategories, setSelectedCategories,
+    selectedTagIds, setSelectedTagIds,
     resetFilters,
   } = useMakerStore()
 
@@ -114,14 +112,6 @@ export default function Filters() {
     : [43.6047, 1.4442]
   const cityLabel = profile?.ville || 'Ma position'
 
-  function toggleCategory(id) {
-    if (selectedCategories.includes(id)) {
-      setSelectedCategories(selectedCategories.filter((c) => c !== id))
-    } else {
-      setSelectedCategories([...selectedCategories, id])
-    }
-  }
-
   function handleApply() {
     navigate(`/maker?view=${fromView}`, { replace: true })
   }
@@ -129,7 +119,7 @@ export default function Filters() {
   const activeCount =
     (sortBy ? 1 : 0) +
     (maxDistance !== 100 ? 1 : 0) +
-    (selectedCategories.length > 0 ? 1 : 0)
+    (selectedTagIds.length > 0 ? 1 : 0)
 
   return (
     <div className="h-screen bg-white flex flex-col relative">
@@ -311,88 +301,22 @@ export default function Filters() {
           </div>
         </section>
 
-        {/* ─────────── Section 3 : Intentions ─────────── */}
+        {/* ─────────── Section 3 : Mots-clés (Leboncoin style) ─────────── */}
         <section>
           <div className="flex items-baseline justify-between mb-3">
-            <h2 className="text-[15px] font-bold text-[#1A1A2E] tracking-[-0.01em]">Intentions</h2>
-            {selectedCategories.length > 0 && (
-              <button onClick={() => setSelectedCategories([])} className="text-xs font-semibold text-[#8A8A9A]">
-                Effacer ({selectedCategories.length})
+            <h2 className="text-[15px] font-bold text-[#1A1A2E] tracking-[-0.01em]">Mots-clés</h2>
+            {selectedTagIds.length > 0 && (
+              <button onClick={() => setSelectedTagIds([])} className="text-xs font-semibold text-[#8A8A9A]">
+                Effacer ({selectedTagIds.length})
               </button>
             )}
           </div>
 
-          {!loaded && loading ? (
-            <div className="h-16 flex items-center justify-center">
-              <div className="w-4 h-4 rounded-full border-2 border-[#5B6BF5] border-t-transparent animate-spin" />
-            </div>
-          ) : catalogError && categories.length === 0 ? (
-            <div className="rounded-2xl border border-[#FFE0E0] bg-[#FFF6F6] px-4 py-5 text-center">
-              <p className="text-sm font-bold text-[#1A1A2E] mb-1">⚠️ Erreur de chargement</p>
-              <p className="text-xs text-[#8A8A9A] mb-3">Impossible de charger les intentions</p>
-              <button
-                onClick={reloadCatalog}
-                className="text-xs font-semibold px-4 h-8 rounded-full bg-[#5B6BF5] text-white"
-              >
-                Réessayer
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2.5">
-              {categories.map((cat, i) => {
-                const active = selectedCategories.includes(cat.id)
-                const Icon = CATEGORY_ICONS[cat.slug]
-                const theme = CATEGORY_COLORS[cat.slug] || DEFAULT_CATEGORY_COLOR
-
-                return (
-                  <motion.button
-                    key={cat.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.03, duration: 0.22 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => toggleCategory(cat.id)}
-                    aria-pressed={active}
-                    className="relative rounded-2xl flex items-center gap-2.5 text-left overflow-hidden"
-                    style={{
-                      padding: '12px 14px',
-                      border: `1.5px solid ${active ? theme.hue : '#EEEEF2'}`,
-                      background: active ? theme.tint : '#FFFFFF',
-                      boxShadow: active ? `0 4px 14px ${theme.hue}22` : 'none',
-                      transition: 'all 0.22s cubic-bezier(0.25,0.1,0.25,1)',
-                    }}
-                  >
-                    {Icon && (
-                      <span
-                        className="flex items-center justify-center flex-shrink-0"
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 10,
-                          background: active ? theme.grad : theme.tint,
-                          color: active ? '#fff' : theme.hue,
-                          transition: 'all 0.22s',
-                          boxShadow: active ? `0 2px 8px ${theme.hue}44` : 'none',
-                        }}
-                      >
-                        <Icon size={18} stroke={1.85} />
-                      </span>
-                    )}
-                    <span
-                      className="text-[12.5px] font-bold leading-tight"
-                      style={{
-                        color: active ? theme.deep : '#1A1A2E',
-                        letterSpacing: '-0.01em',
-                        transition: 'color 0.22s',
-                      }}
-                    >
-                      {cat.label}
-                    </span>
-                  </motion.button>
-                )
-              })}
-            </div>
-          )}
+          <KeywordPicker
+            value={selectedTagIds}
+            onChange={setSelectedTagIds}
+            max={10}
+          />
         </section>
       </motion.div>
 

@@ -421,7 +421,7 @@ export default function MakerHome() {
   const [acceptMessage, setAcceptMessage] = useState('')
   const profile = useAuthStore((s) => s.profile)
   const authTick = useAuthStore((s) => s.authTick)
-  const { sortBy, maxDistance, selectedCategories } = useMakerStore()
+  const { sortBy, maxDistance, selectedTagIds } = useMakerStore()
   const { getAvailableWishes, loading } = useWishes()
   const { favoriteIds } = useFavorites()
   const { tagIds: subscribedTagIds } = useUserTagSubscriptions()
@@ -532,10 +532,11 @@ export default function MakerHome() {
         return distanceKm(center[0], center[1], w.latitude, w.longitude) <= maxDistance
       })
 
-  // Filtrage par intentions (category_id UUID matching — nouveau système émotionnel)
-  const categoryFiltered = selectedCategories.length === 0
+  // Filtrage par mots-clés (intersection avec wish.tag_ids — nouveau système Leboncoin).
+  // Un vœu apparaît si au moins UN de ses mots-clés matche la sélection.
+  const categoryFiltered = selectedTagIds.length === 0
     ? distanceFiltered
-    : distanceFiltered.filter((w) => selectedCategories.includes(w.category_id))
+    : distanceFiltered.filter((w) => (w.tag_ids || []).some((tid) => selectedTagIds.includes(tid)))
 
   // Filtrage pour les Makers pros : seulement les vœux matchant au moins un tag souscrit.
   // Si aucun tag souscrit, on affiche tout (sinon feed vide = mauvaise UX d'onboarding).
