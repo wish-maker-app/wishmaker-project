@@ -428,7 +428,7 @@ export default function WisherHome() {
                 onClick={() => setShowPackModal(true)}
                 className="flex items-center gap-2 active:scale-95 transition-transform"
               >
-                <span className="text-[11px] font-bold text-[#EF4444]">0 restant</span>
+                <span className="text-[11px] font-bold text-[#EF4444]">{t('wisher.home.quota_zero')}</span>
                 <div
                   className="w-7 h-7 rounded-full flex items-center justify-center"
                   style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', boxShadow: '0 2px 6px rgba(91,107,245,0.3)' }}
@@ -450,7 +450,7 @@ export default function WisherHome() {
                 className="flex flex-col items-end gap-1 active:scale-95 transition-transform"
               >
                 <span className="text-[11px] font-semibold flex items-center gap-1">
-                  <span className="text-[#8A8A9A] font-medium">vœu</span>
+                  <span className="text-[#8A8A9A] font-medium">{t('wisher.home.quota_label')}</span>
                   <span className="text-[#5B6BF5]">{used}/{totalCapacity}</span>
                 </span>
                 <div className="w-20 h-1.5 rounded-full bg-[#EEF0FF] overflow-hidden">

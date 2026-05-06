@@ -179,7 +179,9 @@
       "modal_urgent_btn": "Pay and activate",
       "modal_delete_titre": "Delete this wish?",
       "modal_delete_desc": "This action is permanent.",
-      "modal_delete_btn": "Delete"
+      "modal_delete_btn": "Delete",
+      "quota_zero": "0 left",
+      "quota_label": "wish"
     },
     "create": {
       "step1_titre": "Make your wish",

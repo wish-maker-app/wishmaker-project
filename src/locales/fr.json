@@ -179,7 +179,9 @@
       "modal_urgent_btn": "Payer et activer",
       "modal_delete_titre": "Supprimer ce vœu ?",
       "modal_delete_desc": "Cette action est définitive.",
-      "modal_delete_btn": "Supprimer"
+      "modal_delete_btn": "Supprimer",
+      "quota_zero": "0 restant",
+      "quota_label": "vœu"
     },
     "create": {
       "step1_titre": "Faites votre Vœux",
