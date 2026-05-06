@@ -12,10 +12,13 @@ import Input from '../../../components/ui/Input'
 import useWishFormStore from '../../../store/wishFormStore'
 import { checkContent } from '../../../lib/moderation'
 
-const schema = z.object({
-  titre: z.string().min(5, 'Minimum 5 caractères').max(80, 'Maximum 80 caractères'),
-  description: z.string().min(10, 'Minimum 10 caractères').max(500, 'Maximum 500 caractères'),
-})
+// Schema-factory : on crée le schema à chaque render avec les messages traduits
+function buildSchema(t) {
+  return z.object({
+    titre: z.string().min(5, t('wisher.create.step1.min5')).max(80, t('wisher.create.step1.max80')),
+    description: z.string().min(10, t('wisher.create.step1.min10')).max(500, t('wisher.create.step1.max500')),
+  })
+}
 
 function StepProgress({ current, total = 4 }) {
   return (
@@ -52,7 +55,7 @@ export default function Step1() {
   const { titre, description, setStep1 } = useWishFormStore()
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(buildSchema(t)),
     defaultValues: { titre, description },
   })
 
@@ -105,15 +108,15 @@ export default function Step1() {
       >
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 flex-1">
           <Input
-            label="Titre du vœu"
+            label={t('wisher.create.step1.label_titre')}
             placeholder={t('wisher.create.titre_placeholder')}
             {...register('titre')}
-            error={titreViolation ? 'Ce contenu contient des termes non autorisés.' : errors.titre?.message}
+            error={titreViolation ? t('wisher.create.step1.violation') : errors.titre?.message}
           />
 
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-[#1A1A2E]">Description</label>
+              <label className="text-sm font-medium text-[#1A1A2E]">{t('wisher.create.step1.label_desc')}</label>
               <span className="text-xs text-[#8A8A9A]">{descValue.length}/500</span>
             </div>
             <textarea
@@ -126,7 +129,7 @@ export default function Step1() {
             />
             {(descViolation || errors.description) && (
               <p className="text-xs text-red-500">
-                {descViolation ? 'Ce contenu contient des termes non autorisés.' : errors.description.message}
+                {descViolation ? t('wisher.create.step1.violation') : errors.description.message}
               </p>
             )}
           </div>

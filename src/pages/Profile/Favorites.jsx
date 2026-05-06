@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import Header from '../../components/layout/Header'
 import FavoriteButton from '../../components/ui/FavoriteButton'
 import useAuthStore from '../../store/authStore'
@@ -9,14 +10,14 @@ import { formatLocation } from '../../lib/geo'
 import { formatDistance, getDistance } from '../../lib/utils'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 
-function timeAgo(iso) {
+function timeAgo(iso, t, locale = 'fr-FR') {
   if (!iso) return ''
   const diff = (Date.now() - new Date(iso).getTime()) / 1000
-  if (diff < 60) return 'À l\'instant'
-  if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`
-  if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)}h`
-  if (diff < 86400 * 7) return `Il y a ${Math.floor(diff / 86400)}j`
-  return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+  if (diff < 60) return t('wisher.home.il_y_a_instant')
+  if (diff < 3600) return t('wisher.home.il_y_a_min', { n: Math.floor(diff / 60) })
+  if (diff < 86400) return t('wisher.home.il_y_a_h', { n: Math.floor(diff / 3600) })
+  if (diff < 86400 * 7) return t('wisher.home.il_y_a_j', { n: Math.floor(diff / 86400) })
+  return new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'short' })
 }
 
 function SmallAvatar({ user, size = 24 }) {
@@ -35,6 +36,7 @@ function SmallAvatar({ user, size = 24 }) {
 }
 
 function FavoriteCard({ wish, onClick, userLat, userLng, index }) {
+  const { t, i18n } = useTranslation()
   const coverUrl = wish.images?.[0]?.url || null
   const dist = wish.latitude && wish.longitude && userLat && userLng
     ? formatDistance(getDistance(userLat, userLng, wish.latitude, wish.longitude))
@@ -70,7 +72,7 @@ function FavoriteCard({ wish, onClick, userLat, userLng, index }) {
       <div className="p-3 flex flex-col" style={{ minHeight: 100 }}>
         <div className="flex items-start justify-between gap-1 mb-1">
           <h3 className="font-bold text-[#1A1A2E] text-[13px] leading-snug line-clamp-1 flex-1">{wish.titre}</h3>
-          <span className="text-[10px] text-[#8A8A9A] flex-shrink-0 pt-0.5">{timeAgo(wish.created_at)}</span>
+          <span className="text-[10px] text-[#8A8A9A] flex-shrink-0 pt-0.5">{timeAgo(wish.created_at, t, i18n.language === 'en' ? 'en-US' : 'fr-FR')}</span>
         </div>
         <p className="text-[#8A8A9A] text-[11px] leading-relaxed line-clamp-2">{wish.description}</p>
         <div className="flex items-center gap-2 text-[11px] text-[#5B6BF5] font-semibold mt-auto pt-2">
@@ -94,6 +96,7 @@ function FavoriteCard({ wish, onClick, userLat, userLng, index }) {
 
 function EmptyState() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -107,16 +110,16 @@ function EmptyState() {
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
         </svg>
       </div>
-      <p className="text-[15px] font-bold text-[#1A1A2E]">Aucun favori pour le moment</p>
+      <p className="text-[15px] font-bold text-[#1A1A2E]">{t('profile.favorites.vide_titre')}</p>
       <p className="text-[12.5px] text-[#8A8A9A] mt-1.5 max-w-[280px] leading-[1.5]">
-        Appuie sur le cœur d'un vœu pour le retrouver facilement ici.
+        {t('profile.favorites.vide_text')}
       </p>
       <button
         onClick={() => navigate('/maker')}
         className="mt-6 px-6 h-11 rounded-full text-white font-bold text-sm"
         style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
       >
-        Explorer les vœux
+        {t('profile.favorites.btn_explorer')}
       </button>
     </motion.div>
   )
@@ -124,6 +127,7 @@ function EmptyState() {
 
 export default function Favorites() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const profile = useAuthStore((s) => s.profile)
   const { wishes, loading } = useFavoriteWishes()
   const [userLocation, setUserLocation] = useState(null)
@@ -144,7 +148,7 @@ export default function Favorites() {
 
   return (
     <div className="h-screen bg-[#FAFAFA] flex flex-col">
-      <Header title="Mes favoris" onBack={() => navigate('/profile')} />
+      <Header title={t('profile.favorites.titre')} onBack={() => navigate('/profile')} />
 
       <div className="flex-1 overflow-y-auto">
         {loading ? (
@@ -158,7 +162,7 @@ export default function Favorites() {
             {/* Compteur */}
             <p className="text-[13px] mb-3 px-1" style={{ color: '#8A8A9A' }}>
               <span className="font-semibold text-[#1A1A2E]">{wishes.length}</span>{' '}
-              {wishes.length > 1 ? 'vœux sauvegardés' : 'vœu sauvegardé'}
+              {wishes.length > 1 ? t('profile.favorites.compteur_pluriel') : t('profile.favorites.compteur_un')}
             </p>
 
             {/* Grille 2 colonnes */}

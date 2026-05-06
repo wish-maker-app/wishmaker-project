@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 import Header from '../../components/layout/Header'
 import Button from '../../components/ui/Button'
 import useAuthStore from '../../store/authStore'
@@ -14,6 +15,7 @@ let moderationPrewarmed = false
 
 // ── Modal changement photo ──
 function PhotoModal({ open, onClose, onPickGallery, onDelete, hasPhoto }) {
+  const { t } = useTranslation()
   return (
     <AnimatePresence>
       {open && (
@@ -30,7 +32,7 @@ function PhotoModal({ open, onClose, onPickGallery, onDelete, hasPhoto }) {
             transition={{ duration: 0.2 }}
             className="fixed left-6 right-6 top-1/2 -translate-y-1/2 bg-white rounded-3xl z-[901] px-1 py-6 shadow-2xl"
           >
-            <h2 className="text-lg font-bold text-[#1A1A2E] text-center mb-5">Changez votre photo</h2>
+            <h2 className="text-lg font-bold text-[#1A1A2E] text-center mb-5">{t('profile.edit.photo_titre')}</h2>
 
             <button
               onClick={onPickGallery}
@@ -43,7 +45,7 @@ function PhotoModal({ open, onClose, onPickGallery, onDelete, hasPhoto }) {
                   <path d="M2 16l5-5 4 4 3-3 8 8" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <span className="text-[15px] font-medium text-[#1A1A2E]">Choisissez dans votre galerie</span>
+              <span className="text-[15px] font-medium text-[#1A1A2E]">{t('profile.edit.photo_galerie')}</span>
             </button>
 
             {hasPhoto && (
@@ -56,7 +58,7 @@ function PhotoModal({ open, onClose, onPickGallery, onDelete, hasPhoto }) {
                     <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="#EF4444" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <span className="text-[15px] font-medium text-red-500">Supprimer la photo</span>
+                <span className="text-[15px] font-medium text-red-500">{t('profile.edit.photo_supprimer')}</span>
               </button>
             )}
           </motion.div>
@@ -95,6 +97,7 @@ function debounce(fn, delay) {
 
 export default function EditProfile() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const profile = useAuthStore((s) => s.profile)
   const setProfile = useAuthStore((s) => s.setProfile)
 
@@ -170,7 +173,7 @@ export default function EditProfile() {
   async function handleAvatarPick(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 10 * 1024 * 1024) { toast.error('Max 10 MB'); return }
+    if (file.size > 10 * 1024 * 1024) { toast.error(t('profile.edit.max_taille')); return }
 
     setPhotoModal(false)
     setUploading(true)
@@ -179,7 +182,7 @@ export default function EditProfile() {
       const { moderateImage } = await import('../../lib/moderationImage')
       const mod = await moderateImage(file)
       if (!mod.isClean) {
-        toast.error(mod.reason || 'Cette image ne respecte pas nos règles')
+        toast.error(mod.reason || t('profile.edit.image_invalide'))
         setUploading(false)
         return
       }
@@ -196,10 +199,10 @@ export default function EditProfile() {
       await supabase.from('users').update({ avatar_url: url }).eq('id', profile.id)
       setProfile({ ...profile, avatar_url: url })
       setAvatarPreview(url)
-      toast.success('Photo mise à jour !')
+      toast.success(t('profile.edit.photo_maj'))
     } catch (err) {
       console.error('[avatar upload] error:', err)
-      toast.error(err?.message || 'Erreur lors de l\'upload')
+      toast.error(err?.message || t('profile.edit.upload_erreur'))
     } finally { setUploading(false) }
   }
 
@@ -210,17 +213,17 @@ export default function EditProfile() {
       await supabase.from('users').update({ avatar_url: null }).eq('id', profile.id)
       setProfile({ ...profile, avatar_url: null })
       setAvatarPreview(null)
-      toast.success('Photo supprimée')
+      toast.success(t('profile.edit.photo_supprimee'))
     } catch (err) {
-      toast.error('Erreur')
+      toast.error(t('common.erreur'))
     } finally { setUploading(false) }
   }
 
   // ── Save form ──
   async function handleSave() {
-    if (!nom.trim() || !prenom.trim()) { toast.error('Nom et prénom obligatoires'); return }
+    if (!nom.trim() || !prenom.trim()) { toast.error(t('profile.edit.nom_obligatoire')); return }
     if (pseudo && !/^[a-zA-Z0-9_ ]{3,20}$/.test(pseudo)) {
-      toast.error('Pseudo : 3-20 caractères (lettres, chiffres, espaces, _)')
+      toast.error(t('profile.edit.pseudo_format'))
       return
     }
     setSaving(true)
@@ -235,14 +238,14 @@ export default function EditProfile() {
       const { error } = await supabase.from('users').update(updates).eq('id', profile.id)
       if (error) throw error
       setProfile({ ...profile, ...updates })
-      toast.success('Profil mis à jour !')
+      toast.success(t('profile.edit.profil_maj'))
       navigate(-1)
     } catch (err) {
       console.error('Save error:', err)
       if (err.code === '23505' || err.message?.includes('unique') || err.message?.includes('pseudo')) {
-        toast.error('Ce pseudo est déjà pris')
+        toast.error(t('profile.edit.pseudo_pris'))
       } else {
-        toast.error(err.message || 'Erreur lors de la sauvegarde')
+        toast.error(err.message || t('profile.edit.save_erreur'))
       }
     } finally { setSaving(false) }
   }
@@ -255,7 +258,7 @@ export default function EditProfile() {
             <path d="M15 19l-7-7 7-7" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <h1 className="font-bold text-base text-[#1A1A2E]">Profil</h1>
+        <h1 className="font-bold text-base text-[#1A1A2E]">{t('profile.edit.titre')}</h1>
         <div className="w-10"></div>
       </div>
 
@@ -292,13 +295,13 @@ export default function EditProfile() {
 
         {/* Formulaire */}
         <div className="px-5">
-          <FormField label="Prénom" value={prenom} onChange={setPrenom} placeholder="Votre prénom" />
-          <FormField label="Nom" value={nom} onChange={setNom} placeholder="Votre nom" />
-          <FormField label="Pseudo" value={pseudo} onChange={(v) => setPseudo(v.replace(/[^a-zA-Z0-9_ ]/g, ''))} placeholder="Votre pseudo (ex: john_doe)" />
+          <FormField label={t('profile.edit.prenom')} value={prenom} onChange={setPrenom} placeholder={t('profile.edit.prenom_ph')} />
+          <FormField label={t('profile.edit.nom')} value={nom} onChange={setNom} placeholder={t('profile.edit.nom_ph')} />
+          <FormField label={t('profile.edit.pseudo')} value={pseudo} onChange={(v) => setPseudo(v.replace(/[^a-zA-Z0-9_ ]/g, ''))} placeholder={t('profile.edit.pseudo_ph')} />
 
           {/* Toggle type de compte */}
           <div className="mb-4">
-            <label className="text-[13px] font-medium text-[#8A8A9A] mb-1.5 block">Type de compte</label>
+            <label className="text-[13px] font-medium text-[#8A8A9A] mb-1.5 block">{t('profile.edit.type_compte')}</label>
             <div className="flex bg-[#F0F0F5] rounded-full p-1">
               {['particulier', 'pro'].map((type) => (
                 <button
@@ -312,17 +315,17 @@ export default function EditProfile() {
                     : { color: '#8A8A9A' }
                   }
                 >
-                  {type === 'pro' ? 'Professionnel' : 'Particulier'}
+                  {type === 'pro' ? t('profile.edit.type_pro') : t('profile.edit.type_particulier')}
                 </button>
               ))}
             </div>
           </div>
 
-          <FormField label="E-mail" value={profile.email || ''} onChange={() => {}} disabled placeholder="E-mail" />
+          <FormField label={t('profile.edit.email')} value={profile.email || ''} onChange={() => {}} disabled placeholder={t('profile.edit.email')} />
 
           {/* Localisation avec autocomplétion */}
           <div className="mb-4 relative">
-            <label className="text-[13px] font-medium text-[#8A8A9A] mb-1.5 block">Localisation</label>
+            <label className="text-[13px] font-medium text-[#8A8A9A] mb-1.5 block">{t('profile.edit.localisation')}</label>
             <div className="relative flex items-center">
               <svg className="absolute left-4 text-[#8A8A9A]" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -338,7 +341,7 @@ export default function EditProfile() {
                   searchCities(e.target.value)
                 }}
                 onFocus={() => citySuggestions.length > 0 && setShowSuggestions(true)}
-                placeholder="Rechercher une ville..."
+                placeholder={t('profile.edit.localisation_ph')}
                 className="w-full h-12 bg-white rounded-2xl pl-11 pr-4 text-sm text-[#1A1A2E] outline-none border border-[#E0E0E0] focus:border-[#5B6BF5] transition-colors"
               />
               {cityLoading && (
@@ -400,7 +403,7 @@ export default function EditProfile() {
 
           <div className="mt-4">
             <Button onClick={handleSave} loading={saving} disabled={!hasChanges && !saving}>
-              Sauvegarder
+              {t('profile.edit.btn_save')}
             </Button>
           </div>
         </div>

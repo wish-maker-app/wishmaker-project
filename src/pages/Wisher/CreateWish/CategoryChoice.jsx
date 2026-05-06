@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import Header from '../../../components/layout/Header'
 import useWishFormStore from '../../../store/wishFormStore'
 import { useCatalog } from '../../../hooks/useTags'
@@ -17,6 +18,7 @@ import { CATEGORY_ICONS, CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from '../../.
  */
 export default function CategoryChoice() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { categories, loaded } = useCatalog()
   const {
     category_id: savedCategoryId,
@@ -45,7 +47,7 @@ export default function CategoryChoice() {
 
   return (
     <div className="h-screen bg-white flex flex-col relative">
-      <Header title="Nouveau vœu" onBack={() => navigate('/wisher')} />
+      <Header title={t('wisher.create.category.header')} onBack={() => navigate('/wisher')} />
 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -54,10 +56,10 @@ export default function CategoryChoice() {
       >
         <div className="mb-6">
           <h1 className="text-2xl font-extrabold tracking-[-0.02em] text-[#1A1A2E] mb-1">
-            Quelle est ton intention ?
+            {t('wisher.create.category.intent_titre')}
           </h1>
           <p className="text-sm text-[#8A8A9A] leading-relaxed">
-            Choisis ce qui ressemble le plus à ton vœu. Les bons Makers te trouveront plus vite.
+            {t('wisher.create.category.intent_sous')}
           </p>
         </div>
 
@@ -205,7 +207,7 @@ export default function CategoryChoice() {
             cursor: selected ? 'pointer' : 'not-allowed',
           }}
         >
-          {selected ? 'Continuer' : 'Choisis une intention'}
+          {selected ? t('wisher.create.category.btn_continuer') : t('wisher.create.category.btn_choisir')}
         </motion.button>
       </div>
     </div>

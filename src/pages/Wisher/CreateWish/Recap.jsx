@@ -51,15 +51,15 @@ export default function Recap() {
 
   async function validateFields() {
     setError(null)
-    if (!titre || titre.length < 5) { setError('Le titre est obligatoire (min. 5 caractères)'); return false }
-    if (!description || description.length < 10) { setError('La description est obligatoire (min. 10 caractères)'); return false }
-    if (!latitude || !longitude) { setError('La localisation est obligatoire. Retournez à l\'étape "Lieu".'); return false }
+    if (!titre || titre.length < 5) { setError(t('wisher.create.recap.err_titre')); return false }
+    if (!description || description.length < 10) { setError(t('wisher.create.recap.err_desc')); return false }
+    if (!latitude || !longitude) { setError(t('wisher.create.recap.err_loc')); return false }
     const [titreCheck, descCheck] = await Promise.all([
       checkContent(titre),
       checkContent(description),
     ])
     if (!titreCheck.isClean || !descCheck.isClean) {
-      toast.error('Publication impossible : contenu non conforme.')
+      toast.error(t('wisher.create.recap.err_modere'))
       return false
     }
     return true
@@ -73,7 +73,7 @@ export default function Recap() {
     if (recompenseType === 'argent') {
       const montantNum = parseFloat(montant)
       if (!montantNum || montantNum < 1) {
-        setError('Montant invalide (minimum 1€)')
+        setError(t('wisher.create.recap.err_montant'))
         return
       }
       await startPaymentFlow(montantNum, isUrgent)
@@ -102,7 +102,7 @@ export default function Recap() {
       setPendingWish(wish)
       setShowPaymentModal(true)
     } catch (err) {
-      setError(err.message || 'Erreur lors de la création du vœu')
+      setError(err.message || t('wisher.create.recap.err_creation'))
     }
   }
 
@@ -113,7 +113,7 @@ export default function Recap() {
       payment_status: 'authorized',
     }).eq('id', pendingWish.id)
 
-    toast.success('💳 Paiement autorisé — votre vœu est publié !')
+    toast.success(t('wisher.create.recap.succes_paiement'))
     reset()
     setShowPaymentModal(false)
     setPendingWish(null)
@@ -127,7 +127,7 @@ export default function Recap() {
     }
     setShowPaymentModal(false)
     setPendingWish(null)
-    toast('Paiement annulé, vœu non publié.', { icon: 'ℹ️' })
+    toast(t('wisher.create.recap.paiement_annule'), { icon: 'ℹ️' })
   }
 
   async function doPublish(urgent) {
@@ -141,10 +141,10 @@ export default function Recap() {
         is_urgent: urgent,
       })
       reset()
-      if (urgent) toast.success('\u26A1 Votre vœu est publié en Urgent !')
+      if (urgent) toast.success(t('wisher.create.recap.succes_urgent'))
       navigate('/wisher/create/success')
     } catch (err) {
-      setError(err.message || 'Erreur lors de la publication')
+      setError(err.message || t('wisher.create.recap.err_publication'))
     }
   }
 
@@ -166,7 +166,7 @@ export default function Recap() {
             }} />
             {images.length > 1 && (
               <span className="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 bg-black/25 backdrop-blur-md px-2 py-0.5 rounded-full">
-                +{images.length - 1} photo{images.length > 2 ? 's' : ''}
+                {t(images.length > 2 ? 'wisher.create.recap.photos_plus_pluriel' : 'wisher.create.recap.photos_plus', { n: images.length - 1 })}
               </span>
             )}
           </motion.div>
@@ -195,7 +195,7 @@ export default function Recap() {
         {/* Label flottant */}
         <div className="absolute top-12 right-4 z-20">
           <span className="text-[10px] font-bold tracking-wide uppercase text-white/80 bg-black/20 backdrop-blur-md px-2.5 py-1 rounded-full">
-            Récap
+            {t('wisher.create.recap.label')}
           </span>
         </div>
       </div>
@@ -220,8 +220,8 @@ export default function Recap() {
               className="bg-white rounded-2xl p-4"
               style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06), 0 6px 16px rgba(26,26,46,0.04)' }}
             >
-              <h2 className="font-bold text-[#1A1A2E] text-[16px] leading-snug mb-1">{titre || 'Titre du vœu'}</h2>
-              <p className="text-[#8A8A9A] text-[13px] leading-relaxed mb-3.5">{description || 'Description du vœu...'}</p>
+              <h2 className="font-bold text-[#1A1A2E] text-[16px] leading-snug mb-1">{titre || t('wisher.create.recap.titre_default')}</h2>
+              <p className="text-[#8A8A9A] text-[13px] leading-relaxed mb-3.5">{description || t('wisher.create.recap.desc_default')}</p>
 
               {/* Tags */}
               <div className="flex flex-wrap gap-1.5 mb-3.5">
@@ -232,8 +232,8 @@ export default function Recap() {
                       : { background: '#EFF6FF', color: '#3B82F6' }
                     }>
                     {recompenseType === 'argent'
-                      ? `${montant ? montant + '€' : 'Argent'}`
-                      : 'Bon procédé'}
+                      ? `${montant ? montant + '€' : t('wisher.create.recap.argent_label')}`
+                      : t('wisher.create.recap.bon_procede_label')}
                   </span>
                 )}
                 {tags.map((tag) => (
@@ -250,7 +250,7 @@ export default function Recap() {
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="#B0B0BE">
                     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
                   </svg>
-                  <span className="truncate max-w-[160px]">{formatLocation({ quartier, ville, code_postal, adresse }) || 'Non renseignée'}</span>
+                  <span className="truncate max-w-[160px]">{formatLocation({ quartier, ville, code_postal, adresse }) || t('wisher.create.recap.non_renseignee')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {profile?.avatar_url ? (
@@ -277,7 +277,7 @@ export default function Recap() {
               className="bg-white rounded-2xl p-4"
               style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06), 0 6px 16px rgba(26,26,46,0.04)' }}
             >
-              <p className="text-sm font-bold text-[#1A1A2E] mb-3">Récompense</p>
+              <p className="text-sm font-bold text-[#1A1A2E] mb-3">{t('wisher.create.recap.recompense_titre')}</p>
               <div className="flex gap-2 mb-3">
                 {['argent', 'bon_procede'].map((type) => (
                   <motion.button
@@ -290,7 +290,7 @@ export default function Recap() {
                       : { border: '1.5px solid #E8E8E8', color: '#8A8A9A' }
                     }
                   >
-                    {type === 'argent' ? 'Argent' : 'Bon procédé'}
+                    {type === 'argent' ? t('wisher.create.recap.argent_label') : t('wisher.create.recap.bon_procede_label')}
                   </motion.button>
                 ))}
               </div>
@@ -308,7 +308,7 @@ export default function Recap() {
                       type="number" min="0" step="1"
                       value={montant}
                       onChange={(e) => setMontant(e.target.value)}
-                      placeholder="Montant"
+                      placeholder={t('wisher.create.recap.montant_ph')}
                       className="w-full h-11 bg-[#F7F8FC] rounded-xl pl-4 pr-10 text-sm text-[#1A1A2E] outline-none focus:ring-2 focus:ring-[#5B6BF5]/20 transition-shadow"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#8A8A9A]">€</span>
@@ -325,7 +325,7 @@ export default function Recap() {
                     <textarea
                       value={bonProcedeText}
                       onChange={(e) => setBonProcedeText(e.target.value)}
-                      placeholder="Décrivez votre bon procédé (optionnel)"
+                      placeholder={t('wisher.create.recap.bon_ph')}
                       rows={2}
                       className="w-full bg-[#F7F8FC] rounded-xl px-4 py-3 text-sm text-[#1A1A2E] outline-none resize-none focus:ring-2 focus:ring-[#5B6BF5]/20 transition-shadow"
                     />
@@ -366,9 +366,9 @@ export default function Recap() {
                   <span className="text-xl">{isUrgent ? '\u26A1' : '\u26A1'}</span>
                   <div>
                     <p className="text-sm font-bold text-[#1A1A2E]">
-                      {isUrgent ? 'Urgent activé' : 'Mettre ce vœu en Urgent'}
+                      {isUrgent ? t('wisher.create.recap.urgent_active') : t('wisher.create.recap.urgent_mettre')}
                     </p>
-                    <p className="text-xs text-[#8A8A9A]">Votre vœu sera mis en avant pendant 24h</p>
+                    <p className="text-xs text-[#8A8A9A]">{t('wisher.create.recap.urgent_sub')}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -402,7 +402,7 @@ export default function Recap() {
               style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
             >
               <span className="relative z-10">
-                {publishing ? 'Publication...' : isUrgent ? '\u26A1 Publier en Urgent' : 'Publier mon vœu'}
+                {publishing ? t('wisher.create.recap.btn_publication') : isUrgent ? t('wisher.create.recap.btn_publier_urgent') : t('wisher.create.recap.btn_publier')}
               </span>
             </motion.button>
 
@@ -426,15 +426,15 @@ export default function Recap() {
               <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
               <div className="text-center mb-5">
                 <span className="text-3xl mb-2 block">💳</span>
-                <h2 className="text-lg font-bold text-[#1A1A2E]">Paiement sécurisé</h2>
+                <h2 className="text-lg font-bold text-[#1A1A2E]">{t('wisher.create.recap.paiement_titre')}</h2>
                 <p className="text-sm text-[#8A8A9A] mt-1">
-                  Récompense de {parseFloat(montant).toFixed(2).replace('.', ',')}€ — pré-autorisée sur votre carte, débitée seulement à la réalisation du vœu.
+                  {t('wisher.create.recap.paiement_sous', { amount: parseFloat(montant).toFixed(2).replace('.', ',') })}
                 </p>
               </div>
               <div className="rounded-2xl bg-[#F7F8FC] p-4 mb-5 text-xs text-[#8A8A9A] leading-relaxed">
-                <p className="mb-1">• <strong className="text-[#1A1A2E]">Pré-autorisation</strong> : le montant est gelé sur votre carte, pas débité.</p>
-                <p className="mb-1">• <strong className="text-[#1A1A2E]">Débit</strong> : uniquement quand vous validez la réalisation du vœu.</p>
-                <p>• <strong className="text-[#1A1A2E]">Annulation</strong> : aucun frais si personne ne prend le vœu.</p>
+                <p className="mb-1">• <strong className="text-[#1A1A2E]">{t('wisher.create.recap.paiement_pre')}</strong>{t('wisher.create.recap.paiement_pre_text')}</p>
+                <p className="mb-1">• <strong className="text-[#1A1A2E]">{t('wisher.create.recap.paiement_debit')}</strong>{t('wisher.create.recap.paiement_debit_text')}</p>
+                <p>• <strong className="text-[#1A1A2E]">{t('wisher.create.recap.paiement_annulation')}</strong>{t('wisher.create.recap.paiement_annulation_text')}</p>
               </div>
               <PaymentForm
                 type="wish_payment"
@@ -443,7 +443,7 @@ export default function Recap() {
                 metadata={{ is_urgent: isUrgent ? '1' : '0' }}
                 onSuccess={handlePaymentSuccess}
                 onCancel={handlePaymentCancel}
-                submitLabel={`Pré-autoriser ${parseFloat(montant).toFixed(2).replace('.', ',')}€`}
+                submitLabel={t('wisher.create.recap.paiement_btn', { amount: parseFloat(montant).toFixed(2).replace('.', ',') })}
               />
             </motion.div>
           </>
@@ -467,13 +467,13 @@ export default function Recap() {
               <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
               <div className="text-center mb-4">
                 <span className="text-4xl mb-2 block">{'\u26A1'}</span>
-                <h2 className="text-lg font-bold text-[#1A1A2E]">Mettre en Urgent</h2>
-                <p className="text-sm text-[#8A8A9A] mt-1">Votre vœu sera mis en avant pendant 24h devant tous les autres.</p>
+                <h2 className="text-lg font-bold text-[#1A1A2E]">{t('wisher.create.recap.modal_urgent_titre')}</h2>
+                <p className="text-sm text-[#8A8A9A] mt-1">{t('wisher.create.recap.modal_urgent_sub')}</p>
               </div>
               <div className="rounded-2xl bg-[#FFF7ED] border border-[#FFEDD5] p-4 mb-5 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-bold text-[#1A1A2E]">Option Urgent 24h</p>
-                  <p className="text-xs text-[#8A8A9A]">Visible en priorité par les Makers</p>
+                  <p className="text-sm font-bold text-[#1A1A2E]">{t('wisher.create.recap.modal_urgent_option')}</p>
+                  <p className="text-xs text-[#8A8A9A]">{t('wisher.create.recap.modal_urgent_option_sub')}</p>
                 </div>
                 <p className="text-xl font-bold text-[#F59E0B]">0,99€</p>
               </div>
@@ -486,7 +486,7 @@ export default function Recap() {
                 className="w-full h-[52px] rounded-full text-white font-bold text-[15px] disabled:opacity-50 mb-3"
                 style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}
               >
-                {publishing ? 'Publication...' : 'Payer 0,99€ et publier'}
+                {publishing ? t('wisher.create.recap.btn_publication') : t('wisher.create.recap.modal_urgent_pay')}
               </button>
               <button
                 onClick={() => {
@@ -496,7 +496,7 @@ export default function Recap() {
                 }}
                 className="w-full text-sm text-[#8A8A9A] text-center py-2"
               >
-                Publier sans l'option Urgent
+                {t('wisher.create.recap.modal_urgent_skip')}
               </button>
             </motion.div>
           </>

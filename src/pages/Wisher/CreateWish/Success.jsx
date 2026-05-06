@@ -66,7 +66,7 @@ export default function Success() {
       >
         {t('wisher.create.succes_sous')}
         <br />
-        Les Makers autour de toi vont voir ton vœu.
+        {t('wisher.create.succes_extra')}
       </motion.p>
 
       <motion.div

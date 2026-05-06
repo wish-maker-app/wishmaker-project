@@ -98,7 +98,7 @@ export default function Step4() {
 
   return (
     <div className="h-screen bg-white flex flex-col">
-      <Header title="Étiquettes" onBack={() => navigate('/wisher/create/3')} />
+      <Header title={t('wisher.create.step4.header')} onBack={() => navigate('/wisher/create/3')} />
       <StepProgress current={4} />
       <CategoryBadge />
 
@@ -113,14 +113,14 @@ export default function Step4() {
           className="flex-1 flex flex-col px-5 pb-10"
         >
           <p className="text-sm text-[#8A8A9A] mb-3">
-            Choisis jusqu'à {MAX_TAGS} étiquettes pour aider les Makers à te trouver.
+            {t('wisher.create.step4.intro', { n: MAX_TAGS })}
           </p>
 
           <div className="relative mb-3">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher une étiquette…"
+              placeholder={t('wisher.create.step4.search_ph')}
               className="w-full h-11 bg-[#F5F5F7] rounded-full pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-[#5B6BF5]/20"
             />
             <svg className="absolute left-4 top-1/2 -translate-y-1/2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A9A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -132,7 +132,7 @@ export default function Step4() {
             <div className="flex flex-wrap gap-2 pb-4">
               {filteredTags.length === 0 && (
                 <p className="text-sm text-[#8A8A9A] text-center w-full py-8">
-                  Aucune étiquette ne correspond.
+                  {t('wisher.create.step4.aucun_match')}
                 </p>
               )}
               {filteredTags.map((tag) => {
@@ -160,14 +160,14 @@ export default function Step4() {
           <div className="flex flex-col gap-2 pt-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-[#8A8A9A]">
-                {selectedTagIds.length} / {MAX_TAGS} sélectionné{selectedTagIds.length > 1 ? 's' : ''}
+                {t('wisher.create.step4.compteur', { n: selectedTagIds.length, max: MAX_TAGS })}
               </span>
               {selectedTagIds.length === 0 && (
-                <span className="text-[#F59E0B] font-medium">Au moins 1 requise</span>
+                <span className="text-[#F59E0B] font-medium">{t('wisher.create.step4.min_required')}</span>
               )}
             </div>
             <Button onClick={handleContinue} disabled={!canContinue}>
-              Terminer
+              {t('wisher.create.step4.btn_terminer')}
             </Button>
           </div>
         </motion.div>

@@ -178,7 +178,7 @@ export default function Step3() {
   }, [reverseGeocode, setLocation])
 
   async function handleGeolocate() {
-    if (!navigator.geolocation) { toast.error('Géolocalisation non supportée'); return }
+    if (!navigator.geolocation) { toast.error(t('wisher.create.step3.geoloc_unsupported')); return }
     setGeoLoading(true)
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
@@ -200,7 +200,7 @@ export default function Step3() {
         setFlyTarget([lat, lng])
         setGeoLoading(false)
       },
-      () => { toast.error('Impossible de récupérer ta position'); setGeoLoading(false) }
+      () => { toast.error(t('wisher.create.step3.geoloc_failed')); setGeoLoading(false) }
     )
   }
 
@@ -212,12 +212,12 @@ export default function Step3() {
 
       {/* Info */}
       <p className="px-5 pb-3 text-xs text-[#8A8A9A]">
-        Renseignez votre adresse exacte, celle-ci n'apparaitra jamais sur votre annonce.
+        {t('wisher.create.step3.intro')}
       </p>
 
       {/* Champ de recherche adresse */}
       <div className="px-5 pb-3 relative z-[500]">
-        <label className="text-sm font-semibold text-[#1A1A2E] mb-1.5 block">Adresse *</label>
+        <label className="text-sm font-semibold text-[#1A1A2E] mb-1.5 block">{t('wisher.create.step3.label_adresse')}</label>
         <div className="flex items-center gap-2">
           {/* Bouton géolocalisation */}
           <motion.button
@@ -254,7 +254,7 @@ export default function Step3() {
               value={searchQuery}
               onChange={handleSearchChange}
               onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-              placeholder="Saisissez votre adresse..."
+              placeholder={t('wisher.create.step3.placeholder')}
               className={`w-full h-11 pl-10 pr-10 rounded-2xl text-sm transition-colors focus:outline-none ${
                 pin
                   ? 'border-2 border-[#5B6BF5] bg-[#EEF0FF] text-[#5B6BF5] font-medium'
@@ -318,7 +318,7 @@ export default function Step3() {
 
         {!pin && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[400] bg-white/90 backdrop-blur rounded-full px-3 py-1.5 shadow-sm">
-            <p className="text-xs font-medium text-[#1A1A2E] whitespace-nowrap">Cliquez sur la carte ou saisissez une adresse</p>
+            <p className="text-xs font-medium text-[#1A1A2E] whitespace-nowrap">{t('wisher.create.step3.hint_carte')}</p>
           </div>
         )}
       </div>

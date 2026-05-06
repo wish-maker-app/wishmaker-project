@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import Header from '../../components/layout/Header'
 import useAuthStore from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
@@ -36,13 +37,14 @@ function Stars({ count, size = 14 }) {
   )
 }
 
-function formatMonthYear(iso) {
+function formatMonthYear(iso, locale = 'fr-FR') {
   const date = new Date(iso)
-  return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  return date.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
     .replace(/^\w/, (c) => c.toUpperCase())
 }
 
 function ReviewItem({ review, isReceived, index, onClickProfile }) {
+  const { t, i18n } = useTranslation()
   const otherUser = isReceived ? review.from_user : review.to_user
   if (!otherUser) return null
   const fullName = `${otherUser.prenom || ''} ${otherUser.nom?.[0] ? otherUser.nom[0] + '.' : ''}`.trim()
@@ -78,7 +80,7 @@ function ReviewItem({ review, isReceived, index, onClickProfile }) {
           </div>
         </div>
         <span className="flex-1 text-left text-[15px] font-semibold tracking-[-0.01em]" style={{ color: TEXT_PRIMARY }}>
-          {fullName || 'Utilisateur'}
+          {fullName || t('profile.reviews.utilisateur')}
         </span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={TEXT_SECONDARY} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
           <path d="M9 18l6-6-6-6" />
@@ -94,7 +96,7 @@ function ReviewItem({ review, isReceived, index, onClickProfile }) {
           </p>
         )}
         <p className="text-[12px] mt-2" style={{ color: TEXT_SECONDARY }}>
-          {formatMonthYear(review.created_at)}
+          {formatMonthYear(review.created_at, i18n.language === 'en' ? 'en-US' : 'fr-FR')}
         </p>
       </div>
     </motion.article>
@@ -102,6 +104,7 @@ function ReviewItem({ review, isReceived, index, onClickProfile }) {
 }
 
 function EmptyState({ kind }) {
+  const { t } = useTranslation()
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -118,12 +121,10 @@ function EmptyState({ kind }) {
         </svg>
       </div>
       <p className="text-[14px] font-bold" style={{ color: TEXT_PRIMARY }}>
-        {kind === 'received' ? "Pas encore d'avis" : 'Aucun avis donné'}
+        {kind === 'received' ? t('profile.reviews.vide_recus_titre') : t('profile.reviews.vide_donnes_titre')}
       </p>
       <p className="text-[12.5px] mt-1.5 max-w-[260px] leading-[1.5]" style={{ color: TEXT_SECONDARY }}>
-        {kind === 'received'
-          ? "Les avis apparaîtront ici dès qu'un utilisateur notera vos services."
-          : "Notez un utilisateur après une mission pour qu'il apparaisse ici."}
+        {kind === 'received' ? t('profile.reviews.vide_recus_text') : t('profile.reviews.vide_donnes_text')}
       </p>
     </motion.div>
   )
@@ -131,6 +132,7 @@ function EmptyState({ kind }) {
 
 export default function Reviews() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const profile = useAuthStore((s) => s.profile)
   const [reviewsReceived, setReviewsReceived] = useState([])
   const [reviewsGiven, setReviewsGiven] = useState([])
@@ -165,7 +167,7 @@ export default function Reviews() {
         if (received.error) console.error('[Reviews] received error:', received.error)
         if (given.error) console.error('[Reviews] given error:', given.error)
         if (received.error && given.error) {
-          setError('Erreur de chargement des avis')
+          setError(t('profile.reviews.erreur_titre'))
         }
         setReviewsReceived(received.data || [])
         setReviewsGiven(given.data || [])
@@ -173,7 +175,7 @@ export default function Reviews() {
       .catch((err) => {
         if (cancelled) return
         console.error('[Reviews] fatal:', err)
-        setError(err?.message || 'Erreur de chargement')
+        setError(err?.message || t('profile.reviews.erreur_titre'))
       })
       .finally(() => {
         // setLoading(false) TOUJOURS, plus de spinner infini
@@ -193,13 +195,13 @@ export default function Reviews() {
   const currentReviews = activeTab === 'received' ? reviewsReceived : reviewsGiven
 
   const tabs = [
-    { key: 'received', label: 'Reçus', count: reviewsReceived.length },
-    { key: 'given', label: 'Donnés', count: reviewsGiven.length },
+    { key: 'received', label: t('profile.reviews.tab_recus'), count: reviewsReceived.length },
+    { key: 'given', label: t('profile.reviews.tab_donnes'), count: reviewsGiven.length },
   ]
 
   return (
     <div className="h-screen bg-white flex flex-col">
-      <Header title="Mes avis" onBack={() => navigate('/profile')} />
+      <Header title={t('profile.reviews.titre')} onBack={() => navigate('/profile')} />
 
       <div className="flex-1 overflow-y-auto">
         {/* TABS underline pleine largeur */}
@@ -240,14 +242,14 @@ export default function Reviews() {
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 gap-3 text-center">
             <span className="text-3xl mb-1">⚠️</span>
-            <p className="text-sm font-bold text-[#1A1A2E]">Erreur de chargement</p>
+            <p className="text-sm font-bold text-[#1A1A2E]">{t('profile.reviews.erreur_titre')}</p>
             <p className="text-xs text-[#8A8A9A]">{error}</p>
             <button
               onClick={() => window.location.reload()}
               className="mt-3 h-9 px-4 rounded-full text-white font-bold text-xs"
               style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
             >
-              Réessayer
+              {t('profile.reviews.reessayer')}
             </button>
           </div>
         ) : (
@@ -277,7 +279,7 @@ export default function Reviews() {
                     </span>
                   </div>
                   <p className="text-[13px] mt-2" style={{ color: TEXT_SECONDARY }}>
-                    {reviewsReceived.length} avis
+                    {t(reviewsReceived.length === 1 ? 'profile.reviews.compteur_un' : 'profile.reviews.compteur', { n: reviewsReceived.length })}
                   </p>
                 </section>
               )}

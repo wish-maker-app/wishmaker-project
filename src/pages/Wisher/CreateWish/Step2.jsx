@@ -54,7 +54,7 @@ export default function Step2() {
   async function handleFiles(e) {
     const files = Array.from(e.target.files)
     if (images.length + files.length > 5) {
-      toast.error('Maximum 5 photos')
+      toast.error(t('wisher.create.step2.max5'))
       return
     }
 
@@ -62,7 +62,7 @@ export default function Step2() {
     const { moderateImages } = await import('../../../lib/moderationImage')
     const modResult = await moderateImages(files)
     if (!modResult.isClean) {
-      toast.error(modResult.reason || 'Une image ne respecte pas nos règles')
+      toast.error(modResult.reason || t('wisher.create.step2.image_invalide'))
       return
     }
 
@@ -115,7 +115,7 @@ export default function Step2() {
         className="flex-1 flex flex-col px-5 pt-2 pb-10 gap-5"
       >
         <p className="text-sm text-[#8A8A9A]">
-          Ajoutez jusqu'à 5 photos (optionnel). La première sera la photo principale.
+          {t('wisher.create.step2.intro')}
         </p>
 
         {/* Grille de photos */}
@@ -126,7 +126,7 @@ export default function Step2() {
               <CategoryFallback slug={categorySlug} iconSize={36} />
               <div className="absolute bottom-1.5 inset-x-0 text-center">
                 <span className="text-[9px] font-medium text-white/80 bg-black/20 px-2 py-0.5 rounded-full">
-                  Aperçu sans photo
+                  {t('wisher.create.step2.apercu_sans')}
                 </span>
               </div>
             </div>
@@ -147,7 +147,7 @@ export default function Step2() {
                 {img.is_cover && (
                   <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
                     style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>
-                    Cover
+                    {t('wisher.create.step2.cover')}
                   </div>
                 )}
 
@@ -156,7 +156,7 @@ export default function Step2() {
                   {!img.is_cover && (
                     <button onClick={() => setCover(img.id)}
                       className="text-[10px] font-semibold bg-white/90 text-[#5B6BF5] px-2 py-1 rounded-full">
-                      Cover
+                      {t('wisher.create.step2.cover')}
                     </button>
                   )}
                   <button onClick={() => remove(img.id)}
@@ -182,7 +182,7 @@ export default function Step2() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
                   d="M12 5v14M5 12h14" />
               </svg>
-              <span className="text-[10px] font-medium text-[#8A8A9A]">Ajouter</span>
+              <span className="text-[10px] font-medium text-[#8A8A9A]">{t('wisher.create.step2.ajouter')}</span>
             </motion.button>
           )}
         </div>
@@ -191,7 +191,7 @@ export default function Step2() {
 
         <div className="mt-auto flex flex-col gap-3">
           <Button onClick={() => navigate('/wisher/create/3')}>
-            {images.length === 0 ? 'Passer cette étape' : t('common.continuer')}
+            {images.length === 0 ? t('wisher.create.step2.passer') : t('common.continuer')}
           </Button>
         </div>
       </motion.div>
