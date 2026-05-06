@@ -16,23 +16,26 @@ export function useAuth() {
 
       if (session?.user) {
         const expiresAt = (session.expires_at || 0) * 1000
-        // Si le token expire dans <5min, refresh anticipé pour éviter les
-        // queries ratées juste après le mount.
+        let activeSession = session
+
+        // Si le token expire dans <5min, refresh anticipé
         if (expiresAt - Date.now() < 5 * 60 * 1000) {
           try {
             const { data: refreshed } = await supabase.auth.refreshSession()
-            setUser(refreshed?.session?.user || session.user)
-          } catch {
-            setUser(session.user)
-          }
-        } else {
-          setUser(session.user)
+            if (refreshed?.session) activeSession = refreshed.session
+          } catch {}
         }
+        setUser(activeSession.user)
 
-        await fetchProfile(session.user.id)
+        // ⚡ Propagation explicite du JWT à Realtime → les RLS-protected channels
+        // (messages, conversations) reçoivent bien les events filtrés par participant.
+        // Sans ça, Realtime peut conserver un ancien token après refresh → events
+        // silencieusement bloqués par RLS, sensation de "BDD pas connectée".
+        try { supabase.realtime.setAuth(activeSession.access_token) } catch {}
+
+        await fetchProfile(activeSession.user.id)
         bumpAuthTick()
       } else if (useAuthStore.getState().user) {
-        // Store dit "logué" mais Supabase n'a plus de session → reset
         logout()
         navigate('/auth', { replace: true })
       }
@@ -50,6 +53,8 @@ export function useAuth() {
         // Token rafraîchi → on met à jour le user + on bump pour déclencher refetch
         if (event === 'TOKEN_REFRESHED' && session?.user) {
           setUser(session.user)
+          // ⚡ Re-propager le nouveau JWT à Realtime (sinon les channels gardent l'ancien)
+          try { supabase.realtime.setAuth(session.access_token) } catch {}
           bumpAuthTick()
         }
 

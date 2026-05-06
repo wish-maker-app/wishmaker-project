@@ -283,6 +283,29 @@ export default function WisherHome() {
     }
   }, [refetchWishes])
 
+  // Realtime : changements sur ses wishes (statut, expiration, urgent…) → refetch silencieux
+  useEffect(() => {
+    if (!user?.id) return
+    const channel = supabase
+      .channel(`wisher-wishes-${user.id}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'wishes', filter: `wisher_id=eq.${user.id}` },
+        () => { refetchWishes() }
+      )
+      .subscribe((status) => {
+        if (import.meta.env.DEV) console.log('[WisherHome realtime]', status)
+      })
+    return () => { supabase.removeChannel(channel) }
+  }, [user?.id, refetchWishes])
+
+  // Polling fallback toutes les 30s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') refetchWishes()
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [refetchWishes])
+
   // Rafraîchir le compte à rebours toutes les minutes
   useEffect(() => {
     const interval = setInterval(() => setTick((t) => t + 1), 60000)
