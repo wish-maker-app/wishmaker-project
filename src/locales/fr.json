@@ -154,7 +154,32 @@
       "tab_realise": "Réalisé",
       "tab_expire": "Expiré",
       "il_y_a_instant": "à l'instant",
-      "aucun_voeu": "Aucun vœu pour le moment"
+      "il_y_a_min": "il y a {{n}}min",
+      "il_y_a_h": "il y a {{n}}h",
+      "il_y_a_j": "il y a {{n}}j",
+      "aucun_voeu": "Aucun vœu pour le moment",
+      "make_wish_sub": "Publie ton vœu et laisse les Makers t'aider",
+      "astuce_titre": "Astuce",
+      "astuce_text": "Ajoute des photos et une localisation précise à tes vœux pour attirer plus de Makers !",
+      "expire": "Expiré",
+      "expire_dans_h": "Expire dans {{h}}h {{m}}min",
+      "expire_dans_min": "Expire dans {{m}}min",
+      "expire_bientot": "Ce vœu expire bientôt !",
+      "prolonger": "Prolonger",
+      "supprimer": "Supprimer",
+      "modifier": "Modifier",
+      "mettre_urgent": "Mettre en Urgent",
+      "section_mes_voeux": "Mes vœux",
+      "modal_prolonger_titre": "Prolonger mon vœu",
+      "modal_prolonger_btn": "Payer et prolonger",
+      "modal_urgent_titre": "Mettre en Urgent",
+      "modal_prolonger_label": "Prolonger le vœu",
+      "modal_prolonger_desc": "Prolongez votre vœu de {{h}}h supplémentaires.",
+      "modal_urgent_desc": "Votre vœu sera mis en avant pendant 24h.",
+      "modal_urgent_btn": "Payer et activer",
+      "modal_delete_titre": "Supprimer ce vœu ?",
+      "modal_delete_desc": "Cette action est définitive.",
+      "modal_delete_btn": "Supprimer"
     },
     "create": {
       "step1_titre": "Faites votre Vœux",
@@ -224,6 +249,11 @@
     "envoyer": "Envoyer",
     "ecrire": "Écrire un message…"
   },
+  "invite": {
+    "btn": "Inviter des amis",
+    "share_text": "Découvre Wish Maker, l'app qui exauce tes vœux du quotidien !",
+    "lien_copie": "Lien copié ! Partage-le à tes amis"
+  },
   "profile": {
     "titre": "Profil",
     "deconnexion": "Se déconnecter",
@@ -251,7 +281,12 @@
     "password": {
       "min_chars": "Min. 6 caractères",
       "no_match": "Les mots de passe ne correspondent pas",
-      "success": "Mot de passe mis à jour !"
+      "success": "Mot de passe mis à jour !",
+      "modal_titre": "Changer le mot de passe",
+      "nouveau": "Nouveau mot de passe",
+      "confirmer": "Confirmer",
+      "confirmer_placeholder": "Confirmez le mot de passe",
+      "btn": "Mettre à jour"
     },
     "logout": {
       "titre": "Se déconnecter",

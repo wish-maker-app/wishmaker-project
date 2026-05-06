@@ -211,7 +211,7 @@ export default function Profile() {
           onClick={async () => {
             const shareData = {
               title: 'Wish Maker',
-              text: "Découvre Wish Maker, l'app qui exauce tes vœux du quotidien !",
+              text: t('invite.share_text'),
               url: 'https://wishmaker-project.vercel.app',
             }
             try {
@@ -219,12 +219,12 @@ export default function Profile() {
                 await navigator.share(shareData)
               } else {
                 await navigator.clipboard.writeText(shareData.url)
-                toast.success('Lien copié ! Partage-le à tes amis')
+                toast.success(t('invite.lien_copie'))
               }
             } catch (err) {
               if (err.name !== 'AbortError') {
                 await navigator.clipboard.writeText(shareData.url)
-                toast.success('Lien copié ! Partage-le à tes amis')
+                toast.success(t('invite.lien_copie'))
               }
             }
           }}
@@ -236,7 +236,7 @@ export default function Profile() {
             <path d="M16 6l-4-4-4 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M12 2v13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          Inviter des amis
+          {t('invite.btn')}
         </motion.button>
 
         {/* Déconnexion */}
@@ -250,20 +250,20 @@ export default function Profile() {
       </div>
 
       {/* Modal mot de passe */}
-      <EditModal open={editModal === 'password'} onClose={() => setEditModal(null)} title="Changer le mot de passe">
+      <EditModal open={editModal === 'password'} onClose={() => setEditModal(null)} title={t('profile.password.modal_titre')}>
         <div className="mb-4">
-          <label className="text-xs font-semibold text-[#8A8A9A] mb-1.5 block">Nouveau mot de passe</label>
+          <label className="text-xs font-semibold text-[#8A8A9A] mb-1.5 block">{t('profile.password.nouveau')}</label>
           <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)}
-            placeholder="Min. 6 caractères"
+            placeholder={t('profile.password.min_chars')}
             className="w-full h-12 bg-[#F7F8FC] rounded-2xl px-4 text-sm text-[#1A1A2E] outline-none" />
         </div>
         <div className="mb-4">
-          <label className="text-xs font-semibold text-[#8A8A9A] mb-1.5 block">Confirmer</label>
+          <label className="text-xs font-semibold text-[#8A8A9A] mb-1.5 block">{t('profile.password.confirmer')}</label>
           <input type="password" value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)}
-            placeholder="Confirmez le mot de passe"
+            placeholder={t('profile.password.confirmer_placeholder')}
             className="w-full h-12 bg-[#F7F8FC] rounded-2xl px-4 text-sm text-[#1A1A2E] outline-none" />
         </div>
-        <Button onClick={savePassword} loading={saving}>Mettre à jour</Button>
+        <Button onClick={savePassword} loading={saving}>{t('profile.password.btn')}</Button>
       </EditModal>
 
       {/* Modal langue */}

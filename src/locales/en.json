@@ -154,7 +154,32 @@
       "tab_realise": "Granted",
       "tab_expire": "Expired",
       "il_y_a_instant": "just now",
-      "aucun_voeu": "No wishes yet"
+      "il_y_a_min": "{{n}}min ago",
+      "il_y_a_h": "{{n}}h ago",
+      "il_y_a_j": "{{n}}d ago",
+      "aucun_voeu": "No wishes yet",
+      "make_wish_sub": "Post your wish and let Makers help you",
+      "astuce_titre": "Tip",
+      "astuce_text": "Add photos and a precise location to your wishes to attract more Makers!",
+      "expire": "Expired",
+      "expire_dans_h": "Expires in {{h}}h {{m}}min",
+      "expire_dans_min": "Expires in {{m}}min",
+      "expire_bientot": "This wish expires soon!",
+      "prolonger": "Extend",
+      "supprimer": "Delete",
+      "modifier": "Edit",
+      "mettre_urgent": "Mark as Urgent",
+      "section_mes_voeux": "My wishes",
+      "modal_prolonger_titre": "Extend my wish",
+      "modal_prolonger_btn": "Pay and extend",
+      "modal_urgent_titre": "Mark as Urgent",
+      "modal_prolonger_label": "Extend wish",
+      "modal_prolonger_desc": "Extend your wish by {{h}} more hours.",
+      "modal_urgent_desc": "Your wish will be highlighted for 24h.",
+      "modal_urgent_btn": "Pay and activate",
+      "modal_delete_titre": "Delete this wish?",
+      "modal_delete_desc": "This action is permanent.",
+      "modal_delete_btn": "Delete"
     },
     "create": {
       "step1_titre": "Make your wish",
@@ -224,6 +249,11 @@
     "envoyer": "Send",
     "ecrire": "Write a message…"
   },
+  "invite": {
+    "btn": "Invite friends",
+    "share_text": "Discover Wish Maker, the app that grants your everyday wishes!",
+    "lien_copie": "Link copied! Share it with your friends"
+  },
   "profile": {
     "titre": "Profile",
     "deconnexion": "Sign out",
@@ -251,7 +281,12 @@
     "password": {
       "min_chars": "Min. 6 characters",
       "no_match": "Passwords do not match",
-      "success": "Password updated!"
+      "success": "Password updated!",
+      "modal_titre": "Change password",
+      "nouveau": "New password",
+      "confirmer": "Confirm",
+      "confirmer_placeholder": "Confirm password",
+      "btn": "Update"
     },
     "logout": {
       "titre": "Sign out",

@@ -16,7 +16,6 @@ import lampeIcon from '../../assets/lampe.svg'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 
 const TABS = ['en_attente', 'realise', 'expire']
-const TAB_LABELS = { en_attente: 'En attente', realise: 'Réalisé', expire: 'Expiré' }
 
 const STATUS_MAP = {
   en_attente: 'en_attente',
@@ -27,21 +26,25 @@ const STATUS_MAP = {
   expire: 'expire',
 }
 
-function timeAgo(iso) {
+// timeAgo et expirationInfo prennent `t` en argument pour produire des labels
+// traduits selon la langue courante (sinon ils restent figés en FR).
+function timeAgo(iso, t) {
   const diff = (Date.now() - new Date(iso)) / 1000
-  if (diff < 60)    return "à l'instant"
-  if (diff < 3600)  return `il y a ${Math.floor(diff / 60)}min`
-  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)}h`
-  return `il y a ${Math.floor(diff / 86400)}j`
+  if (diff < 60)    return t('wisher.home.il_y_a_instant')
+  if (diff < 3600)  return t('wisher.home.il_y_a_min', { n: Math.floor(diff / 60) })
+  if (diff < 86400) return t('wisher.home.il_y_a_h', { n: Math.floor(diff / 3600) })
+  return t('wisher.home.il_y_a_j', { n: Math.floor(diff / 86400) })
 }
 
-function expirationInfo(expiresAt) {
+function expirationInfo(expiresAt, t) {
   if (!expiresAt) return null
   const diff = new Date(expiresAt) - Date.now()
-  if (diff <= 0) return { label: 'Expiré', color: '#EF4444', expired: true }
+  if (diff <= 0) return { label: t('wisher.home.expire'), color: '#EF4444', expired: true }
   const hours = Math.floor(diff / 3600000)
   const minutes = Math.floor((diff % 3600000) / 60000)
-  const label = hours > 0 ? `Expire dans ${hours}h ${minutes}min` : `Expire dans ${minutes}min`
+  const label = hours > 0
+    ? t('wisher.home.expire_dans_h', { h: hours, m: minutes })
+    : t('wisher.home.expire_dans_min', { m: minutes })
   const color = hours < 6 ? '#EF4444' : hours < 24 ? '#F59E0B' : '#22C55E'
   return { label, color }
 }
@@ -77,8 +80,9 @@ function ConfirmModal({ open, onClose, title, description, price, buttonLabel, o
 
 function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [menuOpen, setMenuOpen] = useState(false)
-  const exp = expirationInfo(wish.expires_at)
+  const exp = expirationInfo(wish.expires_at, t)
   const isActive = wish.statut === 'en_attente' || wish.statut === 'en_cours'
   const isExpired = wish.statut === 'expire' || wish.statut === 'annule' || (isActive && exp?.expired)
   const coverUrl = wish.images?.[0]?.url || null
@@ -137,7 +141,7 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
                     <circle cx="12" cy="12" r="9" stroke="#1A1A2E" strokeWidth="1.8"/>
                     <path d="M12 7v5l3 2" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  Prolonger
+                  {t('wisher.home.prolonger')}
                 </button>
               )}
               <button
@@ -147,7 +151,7 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="#EF4444" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                Supprimer
+                {t('wisher.home.supprimer')}
               </button>
             </motion.div>
           </>
@@ -188,14 +192,14 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
           style={{ background: '#FFF7ED', border: '1px solid #FFEDD5' }}>
           <div className="flex items-center gap-2">
             <span className="text-sm">⚠️</span>
-            <span className="text-xs font-semibold text-[#EA580C]">Ce voeu expire bientot !</span>
+            <span className="text-xs font-semibold text-[#EA580C]">{t('wisher.home.expire_bientot')}</span>
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); onExtend(wish) }}
             className="text-[11px] font-bold text-white px-3 py-1 rounded-full"
             style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}
           >
-            Prolonger
+            {t('wisher.home.prolonger')}
           </button>
         </div>
       )}
@@ -208,7 +212,7 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
               onClick={(e) => { e.stopPropagation(); onExtend(wish) }}
               className="flex-1 h-10 rounded-full text-xs font-bold flex items-center justify-center border border-[#5B6BF5] text-[#5B6BF5] active:scale-[0.97] transition-transform"
             >
-              Prolonger
+              {t('wisher.home.prolonger')}
             </button>
           )}
           {!wish.is_urgent && !exp?.expired && (
@@ -217,7 +221,7 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
               className="flex-1 h-10 rounded-full text-xs font-bold flex items-center justify-center text-white active:scale-[0.97] transition-transform"
               style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}
             >
-              Mettre en Urgent
+              {t('wisher.home.mettre_urgent')}
             </button>
           )}
         </div>
@@ -350,14 +354,14 @@ export default function WisherHome() {
   function handleExtend() {
     if (!modal?.wish) return
     // Ouvrir le paiement 0.99€ pour la prolongation
-    setPaymentModal({ type: 'extension', wish_id: modal.wish.id, label: 'Prolonger le vœu' })
+    setPaymentModal({ type: 'extension', wish_id: modal.wish.id, label: t('wisher.home.modal_prolonger_label') })
     setModal(null)
   }
 
   function handleMakeUrgent() {
     if (!modal?.wish) return
     // Ouvrir le paiement 0.99€ pour l'urgent
-    setPaymentModal({ type: 'urgent_boost', wish_id: modal.wish.id, label: 'Mettre en Urgent' })
+    setPaymentModal({ type: 'urgent_boost', wish_id: modal.wish.id, label: t('wisher.home.mettre_urgent') })
     setModal(null)
   }
 
@@ -493,7 +497,7 @@ export default function WisherHome() {
                 </svg>
               </div>
               <h3 className="text-white font-bold text-lg mb-1">{t('wisher.home.faire_voeu')}</h3>
-              <p className="text-white/70 text-sm">Publie ton vœu et laisse les Makers t'aider</p>
+              <p className="text-white/70 text-sm">{t('wisher.home.make_wish_sub')}</p>
             </div>
           </motion.button>
         </div>
@@ -512,9 +516,9 @@ export default function WisherHome() {
               <span className="text-lg">💡</span>
             </div>
             <div className="pr-6">
-              <p className="text-sm font-bold text-[#1A1A2E] mb-0.5">Astuce</p>
+              <p className="text-sm font-bold text-[#1A1A2E] mb-0.5">{t('wisher.home.astuce_titre')}</p>
               <p className="text-xs text-[#8A8A9A] leading-relaxed">
-                Ajoute des photos et une localisation précise à tes vœux pour attirer plus de Makers !
+                {t('wisher.home.astuce_text')}
               </p>
             </div>
           </div>
@@ -523,7 +527,7 @@ export default function WisherHome() {
 
         {/* Section Mes vœux */}
         <div className="px-5">
-          <h2 className="font-bold text-[#1A1A2E] text-base mb-3">Mes vœux</h2>
+          <h2 className="font-bold text-[#1A1A2E] text-base mb-3">{t('wisher.home.section_mes_voeux')}</h2>
 
           {/* Onglets */}
           <div className="flex bg-[#F5F5F7] rounded-full p-1 mb-4">
@@ -609,10 +613,10 @@ export default function WisherHome() {
           <ConfirmModal
             open
             onClose={() => setModal(null)}
-            title="Prolonger mon vœu"
-            description={`Prolongez votre vœu de ${wishDurationHours}h supplémentaires.`}
+            title={t('wisher.home.modal_prolonger_titre')}
+            description={t('wisher.home.modal_prolonger_desc', { h: wishDurationHours })}
             price="2,99€"
-            buttonLabel="Payer et prolonger"
+            buttonLabel={t('wisher.home.modal_prolonger_btn')}
             onConfirm={handleExtend}
             loading={actionLoading}
           />
@@ -621,10 +625,10 @@ export default function WisherHome() {
           <ConfirmModal
             open
             onClose={() => setModal(null)}
-            title="Mettre en Urgent"
-            description="Votre vœu sera mis en avant pendant 24h."
+            title={t('wisher.home.modal_urgent_titre')}
+            description={t('wisher.home.modal_urgent_desc')}
             price="4,99€"
-            buttonLabel="Payer et activer"
+            buttonLabel={t('wisher.home.modal_urgent_btn')}
             onConfirm={handleMakeUrgent}
             loading={actionLoading}
           />
@@ -633,10 +637,10 @@ export default function WisherHome() {
           <ConfirmModal
             open
             onClose={() => setModal(null)}
-            title="Supprimer ce vœu ?"
-            description="Cette action est irréversible. Le vœu et toutes ses données seront supprimés définitivement."
+            title={t('wisher.home.modal_delete_titre')}
+            description={t('wisher.home.modal_delete_desc')}
             price=""
-            buttonLabel="Supprimer"
+            buttonLabel={t('wisher.home.modal_delete_btn')}
             onConfirm={handleDelete}
             loading={actionLoading}
             danger
