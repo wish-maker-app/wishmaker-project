@@ -20,6 +20,8 @@ export function useMessages(conversationId = null) {
     const hasCache = !!getCached('conversations')
     if (!hasCache) setLoading(true)
     try {
+      // Force la résolution de la session (sinon RLS filtre tout en anonyme au mount)
+      await supabase.auth.getSession()
       const { data, error } = await supabase
         .from('conversations')
         .select(`
@@ -49,6 +51,7 @@ export function useMessages(conversationId = null) {
     if (cached) setMessages(cached)
     if (!cached) setLoading(true)
     try {
+      await supabase.auth.getSession()
       const { data, error } = await supabase
         .from('messages')
         .select(`*, sender:users!sender_id(id, prenom, nom, avatar_url)`)

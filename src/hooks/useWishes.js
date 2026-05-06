@@ -25,6 +25,7 @@ export function useWishes() {
     if (!user) return []
     setLoading(true)
     try {
+      await supabase.auth.getSession()
       let query = supabase
         .from('wishes')
         .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
@@ -43,6 +44,10 @@ export function useWishes() {
   async function getAvailableWishes() {
     setLoading(true)
     try {
+      // Force la résolution de la session avant la query : sinon supabase-js
+      // peut envoyer la requête en anonyme (JWT pas encore attaché depuis
+      // localStorage) → RLS filtre → 0 résultats → "Aucun vœu trouvé" trompeur.
+      await supabase.auth.getSession()
       const { data, error } = await supabase
         .from('wishes')
         .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
@@ -59,6 +64,7 @@ export function useWishes() {
   async function getWishesByUser(userId) {
     setLoading(true)
     try {
+      await supabase.auth.getSession()
       const { data, error } = await supabase
         .from('wishes')
         .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
