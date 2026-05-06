@@ -5,9 +5,16 @@
     "annuler": "Annuler",
     "valider": "Valider",
     "enregistrer": "Enregistrer",
+    "sauvegarder": "Sauvegarder",
     "loading": "Chargement...",
     "erreur": "Une erreur est survenue",
-    "succes": "Succès"
+    "succes": "Succès",
+    "supprimer": "Supprimer",
+    "modifier": "Modifier",
+    "fermer": "Fermer",
+    "rechercher": "Recherchez",
+    "aucun_resultat": "Aucun résultat",
+    "essaie_autres_mots": "Essaie d'autres mots-clés"
   },
   "splash": {
     "version": "Version 1.0.0"
@@ -44,8 +51,8 @@
       "titre": "Se connecter",
       "email_label": "Adresse email",
       "password_label": "Mot de passe",
-      "remember": "Remember Me",
-      "forgot": "Forgot Password",
+      "remember": "Se souvenir de moi",
+      "forgot": "Mot de passe oublié",
       "btn": "Se connecter",
       "succes": "Vous vous êtes connecté avec succès",
       "pas_de_compte": "Vous n'avez pas de compte ?",
@@ -95,12 +102,17 @@
       "new_label": "Nouveau mot de passe",
       "confirm_label": "Confirmez le mot de passe",
       "btn": "Continuer"
+    },
+    "verify_banner": {
+      "message": "Vérifiez votre email pour profiter de toutes les fonctionnalités.",
+      "renvoyer": "Renvoyer l'email",
+      "succes": "Email de vérification renvoyé"
     }
   },
   "setup": {
     "langue": {
       "titre": "Selectionnez votre langue",
-      "label": "Language",
+      "label": "Langue",
       "placeholder": "Sélectionner",
       "modal_titre": "Sélectionner une langue",
       "btn": "Continuer"
@@ -117,16 +129,32 @@
       "recherche": "Recherche...",
       "lieux_populaires": "Emplacement populaire",
       "btn": "Valider la localisation"
+    },
+    "pseudo": {
+      "titre": "Choisis ton pseudo",
+      "placeholder": "ex: maxime33",
+      "min_chars": "Min. 3 caractères",
+      "max_chars": "Max. 20 caractères",
+      "format_invalide": "Lettres, chiffres, _ et . uniquement",
+      "deja_pris": "Ce pseudo est déjà pris",
+      "btn": "Continuer"
     }
   },
   "wisher": {
     "home": {
       "bonjour": "Bonjour",
+      "bon_apres_midi": "Bon après-midi",
+      "bonsoir": "Bonsoir",
       "bienvenue": "Bienvenue Wisher",
       "faire_voeu": "Faire un vœu",
       "faire_voeu_sub": "Complétez les informations",
       "mes_voeux": "Mes vœux",
-      "mes_voeux_sub": "vœux enregistrés"
+      "mes_voeux_sub": "vœux enregistrés",
+      "tab_en_attente": "En attente",
+      "tab_realise": "Réalisé",
+      "tab_expire": "Expiré",
+      "il_y_a_instant": "à l'instant",
+      "aucun_voeu": "Aucun vœu pour le moment"
     },
     "create": {
       "step1_titre": "Faites votre Vœux",
@@ -153,11 +181,20 @@
   "maker": {
     "home": {
       "bienvenue": "Bienvenue Maker",
-      "aucun_voeu": "Aucun vœu dans cette zone"
+      "aucun_voeu": "Aucun vœu trouvé",
+      "aucun_voeu_sub": "Essaie d'autres mots-clés",
+      "aucun_voeu_zone": "Aucun vœu dans cette zone",
+      "aucun_favori": "Aucun favori pour le moment",
+      "voeux_trouves": "Vœux trouvés",
+      "tab_liste": "Liste",
+      "tab_carte": "Carte",
+      "tab_swipe": "Swipe",
+      "msg_placeholder": "Bonjour, je suis intéressé(e) par votre vœu…"
     },
     "search": {
       "placeholder": "Rechercher un vœu...",
-      "historique": "Recherches récentes"
+      "historique": "Recherches récentes",
+      "aucun_resultat": "Aucun résultat"
     },
     "filters": {
       "titre": "Filtres",
@@ -184,12 +221,51 @@
     "mes_missions": "Mes missions",
     "recherche": "Rechercher...",
     "vide": "Aucun message",
-    "envoyer": "Envoyer"
+    "envoyer": "Envoyer",
+    "ecrire": "Écrire un message…"
   },
   "profile": {
     "titre": "Profil",
     "deconnexion": "Se déconnecter",
-    "modifier": "Modifier le profil"
+    "modifier": "Modifier le profil",
+    "aucun_avis": "Aucun avis",
+    "section_personal": "Informations personnelles",
+    "section_security": "Sécurité",
+    "section_general": "Général",
+    "section_admin": "Administration",
+    "section_about": "À propos",
+    "item_profil": "Profil",
+    "item_avis": "Mes avis",
+    "item_favoris": "Mes vœux favoris",
+    "item_pro_tags": "Mes tags métier",
+    "item_password": "Changer le mot de passe",
+    "item_langue": "Langue",
+    "item_notifications": "Notifications",
+    "item_admin_panel": "Panel Admin",
+    "item_legal": "Mentions légales",
+    "item_help": "Aide et assistance",
+    "notifications_on": "Activées",
+    "notifications_off": "Désactivées",
+    "notifications_success": "Notifications activées !",
+    "notifications_help": "Pour activer les notifications, va dans Réglages → Wishmaker → Notifications",
+    "password": {
+      "min_chars": "Min. 6 caractères",
+      "no_match": "Les mots de passe ne correspondent pas",
+      "success": "Mot de passe mis à jour !"
+    },
+    "logout": {
+      "titre": "Se déconnecter",
+      "confirm_question": "Êtes-vous sûr de vouloir vous déconnecter ?",
+      "confirm": "Se déconnecter",
+      "loading": "Déconnexion…"
+    },
+    "lang_updated": "Langue mise à jour !"
+  },
+  "wish_pack": {
+    "titre": "Acheter des vœux"
+  },
+  "payment": {
+    "secure": "🔒 Paiement sécurisé par Stripe. Aucune carte n'est stockée chez nous."
   },
   "nav": {
     "accueil": "Wisher",

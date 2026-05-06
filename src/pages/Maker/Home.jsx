@@ -640,7 +640,7 @@ export default function MakerHome() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={view === 'swipe' ? 'Recherche non disponible' : 'Recherchez'}
+              placeholder={view === 'swipe' ? t('maker.search.disabled', 'Recherche non disponible') : t('common.rechercher')}
               disabled={view === 'swipe'}
               className="w-full h-12 bg-white border border-[#E8E8E8] rounded-full pl-10 pr-12 text-sm text-[#1A1A2E] placeholder-[#B0B0B0] outline-none shadow-sm disabled:cursor-not-allowed"
             />
@@ -684,7 +684,7 @@ export default function MakerHome() {
                 ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
                 : { color: '#8A8A9A' }}
             >
-              {v === 'liste' ? 'Liste' : v === 'carte' ? 'Carte' : 'Swipe'}
+              {v === 'liste' ? t('maker.home.tab_liste') : v === 'carte' ? t('maker.home.tab_carte') : t('maker.home.tab_swipe')}
             </button>
           ))}
         </div>
@@ -803,7 +803,7 @@ export default function MakerHome() {
 
             {/* Section vœux trouvés / favoris */}
             <h2 className="font-bold text-[#1A1A2E] text-base mb-3">
-              {favoritesMode ? 'Mes favoris' : 'Vœux trouvés'} ({nonSponsored.length})
+              {favoritesMode ? t('profile.item_favoris') : t('maker.home.voeux_trouves')} ({nonSponsored.length})
             </h2>
 
             <AnimatePresence mode="popLayout">
@@ -843,16 +843,16 @@ export default function MakerHome() {
                   <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#E0E0E0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                   </svg>
-                  <p className="text-[#1A1A2E] font-bold text-sm">Aucun favori pour le moment</p>
-                  <p className="text-[#8A8A9A] text-xs max-w-[260px]">Appuyez sur ♡ sur un vœu pour l'ajouter à vos favoris</p>
+                  <p className="text-[#1A1A2E] font-bold text-sm">{t('maker.home.aucun_favori')}</p>
+                  <p className="text-[#8A8A9A] text-xs max-w-[260px]">{t('maker.home.aucun_favori_sub', "Appuyez sur ♡ sur un vœu pour l'ajouter à vos favoris")}</p>
                 </motion.div>
               ) : (
                 <motion.div
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                   className="flex flex-col items-center justify-center py-16 gap-3"
                 >
-                  <p className="text-[#1A1A2E] font-bold text-sm">Aucun vœu trouvé</p>
-                  <p className="text-[#8A8A9A] text-xs">Essaie d'autres mots-clés</p>
+                  <p className="text-[#1A1A2E] font-bold text-sm">{t('maker.home.aucun_voeu')}</p>
+                  <p className="text-[#8A8A9A] text-xs">{t('maker.home.aucun_voeu_sub')}</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -925,7 +925,7 @@ export default function MakerHome() {
               <textarea
                 value={acceptMessage}
                 onChange={(e) => setAcceptMessage(e.target.value)}
-                placeholder="Bonjour, je suis intéressé par votre vœu..."
+                placeholder={t('maker.home.msg_placeholder')}
                 rows={4}
                 className="w-full bg-[#F7F8FC] rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] outline-none resize-none mb-4"
               />

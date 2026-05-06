@@ -154,8 +154,8 @@ export default function Search() {
                     <circle cx="11" cy="11" r="7" stroke="#E0E0E0" strokeWidth="2"/>
                     <path d="M21 21l-3.5-3.5" stroke="#E0E0E0" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
-                  <p className="text-sm font-bold text-[#1A1A2E]">Aucun résultat</p>
-                  <p className="text-xs text-[#8A8A9A]">Essaie d'autres mots-clés</p>
+                  <p className="text-sm font-bold text-[#1A1A2E]">{t('common.aucun_resultat')}</p>
+                  <p className="text-xs text-[#8A8A9A]">{t('common.essaie_autres_mots')}</p>
                 </motion.div>
               )}
             </AnimatePresence>

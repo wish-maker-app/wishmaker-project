@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase'
 import useAuthStore from '../../store/authStore'
 
@@ -10,6 +11,7 @@ import useAuthStore from '../../store/authStore'
  * Masquable pour la session courante via un bouton × (localStorage).
  */
 export default function EmailVerifyBanner() {
+  const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const [emailConfirmed, setEmailConfirmed] = useState(true)
   const [dismissed, setDismissed] = useState(false)
@@ -29,9 +31,9 @@ export default function EmailVerifyBanner() {
     try {
       const { error } = await supabase.auth.resend({ type: 'signup', email: user.email })
       if (error) throw error
-      toast.success('Email de vérification renvoyé')
+      toast.success(t('auth.verify_banner.succes'))
     } catch (err) {
-      toast.error(err.message || 'Erreur lors du renvoi')
+      toast.error(err.message || t('common.erreur'))
     } finally { setResending(false) }
   }
 
@@ -61,7 +63,7 @@ export default function EmailVerifyBanner() {
             </svg>
             <div className="flex-1 min-w-0">
               <p className="text-[12.5px] font-semibold text-[#9A3412] leading-tight">
-                Vérifie ton email pour sécuriser ton compte
+                {t('auth.verify_banner.message')}
               </p>
               <p className="text-[11px] text-[#C2410C] truncate">
                 On a envoyé un lien à {user?.email}
@@ -72,7 +74,7 @@ export default function EmailVerifyBanner() {
               disabled={resending}
               className="text-[11px] font-semibold text-[#9A3412] underline whitespace-nowrap disabled:opacity-50"
             >
-              {resending ? '...' : 'Renvoyer'}
+              {resending ? '...' : t('auth.verify_banner.renvoyer')}
             </button>
             <button
               onClick={handleDismiss}

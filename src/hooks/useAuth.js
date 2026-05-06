@@ -33,7 +33,12 @@ export function useAuth() {
         // silencieusement bloqués par RLS, sensation de "BDD pas connectée".
         try { supabase.realtime.setAuth(activeSession.access_token) } catch {}
 
-        await fetchProfile(activeSession.user.id)
+        // Skip refetch profil si déjà en store pour le bon user → évite flash blanc
+        // au retour de Profile/Edit (le hook re-fire à chaque mount sinon).
+        const cachedProfile = useAuthStore.getState().profile
+        if (!cachedProfile || cachedProfile.id !== activeSession.user.id) {
+          await fetchProfile(activeSession.user.id)
+        }
         bumpAuthTick()
       } else if (useAuthStore.getState().user) {
         logout()
@@ -105,36 +110,34 @@ export function useAuth() {
   }
 
   async function signOut() {
-    // Tolérant : si une étape rate (réseau, RLS, session déjà morte), on continue quand même.
-    // Le but est TOUJOURS de libérer l'utilisateur même si la BDD répond pas.
+    // Stratégie : libérer l'utilisateur IMMÉDIATEMENT (nettoyage local + nav),
+    // puis exécuter les opérations réseau en background. Évite tout blocage
+    // mobile sur réseau lent — la déconnexion est ressentie comme instantanée.
     const userId = user?.id
-    try {
-      if (userId) {
-        // Race contre un timeout : empêche de bloquer 30s sur un update qui traîne
-        await Promise.race([
-          supabase.from('users').update({ is_online: false }).eq('id', userId),
-          new Promise((resolve) => setTimeout(resolve, 2000)),
-        ])
-      }
-    } catch (err) {
-      console.warn('[signOut] is_online update failed, continuing:', err?.message)
+
+    // Fire-and-forget : on n'attend pas (timeout 800ms suffit en bonne réception)
+    if (userId) {
+      Promise.race([
+        supabase.from('users').update({ is_online: false }).eq('id', userId),
+        new Promise((resolve) => setTimeout(resolve, 800)),
+      ]).catch(() => {})
     }
 
-    try {
-      await supabase.auth.signOut()
-    } catch (err) {
-      console.warn('[signOut] supabase signOut failed, forcing local logout:', err?.message)
-    }
-
-    // Nettoyage forcé du localStorage Supabase au cas où signOut() a échoué
+    // Nettoyage forcé du localStorage Supabase
     try {
       const ref = (import.meta.env.VITE_SUPABASE_URL || '').match(/https:\/\/([^.]+)/)?.[1]
       if (ref) localStorage.removeItem(`sb-${ref}-auth-token`)
       localStorage.removeItem('wishmaker-auth')
     } catch {}
 
+    // Libère l'utilisateur tout de suite — UI navigue vers /auth
     logout()
     navigate('/auth', { replace: true })
+
+    // Sign-out Supabase en background (révoque le refresh token côté serveur)
+    supabase.auth.signOut().catch((err) => {
+      console.warn('[signOut] supabase signOut bg failed:', err?.message)
+    })
   }
 
   return { user, profile, signOut, fetchProfile }

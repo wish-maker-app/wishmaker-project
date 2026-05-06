@@ -5,9 +5,16 @@
     "annuler": "Cancel",
     "valider": "Confirm",
     "enregistrer": "Save",
+    "sauvegarder": "Save",
     "loading": "Loading...",
     "erreur": "An error occurred",
-    "succes": "Success"
+    "succes": "Success",
+    "supprimer": "Delete",
+    "modifier": "Edit",
+    "fermer": "Close",
+    "rechercher": "Search",
+    "aucun_resultat": "No results",
+    "essaie_autres_mots": "Try other keywords"
   },
   "splash": {
     "version": "Version 1.0.0"
@@ -27,9 +34,242 @@
     },
     "commencer": "Get Started"
   },
+  "auth": {
+    "landing": {
+      "titre": "Hello, welcome! 👋",
+      "sous_titre": "Get your everyday needs taken care of in a snap.",
+      "email_label": "Email",
+      "email_placeholder": "Enter your email address",
+      "btn_email": "Continue with email",
+      "btn_google": "Continue with Google",
+      "btn_apple": "Continue with Apple",
+      "ou": "Or continue with",
+      "pas_de_compte": "Don't have an account?",
+      "inscrire": "Sign up"
+    },
+    "login": {
+      "titre": "Sign in",
+      "email_label": "Email address",
+      "password_label": "Password",
+      "remember": "Remember me",
+      "forgot": "Forgot password",
+      "btn": "Sign in",
+      "succes": "You signed in successfully",
+      "pas_de_compte": "Don't have an account?",
+      "inscrire": "Sign up",
+      "erreur_credentials": "Wrong email or password"
+    },
+    "register_email": {
+      "titre": "Create an account",
+      "sous_titre": "Make wishes or grant some!",
+      "email_label": "Email",
+      "btn": "Sign up",
+      "deja_compte": "Already have an account?",
+      "connecter": "Sign in"
+    },
+    "register": {
+      "titre": "Complete your account",
+      "sous_titre": "You're 2 steps away from becoming a Genie",
+      "prenom_label": "First name",
+      "nom_label": "Last name",
+      "email_label": "Email",
+      "password_label": "Password",
+      "confirm_label": "Confirm password",
+      "btn": "Continue",
+      "succes": "Your account has been created!",
+      "deja_compte": "Already have an account?",
+      "connecter": "Sign in"
+    },
+    "otp": {
+      "titre": "Enter the code",
+      "sous_titre": "We just sent you a 4-digit code by email.",
+      "btn": "Continue",
+      "pas_recu": "Didn't receive the code?",
+      "renvoyer": "Resend code",
+      "renvoi_succes": "Code resent!",
+      "erreur": "Invalid code"
+    },
+    "forgot": {
+      "titre": "Forgot password",
+      "sous_titre": "Recover your account password",
+      "email_label": "Email",
+      "btn": "Continue",
+      "email_envoye": "Email sent! Check your inbox."
+    },
+    "new_password": {
+      "titre": "Create a new password",
+      "sous_titre": "Enter your new password",
+      "new_label": "New password",
+      "confirm_label": "Confirm password",
+      "btn": "Continue"
+    },
+    "verify_banner": {
+      "message": "Verify your email to enjoy all features.",
+      "renvoyer": "Resend email",
+      "succes": "Verification email resent"
+    }
+  },
+  "setup": {
+    "langue": {
+      "titre": "Select your language",
+      "label": "Language",
+      "placeholder": "Select",
+      "modal_titre": "Select a language",
+      "btn": "Continue"
+    },
+    "localisation": {
+      "titre": "Choose your location",
+      "sous_titre": "Set your neighborhood to see people offering services around you.",
+      "placeholder": "Your city",
+      "sur_carte": "📍 Pick location on the map",
+      "btn": "Continue"
+    },
+    "carte": {
+      "titre": "Pick a location",
+      "recherche": "Search...",
+      "lieux_populaires": "Popular places",
+      "btn": "Confirm location"
+    },
+    "pseudo": {
+      "titre": "Choose your username",
+      "placeholder": "e.g. maxime33",
+      "min_chars": "Min. 3 characters",
+      "max_chars": "Max. 20 characters",
+      "format_invalide": "Letters, numbers, _ and . only",
+      "deja_pris": "This username is already taken",
+      "btn": "Continue"
+    }
+  },
+  "wisher": {
+    "home": {
+      "bonjour": "Good morning",
+      "bon_apres_midi": "Good afternoon",
+      "bonsoir": "Good evening",
+      "bienvenue": "Welcome Wisher",
+      "faire_voeu": "Make a wish",
+      "faire_voeu_sub": "Fill in the details",
+      "mes_voeux": "My wishes",
+      "mes_voeux_sub": "saved wishes",
+      "tab_en_attente": "Pending",
+      "tab_realise": "Granted",
+      "tab_expire": "Expired",
+      "il_y_a_instant": "just now",
+      "aucun_voeu": "No wishes yet"
+    },
+    "create": {
+      "step1_titre": "Make your wish",
+      "step2_titre": "Add photos",
+      "step3_titre": "Add a location",
+      "step4_titre": "Add keywords",
+      "titre_placeholder": "Wish title",
+      "description_placeholder": "Describe what you need...",
+      "ajouter_images": "Add images",
+      "position_actuelle": "Use my current location",
+      "publier": "Publish my wish",
+      "succes_titre": "Well done!",
+      "succes_sous": "You're officially a Wisher",
+      "retour_accueil": "Back to home"
+    },
+    "mes_voeux": {
+      "titre": "My Wishes",
+      "en_cours": "Active",
+      "realise": "Granted",
+      "annule": "Cancelled",
+      "vide": "No wishes in this category"
+    }
+  },
+  "maker": {
+    "home": {
+      "bienvenue": "Welcome Maker",
+      "aucun_voeu": "No wishes found",
+      "aucun_voeu_sub": "Try other keywords",
+      "aucun_voeu_zone": "No wishes in this area",
+      "aucun_favori": "No favourites yet",
+      "voeux_trouves": "Wishes found",
+      "tab_liste": "List",
+      "tab_carte": "Map",
+      "tab_swipe": "Swipe",
+      "msg_placeholder": "Hi, I'm interested in your wish…"
+    },
+    "search": {
+      "placeholder": "Search a wish...",
+      "historique": "Recent searches",
+      "aucun_resultat": "No results"
+    },
+    "filters": {
+      "titre": "Filters",
+      "tri": "Sort by",
+      "pertinence": "Relevance",
+      "distance": "Distance",
+      "recent": "Most recent",
+      "rayon": "Search radius",
+      "categories": "Categories",
+      "voir_resultats": "See {{count}} results",
+      "reinitialiser": "Reset"
+    },
+    "detail": {
+      "realiser": "Grant this wish",
+      "ouvrir_map": "Open in Google Maps",
+      "succes_titre": "Well done!",
+      "succes_sous": "You granted {{prenom}}'s wish",
+      "retour_accueil": "Back to home"
+    }
+  },
+  "messages": {
+    "titre": "Messages",
+    "mes_voeux": "My wishes",
+    "mes_missions": "My missions",
+    "recherche": "Search...",
+    "vide": "No messages",
+    "envoyer": "Send",
+    "ecrire": "Write a message…"
+  },
+  "profile": {
+    "titre": "Profile",
+    "deconnexion": "Sign out",
+    "modifier": "Edit profile",
+    "aucun_avis": "No reviews yet",
+    "section_personal": "Personal info",
+    "section_security": "Security",
+    "section_general": "General",
+    "section_admin": "Administration",
+    "section_about": "About",
+    "item_profil": "Profile",
+    "item_avis": "My reviews",
+    "item_favoris": "My favourite wishes",
+    "item_pro_tags": "My pro tags",
+    "item_password": "Change password",
+    "item_langue": "Language",
+    "item_notifications": "Notifications",
+    "item_admin_panel": "Admin panel",
+    "item_legal": "Legal notice",
+    "item_help": "Help & support",
+    "notifications_on": "Enabled",
+    "notifications_off": "Disabled",
+    "notifications_success": "Notifications enabled!",
+    "notifications_help": "To enable notifications, go to Settings → Wishmaker → Notifications",
+    "password": {
+      "min_chars": "Min. 6 characters",
+      "no_match": "Passwords do not match",
+      "success": "Password updated!"
+    },
+    "logout": {
+      "titre": "Sign out",
+      "confirm_question": "Are you sure you want to sign out?",
+      "confirm": "Sign out",
+      "loading": "Signing out…"
+    },
+    "lang_updated": "Language updated!"
+  },
+  "wish_pack": {
+    "titre": "Buy wishes"
+  },
+  "payment": {
+    "secure": "🔒 Secure payment by Stripe. We never store your card."
+  },
   "nav": {
-    "accueil": "Home",
-    "explorer": "Explore",
+    "accueil": "Wisher",
+    "explorer": "Maker",
     "messages": "Messages",
     "profil": "Profile"
   }

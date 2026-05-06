@@ -338,7 +338,14 @@ export default function WisherHome() {
   const filtered = wishes.filter((w) => getEffectiveTab(w) === activeTab)
 
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
+  const greeting = hour < 12 ? t('wisher.home.bonjour') : hour < 18 ? t('wisher.home.bon_apres_midi') : t('wisher.home.bonsoir')
+
+  // Tab labels traduits — recalculés à chaque render pour suivre i18n.language
+  const TAB_LABELS_T = {
+    en_attente: t('wisher.home.tab_en_attente'),
+    realise: t('wisher.home.tab_realise'),
+    expire: t('wisher.home.tab_expire'),
+  }
 
   function handleExtend() {
     if (!modal?.wish) return
@@ -530,7 +537,7 @@ export default function WisherHome() {
                   : { color: '#8A8A9A' }
                 }
               >
-                {TAB_LABELS[tab]}
+                {TAB_LABELS_T[tab]}
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px]"
                   style={activeTab === tab
                     ? { background: '#EEF0FF', color: '#5B6BF5' }

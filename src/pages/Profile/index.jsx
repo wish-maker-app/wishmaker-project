@@ -77,6 +77,7 @@ export default function Profile() {
 
   const [editModal, setEditModal] = useState(null) // 'password' | 'langue' | null
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const [saving, setSaving] = useState(false)
   const [newPwd, setNewPwd] = useState('')
   const [confirmPwd, setConfirmPwd] = useState('')
@@ -91,8 +92,8 @@ export default function Profile() {
   }
 
   async function savePassword() {
-    if (newPwd.length < 6) { toast.error('Min. 6 caractères'); return }
-    if (newPwd !== confirmPwd) { toast.error('Les mots de passe ne correspondent pas'); return }
+    if (newPwd.length < 6) { toast.error(t('profile.password.min_chars')); return }
+    if (newPwd !== confirmPwd) { toast.error(t('profile.password.no_match')); return }
     setSaving(true)
     try {
       const { error } = await (await import('../../lib/supabase')).supabase.auth.updateUser({ password: newPwd })
@@ -100,17 +101,18 @@ export default function Profile() {
       setEditModal(null)
       setNewPwd('')
       setConfirmPwd('')
-      toast.success('Mot de passe mis à jour !')
+      toast.success(t('profile.password.success'))
     } catch (err) {
-      toast.error(err.message || 'Erreur')
+      toast.error(err.message || t('common.erreur'))
     } finally { setSaving(false) }
   }
 
   function handleLanguageChange(lang) {
     i18n.changeLanguage(lang)
-    localStorage.setItem('lang', lang)
+    // Clé alignée avec src/lib/i18n.js (sinon le choix ne persiste pas au F5)
+    localStorage.setItem('wishmaker-lang', lang)
     setEditModal(null)
-    toast.success(lang === 'fr' ? 'Langue mise à jour !' : 'Language updated!')
+    toast.success(t('profile.lang_updated'))
   }
 
   return (
@@ -141,7 +143,7 @@ export default function Profile() {
                 <span className="text-xs font-semibold text-[#1A1A2E]">{profile.rating}</span>
               </div>
             ) : (
-              <span className="text-xs text-[#8A8A9A]">Aucun avis</span>
+              <span className="text-xs text-[#8A8A9A]">{t('profile.aucun_avis')}</span>
             )}
           </div>
         </div>
@@ -150,58 +152,58 @@ export default function Profile() {
       {/* Contenu scrollable */}
       <div className="flex-1 px-5 pb-28 overflow-y-auto">
 
-        <SectionTitle title="Personal Info" />
-        <ProfileItem icon={icons.user} label="Profil" onClick={() => navigate('/profile/edit')} />
+        <SectionTitle title={t('profile.section_personal')} />
+        <ProfileItem icon={icons.user} label={t('profile.item_profil')} onClick={() => navigate('/profile/edit')} />
         <ProfileItem
           icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#1A1A2E" strokeWidth="1.8" strokeLinejoin="round"/></svg>}
-          label="Mes avis"
+          label={t('profile.item_avis')}
           onClick={() => navigate('/profile/reviews')}
         />
         <ProfileItem
           icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-          label="Mes vœux favoris"
+          label={t('profile.item_favoris')}
           onClick={() => navigate('/profile/favorites')}
         />
         {profile?.type_compte === 'pro' && (
           <ProfileItem
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-            label="Mes tags métier"
+            label={t('profile.item_pro_tags')}
             onClick={() => navigate('/profile/pro-tags')}
           />
         )}
 
-        <SectionTitle title="Security" />
-        <ProfileItem icon={icons.lock} label="Changer le mot de passe"
+        <SectionTitle title={t('profile.section_security')} />
+        <ProfileItem icon={icons.lock} label={t('profile.item_password')}
           onClick={() => { setNewPwd(''); setConfirmPwd(''); setEditModal('password') }} />
 
-        <SectionTitle title="General" />
-        <ProfileItem icon={icons.globe} label="Langue" onClick={() => setEditModal('langue')} />
+        <SectionTitle title={t('profile.section_general')} />
+        <ProfileItem icon={icons.globe} label={t('profile.item_langue')} onClick={() => setEditModal('langue')} />
         <ProfileItem
           icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-          label="Notifications"
-          value={typeof Notification !== 'undefined' && Notification.permission === 'granted' ? 'Activées' : 'Désactivées'}
+          label={t('profile.item_notifications')}
+          value={typeof Notification !== 'undefined' && Notification.permission === 'granted' ? t('profile.notifications_on') : t('profile.notifications_off')}
           onClick={async () => {
             const user = useAuthStore.getState().user
             if (!user) return
             const ok = await requestPushPermission(user.id)
             if (ok) {
-              toast.success('Notifications activées !')
+              toast.success(t('profile.notifications_success'))
             } else {
-              toast('Pour activer les notifications, va dans Réglages → Wishmaker → Notifications', { icon: 'ℹ️', duration: 5000 })
+              toast(t('profile.notifications_help'), { icon: 'ℹ️', duration: 5000 })
             }
           }}
         />
 
         {isAdmin && (
           <>
-            <SectionTitle title="Administration" />
-            <ProfileItem icon={icons.shield} label="Panel Admin" onClick={() => navigate('/admin')} />
+            <SectionTitle title={t('profile.section_admin')} />
+            <ProfileItem icon={icons.shield} label={t('profile.item_admin_panel')} onClick={() => navigate('/admin')} />
           </>
         )}
 
-        <SectionTitle title="About" />
-        <ProfileItem icon={icons.legal} label="Mentions légales" />
-        <ProfileItem icon={icons.help} label="Aide et assistance" />
+        <SectionTitle title={t('profile.section_about')} />
+        <ProfileItem icon={icons.legal} label={t('profile.item_legal')} />
+        <ProfileItem icon={icons.help} label={t('profile.item_help')} />
 
         {/* Inviter des amis */}
         <motion.button
@@ -317,23 +319,39 @@ export default function Profile() {
       </EditModal>
 
       {/* Modal confirmation déconnexion */}
-      <EditModal open={showLogoutConfirm} onClose={() => setShowLogoutConfirm(false)} title="Se déconnecter">
-        <p className="text-[15px] text-[#8A8A9A] mb-6">Êtes-vous sûr de vouloir vous déconnecter ?</p>
+      <EditModal open={showLogoutConfirm} onClose={() => setShowLogoutConfirm(false)} title={t('profile.logout.titre')}>
+        <p className="text-[15px] text-[#8A8A9A] mb-6">{t('profile.logout.confirm_question')}</p>
         <div className="flex gap-3">
           <button
             onClick={() => setShowLogoutConfirm(false)}
-            className="flex-1 h-12 rounded-full border border-[#E0E0E0] text-[#1A1A2E] font-semibold text-sm"
+            disabled={signingOut}
+            className="flex-1 h-12 rounded-full border border-[#E0E0E0] text-[#1A1A2E] font-semibold text-sm disabled:opacity-60"
           >
-            Annuler
+            {t('common.annuler')}
           </button>
           <button
-            onClick={() => {
-              setShowLogoutConfirm(false)
-              signOut()
+            disabled={signingOut}
+            onClick={async () => {
+              if (signingOut) return
+              setSigningOut(true)
+              try {
+                await signOut()
+              } finally {
+                // Le composant peut être démonté avant ce point (navigate /auth),
+                // donc on protège contre setState sur unmounted — pas grave si ça throw.
+                try { setSigningOut(false) } catch {}
+              }
             }}
-            className="flex-1 h-12 rounded-full bg-[#FF4D4D] text-white font-semibold text-sm"
+            className="flex-1 h-12 rounded-full bg-[#FF4D4D] text-white font-semibold text-sm disabled:opacity-70 flex items-center justify-center gap-2"
           >
-            Se déconnecter
+            {signingOut ? (
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                <span>{t('profile.logout.loading') || 'Déconnexion…'}</span>
+              </>
+            ) : (
+              t('profile.logout.confirm') || 'Se déconnecter'
+            )}
           </button>
         </div>
       </EditModal>
