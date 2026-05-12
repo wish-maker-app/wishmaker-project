@@ -52,10 +52,10 @@ export default function Support() {
             Email de contact
           </p>
           <a
-            href="mailto:contact@wishmaker.fr"
+            href="mailto:wm@wishmaker.fr"
             className="text-[18px] font-semibold text-[#5B6BF5] hover:underline break-all"
           >
-            contact@wishmaker.fr
+            wm@wishmaker.fr
           </a>
           <p className="mt-2 text-[13px] text-[#8A8A9A]">
             Réponse sous 48 heures ouvrées.

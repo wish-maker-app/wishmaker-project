@@ -70,8 +70,8 @@ export default function MentionsLegales() {
             <p>
               <strong className="font-semibold text-[#1A1A2E]">Contact</strong>
               <br />
-              <a href="mailto:contact@wishmaker.fr" className="text-[#5B6BF5] hover:underline">
-                contact@wishmaker.fr
+              <a href="mailto:wm@wishmaker.fr" className="text-[#5B6BF5] hover:underline">
+                wm@wishmaker.fr
               </a>
             </p>
           </Section>
@@ -150,8 +150,8 @@ export default function MentionsLegales() {
               <strong className="font-semibold text-[#1A1A2E]">Vos droits</strong>
               <br />
               Accès, rectification, effacement, portabilité, opposition. Pour exercer vos droits, contactez-nous à{' '}
-              <a href="mailto:contact@wishmaker.fr" className="text-[#5B6BF5] hover:underline">
-                contact@wishmaker.fr
+              <a href="mailto:wm@wishmaker.fr" className="text-[#5B6BF5] hover:underline">
+                wm@wishmaker.fr
               </a>
               .
             </p>
