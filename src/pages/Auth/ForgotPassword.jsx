@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import Header from '../../components/layout/Header'
+import AuthShell from '../../components/layout/AuthShell'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
 
@@ -31,8 +32,8 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="fixed inset-0 z-[1000] bg-white overflow-y-auto" style={{ width: '100vw', maxWidth: '100vw' }}>
-    <div className="min-h-screen mx-auto max-w-[480px] flex flex-col">
+    <AuthShell>
+    <div className="min-h-screen mx-auto max-w-[480px] flex flex-col lg:max-w-[460px]">
       <Header />
 
       <motion.div
@@ -70,6 +71,6 @@ export default function ForgotPassword() {
         </form>
       </motion.div>
     </div>
-    </div>
+    </AuthShell>
   )
 }
