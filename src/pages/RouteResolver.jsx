@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { requestPushPermission } from '../lib/pushNotifications'
+import Landing from './Public/Landing'
 
 /**
  * Point d'entrée `/` — résout silencieusement la destination selon la session.
@@ -20,6 +21,11 @@ export default function RouteResolver() {
   const navigate = useNavigate()
   const resolved = useRef(false)
   const [showPushPrompt, setShowPushPrompt] = useState(false)
+  // Etat de la resolution :
+  //  - null : on attend de savoir (verifie la session)
+  //  - 'landing' : on rend la Landing publique directement (visiteur anonyme)
+  //  - 'redirect' : navigate() a deja ete appelle, on attend le re-render
+  const [renderState, setRenderState] = useState(null)
   const pendingUserId = useRef(null)
 
   useEffect(() => {
@@ -52,26 +58,26 @@ export default function RouteResolver() {
             if (alreadyGranted) {
               requestPushPermission(session.user.id).catch(() => {})
             }
+            setRenderState('redirect')
             navigate('/maker', { replace: true })
             return
           }
           let dest = '/setup/profil'
           if (profile?.prenom && profile?.nom && !profile?.pseudo) dest = '/setup/pseudo'
           else if (profile?.prenom && profile?.nom && profile?.pseudo && !profile?.ville) dest = '/setup/localisation'
+          setRenderState('redirect')
           navigate(dest, { replace: true })
           return
         }
-        // Nouveau visiteur → onboarding (parcours de découverte de l'app).
-        // User qui revient (a déjà vu l'onboarding) → directement /auth.
-        // Les DEUX destinations affichent publiquement le nom de l'éditeur
-        // et un contact (footer Step3 onboarding + footer Landing /auth)
-        // ce qui satisfait l'exigence Apple Developer "publicly available
-        // and functional with substantive content".
-        const seen = localStorage.getItem('onboarding_seen')
-        navigate(seen ? '/auth' : '/onboarding/1', { replace: true })
+        // Visiteur anonyme → on rend directement la Landing publique a / .
+        // L'URL ne change pas (pas de navigate). Apple Developer & Google
+        // verront une vraie homepage marketing presentant Wish Maker SAS,
+        // sans avoir besoin de se connecter.
+        setRenderState('landing')
       } catch (err) {
         console.error('[resolver]', err)
-        navigate('/onboarding/1', { replace: true })
+        // Erreur lecture session : fallback sur la Landing (publique, safe)
+        setRenderState('landing')
       }
     })()
   }, [navigate])
@@ -126,6 +132,12 @@ export default function RouteResolver() {
     )
   }
 
+  // Visiteur anonyme → on rend la Landing publique directement a /
+  if (renderState === 'landing') {
+    return <Landing />
+  }
+
+  // En attente (verification session) ou redirection en cours : petit spinner
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-white">
       <div className="w-6 h-6 rounded-full border-2 border-[#5B6BF5] border-t-transparent animate-spin" />
