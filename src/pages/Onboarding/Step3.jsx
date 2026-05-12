@@ -108,17 +108,6 @@ export default function OnboardingStep3() {
             </div>
 
             <Button onClick={handleCommencer}>Commencer</Button>
-
-            {/* Footer organisation — exigence Apple Developer Program :
-                identification publique de l'éditeur + contact accessible
-                sans connexion. */}
-            <p className="text-center text-[11px] text-white/60 mt-2 leading-relaxed">
-              Wish Maker — édité par WISH MAKER SAS
-              <br />
-              <a href="mailto:contact@wishmaker.fr" className="underline hover:text-white/90">
-                contact@wishmaker.fr
-              </a>
-            </p>
           </motion.div>
         </div>
       </div>
