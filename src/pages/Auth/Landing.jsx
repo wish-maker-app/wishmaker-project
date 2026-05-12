@@ -102,17 +102,26 @@ export default function Landing() {
         </p>
 
         {/* Footer organisation — exigence Apple Developer Program :
-            identification publique de l'éditeur + contact accessible sans
-            connexion. Visible en bas de cette page Landing qui est la
-            véritable homepage publique (RouteResolver renvoie ici les
-            visiteurs ayant déjà vu l'onboarding). */}
+            identification publique de l'éditeur + URL d'assistance
+            accessible sans connexion. Visible en bas de cette page
+            Landing qui est la véritable homepage publique. */}
         <div className="text-center text-[11px] text-[#8A8A9A] mt-auto pt-4 leading-relaxed">
           <p className="font-semibold text-[#1A1A2E]">Wish Maker</p>
-          <p>édité par WISH MAKER SAS</p>
-          <p>
-            <a href="mailto:contact@wishmaker.fr" className="underline hover:text-[#5B6BF5]">
-              contact@wishmaker.fr
-            </a>
+          <p>édité par Wish Maker SAS</p>
+          <p className="flex items-center justify-center gap-3 mt-1">
+            <button
+              onClick={() => navigate('/support')}
+              className="underline hover:text-[#5B6BF5] transition-colors"
+            >
+              Support
+            </button>
+            <span className="text-[#D0D0D8]">·</span>
+            <button
+              onClick={() => navigate('/mentions-legales')}
+              className="underline hover:text-[#5B6BF5] transition-colors"
+            >
+              Mentions légales
+            </button>
           </p>
         </div>
       </motion.div>

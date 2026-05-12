@@ -8,6 +8,12 @@ import { lazy, Suspense } from 'react'
 
 const RouteResolver = lazy(() => import('../pages/RouteResolver'))
 
+// Pages publiques (accessibles a tous, sans wrapper auth) — requises pour
+// le compte Apple Developer Organization (URL d'assistance + identification
+// publique de l'editeur) et pour la conformite LCEN cote francais.
+const Support = lazy(() => import('../pages/Public/Support'))
+const MentionsLegales = lazy(() => import('../pages/Public/MentionsLegales'))
+
 // Onboarding
 const OnboardingStep1 = lazy(() => import('../pages/Onboarding/Step1'))
 const OnboardingStep2 = lazy(() => import('../pages/Onboarding/Step2'))
@@ -121,6 +127,10 @@ const router = createBrowserRouter([
     path: '/',
     element: <Suspense fallback={<PageLoader />}><RouteResolver /></Suspense>,
   },
+
+  // Pages publiques (accessibles a tous, hors wrappers auth)
+  { path: '/support',         element: <Suspense fallback={<PageLoader />}><Support /></Suspense> },
+  { path: '/mentions-legales', element: <Suspense fallback={<PageLoader />}><MentionsLegales /></Suspense> },
 
   // Onboarding (public)
   {
