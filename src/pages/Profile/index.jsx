@@ -202,8 +202,8 @@ export default function Profile() {
         )}
 
         <SectionTitle title={t('profile.section_about')} />
-        <ProfileItem icon={icons.legal} label={t('profile.item_legal')} />
-        <ProfileItem icon={icons.help} label={t('profile.item_help')} />
+        <ProfileItem icon={icons.legal} label={t('profile.item_legal')} onClick={() => navigate('/mentions-legales')} />
+        <ProfileItem icon={icons.help} label={t('profile.item_help')} onClick={() => navigate('/support')} />
 
         {/* Inviter des amis */}
         <motion.button
