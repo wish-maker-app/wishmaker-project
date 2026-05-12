@@ -14,14 +14,17 @@ export default function Support() {
   const navigate = useNavigate()
 
   return (
-    // h-screen + flex-col + zone scrollable interne : le shell global de
-    // l'app a overflow:hidden (look mobile 430px), donc le scroll natif est
-    // désactivé. Chaque page doit gérer son propre scroll interne.
-    <div className="h-screen w-full bg-white text-[#1A1A2E] antialiased flex flex-col">
+    // fixed inset-0 + z-[1000] : on s'echappe du shell mobile 430px (#root)
+    // pour que la page soit responsive desktop ET mobile. La zone main
+    // scrolle son propre contenu (le shell global a overflow:hidden).
+    <div
+      className="fixed inset-0 z-[1000] bg-white text-[#1A1A2E] antialiased flex flex-col overflow-hidden"
+      style={{ width: '100vw', maxWidth: '100vw' }}
+    >
 
       {/* Header — fixe en haut */}
-      <header className="border-b border-[#EEEEF2] flex-shrink-0">
-        <div className="max-w-[640px] mx-auto px-5 sm:px-6 h-14 flex items-center justify-between">
+      <header className="border-b border-[#EEEEF2] flex-shrink-0 bg-white/80 backdrop-blur-md">
+        <div className="max-w-[1100px] mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
           <button
             onClick={() => navigate('/')}
             className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-lg text-[13px] font-medium text-[#1A1A2E] hover:bg-[#F5F5F7] transition-colors"
