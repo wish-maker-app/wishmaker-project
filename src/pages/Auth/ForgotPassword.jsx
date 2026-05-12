@@ -31,7 +31,8 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="h-screen bg-white flex flex-col overflow-y-auto">
+    <div className="fixed inset-0 z-[1000] bg-white overflow-y-auto" style={{ width: '100vw', maxWidth: '100vw' }}>
+    <div className="min-h-screen mx-auto max-w-[480px] flex flex-col">
       <Header />
 
       <motion.div
@@ -68,6 +69,7 @@ export default function ForgotPassword() {
           <Button type="submit" loading={loading}>Continuer</Button>
         </form>
       </motion.div>
+    </div>
     </div>
   )
 }

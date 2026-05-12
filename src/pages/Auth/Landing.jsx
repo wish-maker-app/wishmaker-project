@@ -35,7 +35,8 @@ export default function Landing() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#5B6BF5] overflow-y-auto">
+    <div className="fixed inset-0 z-[1000] bg-[#5B6BF5] overflow-y-auto" style={{ width: '100vw', maxWidth: '100vw' }}>
+    <div className="min-h-screen mx-auto max-w-[480px] flex flex-col">
       {/* Partie haute */}
       <motion.div
         initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
@@ -125,6 +126,7 @@ export default function Landing() {
           </p>
         </div>
       </motion.div>
+    </div>
     </div>
   )
 }

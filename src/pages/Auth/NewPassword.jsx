@@ -42,7 +42,8 @@ export default function NewPassword() {
   }
 
   return (
-    <div className="h-screen bg-white flex flex-col overflow-y-auto">
+    <div className="fixed inset-0 z-[1000] bg-white overflow-y-auto" style={{ width: '100vw', maxWidth: '100vw' }}>
+    <div className="min-h-screen mx-auto max-w-[480px] flex flex-col">
       <Header />
 
       <motion.div
@@ -67,6 +68,7 @@ export default function NewPassword() {
 
       <SuccessModal isOpen={showSuccess} variant="password"
         onContinue={() => navigate('/auth/login', { replace: true })} />
+    </div>
     </div>
   )
 }
