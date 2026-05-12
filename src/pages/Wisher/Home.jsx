@@ -651,10 +651,9 @@ export default function WisherHome() {
       <WishPackModal
         open={showPackModal}
         onClose={() => setShowPackModal(false)}
-        onSuccess={() => {
-          setShowPackModal(false)
-          navigate('/wisher/create')
-        }}
+        // Apres un achat de pack, on NE force PAS la navigation vers /wisher/create.
+        // L'user reste sur sa page actuelle, libre de choisir quand creer son voeu.
+        onSuccess={() => setShowPackModal(false)}
       />
 
       {/* Modal paiement Stripe (Urgent 0.99€ / Prolongation 0.99€) */}

@@ -180,10 +180,8 @@ export default function BottomTabBar() {
       <WishPackModal
         open={showPackModal}
         onClose={() => setShowPackModal(false)}
-        onSuccess={() => {
-          setShowPackModal(false)
-          navigate('/wisher/create')
-        }}
+        // Pas de navigation forcee : l'user reste ou il est apres l'achat.
+        onSuccess={() => setShowPackModal(false)}
       />
     </>
   )
