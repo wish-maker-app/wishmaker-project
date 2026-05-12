@@ -4,52 +4,33 @@ import { useTranslation } from 'react-i18next'
 import { useNotifications } from '../../hooks/useNotifications'
 import useAuthStore from '../../store/authStore'
 import WishPackModal from '../ui/WishPackModal'
+import lampeSvg from '../../assets/lampe.svg'
+import genieSvg from '../../assets/genie.svg'
 
-// Icônes SVG inline pour éviter une dépendance supplémentaire
-function IconWisher({ active }) {
+// Wrapper commun pour les icônes "illustration" (lampe / génie) : leur SVG
+// a son gradient bleu/violet hardcodé. Quand inactif on les rend gris via
+// un filter CSS (grayscale + opacity) pour cohérence avec les autres tabs.
+function IllustrationIcon({ src, alt, active }) {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"
-        stroke={active ? 'url(#gw)' : '#C0C0C0'}
-        strokeWidth="2"
-        strokeLinejoin="round"
-        fill={active ? 'url(#gwfill)' : 'none'}
-        fillOpacity={active ? 0.2 : 0}
+    <div className="w-7 h-7 flex items-center justify-center">
+      <img
+        src={src}
+        alt={alt}
+        className="w-full h-full object-contain transition-all duration-200"
+        style={{
+          filter: active ? 'none' : 'grayscale(1) opacity(0.45)',
+        }}
       />
-      <defs>
-        <linearGradient id="gw" x1="0" y1="0" x2="1" y2="1">
-          <stop stopColor="#5B6BF5" /><stop offset="1" stopColor="#9B59F5" />
-        </linearGradient>
-        <linearGradient id="gwfill" x1="0" y1="0" x2="1" y2="1">
-          <stop stopColor="#5B6BF5" /><stop offset="1" stopColor="#9B59F5" />
-        </linearGradient>
-      </defs>
-    </svg>
+    </div>
   )
 }
 
+function IconWisher({ active }) {
+  return <IllustrationIcon src={lampeSvg} alt="Wisher" active={active} />
+}
+
 function IconMaker({ active }) {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-        stroke={active ? 'url(#gk)' : '#C0C0C0'}
-        strokeWidth="2"
-        strokeLinejoin="round"
-        fill={active ? 'url(#gkfill)' : 'none'}
-        fillOpacity={active ? 0.2 : 0}
-      />
-      <defs>
-        <linearGradient id="gk" x1="0" y1="0" x2="1" y2="1">
-          <stop stopColor="#5B6BF5" /><stop offset="1" stopColor="#9B59F5" />
-        </linearGradient>
-        <linearGradient id="gkfill" x1="0" y1="0" x2="1" y2="1">
-          <stop stopColor="#5B6BF5" /><stop offset="1" stopColor="#9B59F5" />
-        </linearGradient>
-      </defs>
-    </svg>
-  )
+  return <IllustrationIcon src={genieSvg} alt="Maker" active={active} />
 }
 
 function IconMessages({ active }) {
