@@ -14,13 +14,6 @@ export default function OnboardingStep3() {
     <div className="fixed inset-0 bg-white flex items-center justify-center">
       <div className="w-full max-w-[430px] h-[100dvh] flex flex-col overflow-hidden relative">
 
-        <button
-          onClick={() => navigate('/auth')}
-          className="absolute top-4 right-5 z-30 text-[12px] font-semibold text-white/80 hover:text-white transition-colors"
-        >
-          Se connecter
-        </button>
-
         {/* Image de fond carte Toulouse */}
         <div className="absolute inset-0">
           <img
