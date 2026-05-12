@@ -17,7 +17,15 @@ export default function Landing() {
   const navigate = useNavigate()
 
   return (
-    <div className="h-screen w-full bg-white text-[#1A1A2E] antialiased flex flex-col">
+    // fixed inset-0 : on s'echappe du shell mobile 430px applique par #root
+    // (cf index.css). La landing prend toute la largeur du viewport et est
+    // responsive comme une vraie homepage. Position fixed sur Apple iOS = OK
+    // car le composant unmount immediatement quand l'URL change (navigate
+    // depuis les boutons Se connecter / S'inscrire).
+    <div
+      className="fixed inset-0 z-[1000] bg-white text-[#1A1A2E] antialiased flex flex-col overflow-hidden"
+      style={{ width: '100vw', maxWidth: '100vw' }}
+    >
 
       {/* ── Header sticky ── */}
       <header className="border-b border-[#EEEEF2] flex-shrink-0 bg-white/80 backdrop-blur-md z-10">
