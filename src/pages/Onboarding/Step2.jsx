@@ -7,8 +7,15 @@ export default function OnboardingStep2() {
 
   return (
     <div className="fixed inset-0 bg-white flex items-center justify-center">
-      <div className="w-full max-w-[430px] h-[100dvh] flex flex-col overflow-hidden"
+      <div className="w-full max-w-[430px] h-[100dvh] flex flex-col overflow-hidden relative"
         style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.15) 25%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0.5) 72%, rgba(0,0,0,0.9) 85%, rgba(0,0,0,1) 100%)', backgroundColor: '#fff' }}>
+
+        <button
+          onClick={() => navigate('/auth')}
+          className="absolute top-4 right-5 z-30 text-[12px] font-semibold text-white/80 hover:text-white transition-colors"
+        >
+          Se connecter
+        </button>
 
         {/* Illustration génie */}
         <div className="flex-1 flex items-center justify-center px-8">

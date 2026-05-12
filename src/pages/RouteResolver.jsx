@@ -61,8 +61,13 @@ export default function RouteResolver() {
           navigate(dest, { replace: true })
           return
         }
-        const seen = localStorage.getItem('onboarding_seen')
-        navigate(seen ? '/auth' : '/onboarding/1', { replace: true })
+        // Toujours envoyer les visiteurs anonymes sur l'onboarding (pas direct
+        // sur /auth) : ça garantit que la racine wishmaker.fr montre toujours
+        // du contenu public présentant l'app et l'organisation, exigence du
+        // Apple Developer Program ("publicly available and functional with
+        // substantive content"). Les users qui reviennent peuvent cliquer
+        // sur "Déjà un compte ? Se connecter" depuis l'onboarding.
+        navigate('/onboarding/1', { replace: true })
       } catch (err) {
         console.error('[resolver]', err)
         navigate('/onboarding/1', { replace: true })

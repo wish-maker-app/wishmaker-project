@@ -14,6 +14,13 @@ export default function OnboardingStep3() {
     <div className="fixed inset-0 bg-white flex items-center justify-center">
       <div className="w-full max-w-[430px] h-[100dvh] flex flex-col overflow-hidden relative">
 
+        <button
+          onClick={() => navigate('/auth')}
+          className="absolute top-4 right-5 z-30 text-[12px] font-semibold text-white/80 hover:text-white transition-colors"
+        >
+          Se connecter
+        </button>
+
         {/* Image de fond carte Toulouse */}
         <div className="absolute inset-0">
           <img
@@ -108,6 +115,17 @@ export default function OnboardingStep3() {
             </div>
 
             <Button onClick={handleCommencer}>Commencer</Button>
+
+            {/* Footer organisation — exigence Apple Developer Program :
+                identification publique de l'éditeur + contact accessible
+                sans connexion. */}
+            <p className="text-center text-[11px] text-white/60 mt-2 leading-relaxed">
+              Wish Maker — édité par WISH MAKER SAS
+              <br />
+              <a href="mailto:contact@wishmaker.fr" className="underline hover:text-white/90">
+                contact@wishmaker.fr
+              </a>
+            </p>
           </motion.div>
         </div>
       </div>
