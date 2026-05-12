@@ -12,10 +12,11 @@ export default function MentionsLegales() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen w-full bg-white text-[#1A1A2E] antialiased">
+    // h-screen + zone scrollable interne (le shell global a overflow:hidden)
+    <div className="h-screen w-full bg-white text-[#1A1A2E] antialiased flex flex-col">
 
-      {/* Header */}
-      <header className="border-b border-[#EEEEF2]">
+      {/* Header — fixe en haut */}
+      <header className="border-b border-[#EEEEF2] flex-shrink-0">
         <div className="max-w-[680px] mx-auto px-5 sm:px-6 h-14 flex items-center justify-between">
           <button
             onClick={() => navigate('/')}
@@ -30,7 +31,8 @@ export default function MentionsLegales() {
         </div>
       </header>
 
-      <main className="max-w-[680px] mx-auto px-5 sm:px-6 py-10 sm:py-14">
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-[680px] mx-auto px-5 sm:px-6 py-10 sm:py-14">
 
         {/* Titre */}
         <h1 className="text-[28px] sm:text-[32px] font-bold tracking-[-0.02em] leading-tight">
@@ -176,25 +178,26 @@ export default function MentionsLegales() {
 
         </div>
 
-        {/* Footer */}
-        <footer className="mt-16 pt-6 border-t border-[#EEEEF2] flex items-center justify-between text-[12px] text-[#8A8A9A]">
-          <span>Wish Maker SAS</span>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/support')}
-              className="hover:text-[#5B6BF5] transition-colors"
-            >
-              Support
-            </button>
-            <span className="text-[#D0D0D8]">·</span>
-            <button
-              onClick={() => navigate('/')}
-              className="hover:text-[#5B6BF5] transition-colors"
-            >
-              ← Accueil
-            </button>
-          </div>
-        </footer>
+          {/* Footer */}
+          <footer className="mt-16 pt-6 border-t border-[#EEEEF2] flex items-center justify-between text-[12px] text-[#8A8A9A]">
+            <span>Wish Maker SAS</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/support')}
+                className="hover:text-[#5B6BF5] transition-colors"
+              >
+                Support
+              </button>
+              <span className="text-[#D0D0D8]">·</span>
+              <button
+                onClick={() => navigate('/')}
+                className="hover:text-[#5B6BF5] transition-colors"
+              >
+                ← Accueil
+              </button>
+            </div>
+          </footer>
+        </div>
       </main>
     </div>
   )
