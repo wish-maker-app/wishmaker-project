@@ -4,7 +4,7 @@ import lampeSvg from '../../assets/lampe.svg'
 import genieSvg from '../../assets/genie.svg'
 
 /**
- * Landing publique — homepage de wishmaker.fr.
+ * Landing publique : homepage de wishmaker.fr.
  *
  * Servie aux visiteurs anonymes (par RouteResolver). Pour les users
  * connectes, on redirige directement vers /maker (zero friction).
@@ -82,8 +82,8 @@ export default function Landing() {
             </h1>
 
             <p className="text-[15.5px] sm:text-[17px] leading-[1.6] text-[#3A3A4E] max-w-[560px] mx-auto mb-8">
-              Wish Maker connecte celles et ceux qui ont un besoin avec les Makers — vos voisins,
-              vos talents locaux — qui peuvent l'exaucer. Mécanique, jardinage, déménagement,
+              Wish Maker connecte celles et ceux qui ont un besoin avec les Makers, vos voisins,
+              vos talents locaux qui peuvent l'exaucer. Mécanique, jardinage, déménagement,
               cours, soins… un vœu publié, une réponse autour de vous.
             </p>
 
@@ -180,7 +180,12 @@ export default function Landing() {
                 key={cat.label}
                 className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-[#EEEEF2] bg-white hover:border-[#D4DAFF] hover:shadow-[0_4px_18px_rgba(91,107,245,0.08)] transition-all"
               >
-                <span className="text-xl">{cat.emoji}</span>
+                <span
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'linear-gradient(135deg,#EEF0FF,#F2E9FF)', color: '#5B6BF5' }}
+                >
+                  {cat.icon}
+                </span>
                 <span className="text-[13.5px] font-semibold text-[#1A1A2E]">{cat.label}</span>
               </div>
             ))}
@@ -216,7 +221,7 @@ export default function Landing() {
           <SectionHeader
             eyebrow="Tarifs"
             title="Gratuit par défaut"
-            subtitle="3 vœux offerts chaque mois. Si vous en voulez plus, choisissez un pack — payé une fois, valable jusqu'à utilisation."
+            subtitle="3 vœux offerts chaque mois. Si vous en voulez plus, choisissez un pack, payé une fois et valable jusqu'à utilisation."
           />
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-[960px] mx-auto">
@@ -395,25 +400,144 @@ function Step({ n, title, children }) {
 // Data
 // ──────────────────────────────────────────────
 
+// Icone SVG line, 24x24, stroke=currentColor, cohérent avec le reste de l'app
+const SI = ({ children }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {children}
+  </svg>
+)
+
 const CATEGORIES = [
-  { emoji: '🔧', label: 'Mécanique' },
-  { emoji: '🌿', label: 'Jardinage' },
-  { emoji: '🧹', label: 'Ménage' },
-  { emoji: '📦', label: 'Déménagement' },
-  { emoji: '🚚', label: 'Livraison' },
-  { emoji: '🛠️', label: 'Bricolage' },
-  { emoji: '👶', label: "Garde d'enfants" },
-  { emoji: '🐕', label: "Garde d'animaux" },
-  { emoji: '📚', label: 'Cours particuliers' },
-  { emoji: '💆', label: 'Bien-être' },
-  { emoji: '👨‍🍳', label: 'Cuisine' },
-  { emoji: '🎉', label: 'Animation' },
+  {
+    label: 'Mécanique',
+    icon: (
+      <SI>
+        <path d="M14.7 6.3a4 4 0 0 1 5 5L21 13l-1.6-1.6-2 2-2.4-2.4 2-2L15.4 7.3z" />
+        <path d="M13.5 10.5 4 20l1.3 1.3a1.5 1.5 0 0 0 2.1 0L17 11.7" />
+      </SI>
+    ),
+  },
+  {
+    label: 'Jardinage',
+    icon: (
+      <SI>
+        <path d="M12 22V10" />
+        <path d="M12 10c-3 0-6-3-6-6 3 0 6 3 6 6z" />
+        <path d="M12 10c3 0 6-2 6-5-3 0-6 2-6 5z" />
+        <path d="M9 22h6" />
+      </SI>
+    ),
+  },
+  {
+    label: 'Ménage',
+    icon: (
+      <SI>
+        <path d="M19 4 6 17" />
+        <path d="m3 21 4-4" />
+        <path d="m14 8 4 4" />
+        <path d="M21 6c0-1-2-3-3-3" />
+      </SI>
+    ),
+  },
+  {
+    label: 'Déménagement',
+    icon: (
+      <SI>
+        <path d="M3 9.5 12 4l9 5.5" />
+        <path d="M3 9.5V20a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9.5" />
+        <path d="M3 9.5h18" />
+        <path d="M10 14h4" />
+      </SI>
+    ),
+  },
+  {
+    label: 'Livraison',
+    icon: (
+      <SI>
+        <path d="M2 17h2l1.5-5h10L18 17h3" />
+        <circle cx="8" cy="17" r="2" />
+        <circle cx="17" cy="17" r="2" />
+        <path d="M8 12V7h6l2 2" />
+      </SI>
+    ),
+  },
+  {
+    label: 'Bricolage',
+    icon: (
+      <SI>
+        <path d="m15 12-8.5 8.5a2.12 2.12 0 1 1-3-3L12 9" />
+        <path d="M17.6 6.4 21 3l-1.5-1.5L16 5l-1 3 2.6-1.6z" />
+        <path d="m12 9 5 5" />
+      </SI>
+    ),
+  },
+  {
+    label: "Garde d'enfants",
+    icon: (
+      <SI>
+        <circle cx="12" cy="6" r="3" />
+        <path d="M9.5 11.5 8 14l1.5 1.5L9 18h6l-.5-2.5L16 14l-1.5-2.5" />
+        <path d="M10 21v-3" />
+        <path d="M14 21v-3" />
+      </SI>
+    ),
+  },
+  {
+    label: "Garde d'animaux",
+    icon: (
+      <SI>
+        <circle cx="6" cy="11" r="2" />
+        <circle cx="18" cy="11" r="2" />
+        <circle cx="9" cy="6" r="2" />
+        <circle cx="15" cy="6" r="2" />
+        <path d="M9 13c-2 0-4 1.5-4 4 0 2 2 3 4 3h6c2 0 4-1 4-3 0-2.5-2-4-4-4z" />
+      </SI>
+    ),
+  },
+  {
+    label: 'Cours particuliers',
+    icon: (
+      <SI>
+        <path d="M4 5.5c2.5-.5 5 0 8 2 3-2 5.5-2.5 8-2v12.5c-2.5-.5-5 0-8 2-3-2-5.5-2.5-8-2V5.5z" />
+        <path d="M12 7.5v12" />
+      </SI>
+    ),
+  },
+  {
+    label: 'Bien-être',
+    icon: (
+      <SI>
+        <path d="M12 9.5c-1.3-2-4.5-2-5.5.5-.9 2.3 1.2 4.3 5.5 7 4.3-2.7 6.4-4.7 5.5-7-1-2.5-4.2-2.5-5.5-.5z" />
+        <path d="M4 14.5c.8 2.5 3 4.5 8 6 5-1.5 7.2-3.5 8-6" />
+      </SI>
+    ),
+  },
+  {
+    label: 'Cuisine',
+    icon: (
+      <SI>
+        <path d="M6 13.5V20a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-6.5" />
+        <path d="M6 13.5a4 4 0 1 1 0-7 4 4 0 0 1 5-3 4 4 0 0 1 7 2.5 4 4 0 0 1 0 7.5" />
+        <path d="M9 16h6" />
+      </SI>
+    ),
+  },
+  {
+    label: 'Animation',
+    icon: (
+      <SI>
+        <path d="M5 19 8 9l6 6-9 4z" />
+        <path d="M13 5 14 7l2 .5L14.5 9 15 11l-2-1-2 1 .5-2L10 7.5 12 7z" />
+        <path d="M19 11l.5 1 1 .5-1 .5-.5 1-.5-1-1-.5 1-.5z" />
+      </SI>
+    ),
+  },
 ]
 
 const FEATURES = [
   {
     title: 'Hyperlocal',
-    text: 'Les Makers sont littéralement dans votre quartier — pas à 30 km. Carte interactive, distance précise, calcul d\'itinéraire.',
+    text: 'Les Makers sont littéralement dans votre quartier, pas à 30 km. Carte interactive, distance précise, calcul d\'itinéraire.',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
