@@ -4,7 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Variables CSS globales (palette brand Wish Maker) ─── */
+/* ─── Variables CSS globales (palette brand) ─── */
 :root {
   --primary-start:  #5B6BF5;
   --primary-end:    #9B59F5;
