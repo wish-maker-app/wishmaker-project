@@ -34,6 +34,15 @@ export default function FavoriteButton({ wish, variant = 'overlay', size = 20 })
     ? 'bg-black/30 backdrop-blur-sm'
     : 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
 
+  // Couleurs cœur selon variant + état :
+  //  - overlay (fond sombre) : blanc en outline, blanc plein quand actif
+  //  - plain (fond clair) : sombre en outline, rouge plein quand actif
+  const strokeColor = variant === 'overlay' ? '#FFFFFF' : '#1A1A2E'
+  const fillColor = active
+    ? (variant === 'overlay' ? '#FFFFFF' : '#EF4444')
+    : 'none'
+  const activeStroke = active && variant !== 'overlay' ? '#EF4444' : strokeColor
+
   return (
     <motion.button
       onClick={handleClick}
@@ -50,8 +59,8 @@ export default function FavoriteButton({ wish, variant = 'overlay', size = 20 })
         width={size}
         height={size}
         viewBox="0 0 24 24"
-        fill={active ? '#FFFFFF' : 'none'}
-        stroke="#FFFFFF"
+        fill={fillColor}
+        stroke={activeStroke}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"

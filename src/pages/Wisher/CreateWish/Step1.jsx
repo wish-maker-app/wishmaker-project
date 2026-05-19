@@ -10,6 +10,7 @@ import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
 import useWishFormStore from '../../../store/wishFormStore'
 import { checkContent } from '../../../lib/moderation'
+import { useCatalog } from '../../../hooks/useTags'
 
 // Schema-factory : on crée le schema à chaque render avec les messages traduits
 function buildSchema(t) {
@@ -63,6 +64,17 @@ export default function Step1() {
   const [titreViolation, setTitreViolation] = useState(false)
   const [descViolation, setDescViolation] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  // Touche useCatalog dès Step1 → categories+tags pré-cachés en mémoire,
+  // dispo instantanément à Step2/Step4 (au lieu de recharger à chaque mount).
+  useCatalog()
+
+  // Prewarm le modèle NSFW.js en arrière-plan pendant que l'user tape titre/desc.
+  // Comme ça quand il arrive à Step2 et uploade une photo, le modèle (40MB) est
+  // déjà en cache → modération quasi-instantanée. Si l'user passe vite (titre
+  // court), le DL continue en background sans gêner.
+  useEffect(() => {
+    import('../../../lib/moderationImage').then((m) => m.prewarmModerationModel?.())
+  }, [])
 
   const checkModeration = useCallback(async () => {
     const [titreCheck, descCheck] = await Promise.all([
@@ -84,7 +96,16 @@ export default function Step1() {
     if (submitting) return // anti-double-clic
     setSubmitting(true)
     try {
-      // Double-check synchrone à la soumission (évite race condition avec debounce 300ms)
+      // Si le live-check (debounce 300ms) n'a vu aucune violation ET que
+      // les valeurs n'ont pas changé entre-temps → on skip le double-check
+      // synchrone → navigation instantanée.
+      const sameAsLive = data.titre === titreValue && data.description === descValue
+      if (sameAsLive && !hasViolation) {
+        setStep1(data.titre, data.description)
+        navigate('/wisher/create/2')
+        return
+      }
+      // Sinon (edge case : submission très rapide avant le debounce) → re-check
       const [titreCheck, descCheck] = await Promise.all([
         checkContent(data.titre),
         checkContent(data.description),

@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -45,6 +45,10 @@ export default function Step2() {
   const { categories } = useCatalog()
   const inputRef = useRef()
   const categorySlug = categories.find((c) => c.id === category_id)?.slug
+  // `processing` : nombre de fichiers en cours de traitement (modération+compression).
+  // On l'utilise pour afficher des slots-spinner provisoires dans la grille,
+  // pendant que NSFW.js charge le modèle (~40MB la 1ère fois sur 4G).
+  const [processing, setProcessing] = useState(0)
 
   async function handleFiles(e) {
     const files = Array.from(e.target.files)
@@ -52,37 +56,41 @@ export default function Step2() {
       toast.error(t('wisher.create.step2.max5'))
       return
     }
+    e.target.value = '' // reset tout de suite pour permettre re-sélection
 
-    // Modération NSFW avant compression (bloque tout de suite si illicite)
-    const { moderateImages } = await import('../../../lib/moderationImage')
-    const modResult = await moderateImages(files)
-    if (!modResult.isClean) {
-      toast.error(modResult.reason || t('wisher.create.step2.image_invalide'))
-      return
+    setProcessing(files.length)
+    try {
+      // Modération NSFW avant compression (bloque tout de suite si illicite)
+      const { moderateImages } = await import('../../../lib/moderationImage')
+      const modResult = await moderateImages(files)
+      if (!modResult.isClean) {
+        toast.error(modResult.reason || t('wisher.create.step2.image_invalide'))
+        return
+      }
+
+      // Compression côté client : photo iPhone 4 MB → ~200-300 KB
+      const { compressImage } = await import('../../../lib/imageCompression')
+      const compressedFiles = await Promise.all(
+        files.map(async (file) => {
+          try {
+            return await compressImage(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 })
+          } catch (err) {
+            console.error('[step2] compression failed, using original:', err)
+            return file
+          }
+        })
+      )
+      const newImages = compressedFiles.map((file, i) => ({
+        id: `${Date.now()}-${i}`,
+        file,
+        preview: URL.createObjectURL(file),
+        is_cover: images.length === 0 && i === 0,
+        ordre: images.length + i,
+      }))
+      setImages([...images, ...newImages])
+    } finally {
+      setProcessing(0)
     }
-
-    // Compression côté client : photo iPhone 4 MB → ~200-300 KB
-    // Gain ×10-20 sur l'upload + perf affichage
-    const { compressImage } = await import('../../../lib/imageCompression')
-    const compressedFiles = await Promise.all(
-      files.map(async (file, i) => {
-        try {
-          return await compressImage(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 })
-        } catch (err) {
-          console.error('[step2] compression failed, using original:', err)
-          return file
-        }
-      })
-    )
-    const newImages = compressedFiles.map((file, i) => ({
-      id: `${Date.now()}-${i}`,
-      file,
-      preview: URL.createObjectURL(file),
-      is_cover: images.length === 0 && i === 0,
-      ordre: images.length + i,
-    }))
-    setImages([...images, ...newImages])
-    e.target.value = ''
   }
 
   function setCover(id) {
@@ -167,8 +175,26 @@ export default function Step2() {
             ))}
           </AnimatePresence>
 
-          {/* Bouton ajouter */}
-          {images.length < 5 && (
+          {/* Slots-spinner pour les fichiers en cours de traitement (modération + compression).
+              Affichés au moment du choix de fichier, masqués dès que les vraies previews
+              s'ajoutent. Permet à l'user de voir que ça travaille pendant le DL du modèle. */}
+          {Array.from({ length: processing }).map((_, i) => (
+            <div
+              key={`processing-${i}`}
+              className="aspect-square rounded-2xl bg-[#F5F5F7] flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#D0D0E0]"
+            >
+              <svg className="animate-spin" width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="#5B6BF5" strokeWidth="3"/>
+                <path className="opacity-75" fill="#5B6BF5" d="M4 12a8 8 0 018-8v8H4z"/>
+              </svg>
+              <span className="text-[9px] font-medium text-[#8A8A9A] text-center px-1">
+                Analyse…
+              </span>
+            </div>
+          ))}
+
+          {/* Bouton ajouter — masqué pendant le processing pour éviter double upload */}
+          {images.length < 5 && processing === 0 && (
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => inputRef.current?.click()}
@@ -187,7 +213,10 @@ export default function Step2() {
         <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
 
         <div className="mt-auto flex flex-col gap-3">
-          <Button onClick={() => navigate('/wisher/create/3')}>
+          <Button
+            onClick={() => navigate('/wisher/create/3')}
+            disabled={processing > 0}
+          >
             {images.length === 0 ? t('wisher.create.step2.passer') : t('common.continuer')}
           </Button>
         </div>
