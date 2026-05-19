@@ -38,20 +38,31 @@ function StepProgress({ current, total = 4 }) {
 }
 
 /**
- * Dérive la catégorie principale d'un vœu à partir du PREMIER mot-clé sélectionné.
+ * Dérive la catégorie principale d'un vœu à partir des mots-clés sélectionnés.
  *
- * Règle : on prend la category_tags row où is_suggested_primary=true en
- * priorité, sinon la première trouvée. Sert uniquement pour le visuel
- * (couleur du marker carte + fallback photo) — l'user ne voit pas la
- * catégorie. C'est le remplacement de l'ancien CategoryChoice.
+ * Règle :
+ *  1. On itère sur les tags sélectionnés (priorité au 1er)
+ *  2. Pour chaque tag, on prend la category_tags row où is_suggested_primary=true
+ *     en priorité, sinon la première trouvée.
+ *  3. Si AUCUN tag n'a de catégorie mappée → fallback sur la 1ère catégorie
+ *     disponible (jamais de category_id null en DB).
+ *
+ * Sert uniquement pour le visuel (couleur du marker carte + fallback photo) —
+ * l'user ne voit pas la catégorie. C'est le remplacement de l'ancien CategoryChoice.
  */
-function deriveCategory(tagIds, categoryTags) {
-  const firstTagId = tagIds[0]
-  if (!firstTagId) return null
-  const candidates = categoryTags.filter((ct) => ct.tag_id === firstTagId)
-  if (candidates.length === 0) return null
-  const primary = candidates.find((c) => c.is_suggested_primary)
-  return (primary || candidates[0]).category_id
+function deriveCategory(tagIds, categoryTags, categories) {
+  for (const tagId of tagIds) {
+    const candidates = categoryTags.filter((ct) => ct.tag_id === tagId)
+    if (candidates.length === 0) continue
+    const primary = candidates.find((c) => c.is_suggested_primary)
+    return (primary || candidates[0]).category_id
+  }
+  // Aucun tag n'a de mapping → on prend la 1re catégorie disponible
+  if (categories && categories.length > 0) {
+    console.warn('[Step4] Aucun tag mappé à une catégorie, fallback sur', categories[0].slug)
+    return categories[0].id
+  }
+  return null
 }
 
 export default function Step4() {
@@ -61,14 +72,14 @@ export default function Step4() {
     tag_ids: savedTagIds,
     setCategoryAndTags,
   } = useWishFormStore()
-  const { tags, categoryTags, loaded } = useCatalog()
+  const { tags, categoryTags, categories, loaded } = useCatalog()
 
   const [selectedTagIds, setSelectedTagIds] = useState(savedTagIds || [])
 
   function handleContinue() {
     if (selectedTagIds.length === 0) return
     // Catégorie dérivée du premier mot-clé (invisible pour l'user, sert juste au visuel)
-    const derivedCategoryId = deriveCategory(selectedTagIds, categoryTags)
+    const derivedCategoryId = deriveCategory(selectedTagIds, categoryTags, categories)
     // Labels des tags sélectionnés (rétrocompat avec l'ancien champ tags string[])
     const tagsById = new Map(tags.map((t) => [t.id, t]))
     const tagLabels = selectedTagIds.map((id) => tagsById.get(id)?.label).filter(Boolean)

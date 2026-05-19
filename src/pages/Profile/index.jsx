@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -7,6 +7,7 @@ import BottomTabBar from '../../components/layout/BottomTabBar'
 import Button from '../../components/ui/Button'
 import useAuthStore from '../../store/authStore'
 import { useAuth } from '../../hooks/useAuth'
+import { supabase } from '../../lib/supabase'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import { requestPushPermission } from '../../lib/pushNotifications'
 
@@ -78,6 +79,30 @@ export default function Profile() {
   const [editModal, setEditModal] = useState(null) // 'password' | 'langue' | null
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+
+  // État live de la permission notifications (mis à jour après chaque demande
+  // + au focus de la page, pour refléter un changement fait via les Réglages OS).
+  const [notifPermission, setNotifPermission] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
+  )
+
+  useEffect(() => {
+    function syncPermission() {
+      if (typeof Notification !== 'undefined') {
+        setNotifPermission(Notification.permission)
+      }
+    }
+    // Resync au focus de la page (cas où user va dans Réglages OS puis revient)
+    window.addEventListener('focus', syncPermission)
+    document.addEventListener('visibilitychange', syncPermission)
+    return () => {
+      window.removeEventListener('focus', syncPermission)
+      document.removeEventListener('visibilitychange', syncPermission)
+    }
+  }, [])
   const [saving, setSaving] = useState(false)
   const [newPwd, setNewPwd] = useState('')
   const [confirmPwd, setConfirmPwd] = useState('')
@@ -181,11 +206,15 @@ export default function Profile() {
         <ProfileItem
           icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
           label={t('profile.item_notifications')}
-          value={typeof Notification !== 'undefined' && Notification.permission === 'granted' ? t('profile.notifications_on') : t('profile.notifications_off')}
+          value={notifPermission === 'granted' ? t('profile.notifications_on') : t('profile.notifications_off')}
           onClick={async () => {
             const user = useAuthStore.getState().user
             if (!user) return
             const ok = await requestPushPermission(user.id)
+            // Resync immédiatement après la demande, peu importe le résultat
+            if (typeof Notification !== 'undefined') {
+              setNotifPermission(Notification.permission)
+            }
             if (ok) {
               toast.success(t('profile.notifications_success'))
             } else {
@@ -204,6 +233,7 @@ export default function Profile() {
         <SectionTitle title={t('profile.section_about')} />
         <ProfileItem icon={icons.legal} label={t('profile.item_legal')} onClick={() => navigate('/mentions-legales')} />
         <ProfileItem icon={icons.help} label={t('profile.item_help')} onClick={() => navigate('/support')} />
+        <ProfileItem icon={icons.trash} label="Supprimer mon compte" onClick={() => setShowDeleteConfirm(true)} />
 
         {/* Inviter des amis */}
         <motion.button
@@ -351,6 +381,89 @@ export default function Profile() {
               </>
             ) : (
               t('profile.logout.confirm') || 'Se déconnecter'
+            )}
+          </button>
+        </div>
+      </EditModal>
+
+      {/* Modal suppression de compte (RGPD) */}
+      <EditModal
+        open={showDeleteConfirm}
+        onClose={() => { if (!deletingAccount) { setShowDeleteConfirm(false); setDeleteConfirmText('') } }}
+        title="Supprimer mon compte"
+      >
+        <div className="mb-4 p-4 rounded-2xl bg-[#FEF2F2] border border-[#FECACA]">
+          <p className="text-sm font-semibold text-[#991B1B] mb-2">⚠️ Action irréversible</p>
+          <p className="text-[13px] text-[#7F1D1D] leading-relaxed">
+            Cette suppression efface définitivement :
+          </p>
+          <ul className="text-[13px] text-[#7F1D1D] leading-relaxed list-disc pl-5 mt-1">
+            <li>Votre compte et vos données personnelles</li>
+            <li>Tous vos vœux publiés</li>
+            <li>Toutes vos conversations</li>
+            <li>Vos avis donnés et reçus</li>
+          </ul>
+          <p className="text-[13px] text-[#7F1D1D] leading-relaxed mt-2">
+            Aucune récupération ne sera possible.
+          </p>
+        </div>
+        <div className="mb-4">
+          <label className="text-xs font-semibold text-[#8A8A9A] mb-1.5 block">
+            Pour confirmer, tapez <span className="font-bold text-[#EF4444]">SUPPRIMER</span> ci-dessous :
+          </label>
+          <input
+            type="text"
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder="SUPPRIMER"
+            disabled={deletingAccount}
+            className="w-full h-12 bg-[#F7F8FC] rounded-2xl px-4 text-sm text-[#1A1A2E] outline-none border border-transparent focus:border-[#EF4444]"
+          />
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
+            disabled={deletingAccount}
+            className="flex-1 h-12 rounded-full border border-[#E0E0E0] text-[#1A1A2E] font-semibold text-sm disabled:opacity-60"
+          >
+            {t('common.annuler')}
+          </button>
+          <button
+            disabled={deletingAccount || deleteConfirmText !== 'SUPPRIMER'}
+            onClick={async () => {
+              if (deleteConfirmText !== 'SUPPRIMER') return
+              setDeletingAccount(true)
+              try {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (!session) throw new Error('Session expirée')
+                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+                const res = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json',
+                    apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                  },
+                })
+                const data = await res.json()
+                if (!res.ok) throw new Error(data.error || 'Erreur lors de la suppression')
+                toast.success('Compte supprimé. Au revoir.')
+                // Logout et navigate vers /auth
+                await signOut()
+              } catch (err) {
+                toast.error(err.message || 'Erreur lors de la suppression')
+                setDeletingAccount(false)
+              }
+            }}
+            className="flex-1 h-12 rounded-full bg-[#EF4444] text-white font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
+          >
+            {deletingAccount ? (
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                <span>Suppression…</span>
+              </>
+            ) : (
+              'Supprimer définitivement'
             )}
           </button>
         </div>

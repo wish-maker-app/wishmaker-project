@@ -7,6 +7,7 @@ import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
 import { useMessages } from '../../hooks/useMessages'
 import { supabase } from '../../lib/supabase'
+import CategoryFallback from '../../components/ui/CategoryFallback'
 
 const SWIPE_REVEAL = 80  // px que le bouton occupe quand révélé
 const SWIPE_THRESHOLD = 50  // px minimum à draguer pour snap ouvert
@@ -20,7 +21,7 @@ function Avatar({ user, size = 52 }) {
         style={{ width: size, height: size, background: 'linear-gradient(135deg,#8A8A9A,#B0B0B0)' }}
       >
         {user.avatar_url ? (
-          <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+          <img src={user.avatar_url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
         ) : (
           <span className="text-sm">{initials}</span>
         )}
@@ -34,15 +35,16 @@ function Avatar({ user, size = 52 }) {
 
 function WishThumb({ wish, size = 52 }) {
   const coverUrl = wish?.wish_images?.[0]?.url
+  const slug = wish?.category?.slug
   return (
     <div
       className="rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center bg-[#EEF0FF]"
       style={{ width: size, height: size }}
     >
       {coverUrl ? (
-        <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+        <img src={coverUrl} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
       ) : (
-        <span className="text-lg">✨</span>
+        <CategoryFallback slug={slug} iconSize={Math.round(size * 0.5)} />
       )}
     </div>
   )
@@ -222,6 +224,7 @@ export default function Inbox() {
 
   useEffect(() => {
     loadConversations().catch((err) => console.error('[Inbox]', err))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authTick])
 
   // Realtime : nouveau message dans n'importe quelle conv → refetch silencieux

@@ -1,5 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 import { MapContainer, TileLayer, Circle, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -106,11 +107,56 @@ export default function Filters() {
     resetFilters,
   } = useMakerStore()
 
-  // Centre de la map : ville du user en priorité, sinon fallback Toulouse
-  const userCenter = (profile?.latitude && profile?.longitude)
-    ? [profile.latitude, profile.longitude]
-    : [43.6047, 1.4442]
-  const cityLabel = profile?.ville || 'Ma position'
+  // currentLocation = position GPS du user (cliqué sur le bouton géoloc).
+  // Si défini, prend priorité sur la ville du profil.
+  const [currentLocation, setCurrentLocation] = useState(null) // { lat, lng, label }
+  const [locating, setLocating] = useState(false)
+
+  // Centre de la map : géoloc actuelle > ville du user > fallback Toulouse
+  const userCenter = currentLocation
+    ? [currentLocation.lat, currentLocation.lng]
+    : (profile?.latitude && profile?.longitude)
+      ? [profile.latitude, profile.longitude]
+      : [43.6047, 1.4442]
+  const cityLabel = currentLocation?.label || profile?.ville || 'Ma position'
+
+  function handleLocate() {
+    if (!navigator.geolocation) {
+      toast.error('Géolocalisation non supportée')
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        const { latitude, longitude } = coords
+        // Reverse-geocoding via Nominatim pour récupérer un label lisible
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
+            { headers: { 'Accept-Language': 'fr' } }
+          )
+          const data = await res.json()
+          const label = data.address?.city
+            || data.address?.town
+            || data.address?.village
+            || data.address?.municipality
+            || 'Ma position'
+          setCurrentLocation({ lat: latitude, lng: longitude, label })
+          toast.success(`Localisé sur ${label}`)
+        } catch {
+          setCurrentLocation({ lat: latitude, lng: longitude, label: 'Ma position' })
+          toast.success('Localisation réussie')
+        } finally {
+          setLocating(false)
+        }
+      },
+      () => {
+        toast.error('Impossible d\'obtenir votre position')
+        setLocating(false)
+      },
+      { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 }
+    )
+  }
 
   function handleApply() {
     navigate(`/maker?view=${fromView}`, { replace: true })
@@ -183,8 +229,8 @@ export default function Filters() {
 
         {/* ─────────── Section 2 : Localisation + rayon (type Leboncoin) ─────────── */}
         <section>
-          {/* Chip ville (cliquable pour reset à "Illimité" = voir partout) */}
-          <div className="mb-3 flex">
+          {/* Chip ville + bouton géoloc */}
+          <div className="mb-3 flex items-center gap-2">
             <div
               className="inline-flex items-center gap-2 rounded-full pl-3 pr-1 h-9"
               style={{
@@ -202,6 +248,27 @@ export default function Filters() {
                 <IconX size={13} />
               </button>
             </div>
+            {/* Bouton géolocalisation : centre la map sur la position GPS actuelle */}
+            <button
+              onClick={handleLocate}
+              disabled={locating}
+              className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm disabled:opacity-60 active:scale-95 transition-transform"
+              style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+              aria-label="Me localiser"
+              title="Utiliser ma position actuelle"
+            >
+              {locating ? (
+                <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="3"/>
+                  <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8H4z"/>
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+                </svg>
+              )}
+            </button>
           </div>
 
           {/* Titre + valeur actuelle */}

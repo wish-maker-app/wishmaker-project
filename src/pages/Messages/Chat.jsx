@@ -8,6 +8,7 @@ import { useMessages } from '../../hooks/useMessages'
 import { useWishes } from '../../hooks/useWishes'
 import { checkContent } from '../../lib/moderation'
 import { supabase } from '../../lib/supabase'
+import CategoryFallback from '../../components/ui/CategoryFallback'
 
 function RatingModal({ open, onClose, onSubmit, interlocuteurName, loading }) {
   const [note, setNote] = useState(0)
@@ -140,7 +141,7 @@ export default function Chat() {
       import('../../lib/supabase').then(({ supabase }) => {
         supabase.from('users').select('id, prenom, nom, pseudo, avatar_url, is_online, rating').eq('id', draftWisherId).single()
           .then(({ data }) => { if (data) setInterlocuteur(data) })
-        supabase.from('wishes').select('id, titre, statut, type_recompense, montant_recompense, wish_images(url, is_cover)').eq('id', draftWishId).single()
+        supabase.from('wishes').select('id, titre, statut, type_recompense, montant_recompense, wish_images(url, is_cover), category:categories(slug)').eq('id', draftWishId).single()
           .then(({ data }) => {
             if (data) {
               setWishTitre(data.titre || '')
@@ -441,8 +442,8 @@ export default function Chat() {
           {convData.wish.wish_images?.[0]?.url ? (
             <img src={convData.wish.wish_images[0].url} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
           ) : (
-            <div className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center bg-[#EEF0FF]">
-              <span className="text-lg">✨</span>
+            <div className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden">
+              <CategoryFallback slug={convData.wish.category?.slug} iconSize={24} />
             </div>
           )}
           <div className="flex-1 min-w-0">

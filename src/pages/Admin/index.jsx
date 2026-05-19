@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import useAuthStore from '../../store/authStore'
-import TagsAdminTab from './TagsAdminTab'
 
 const CATEGORIES = [
   { value: 'all', label: 'Tous' },
@@ -279,7 +278,7 @@ export default function Admin() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const profile = useAuthStore((s) => s.profile)
-  const [tab, setTab] = useState('mots')
+  const [tab, setTab] = useState('users')
 
   // Protection admin (1re ligne côté client — la vraie sécurité est la RLS BDD)
   if (!user || !profile?.is_admin) {
@@ -304,33 +303,14 @@ export default function Admin() {
         <h1 className="text-lg font-bold text-[#1A1A2E]">Administration</h1>
       </div>
 
-      {/* Toggle */}
-      <div className="bg-white px-5 py-3">
-        <div className="flex bg-[#F5F5F5] rounded-full p-1 gap-1">
-          {[
-            { key: 'mots',  label: 'Mots interdits' },
-            { key: 'tags',  label: 'Tags' },
-            { key: 'users', label: 'Utilisateurs' },
-          ].map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className="flex-1 h-10 rounded-full text-[13px] font-semibold transition-all px-2"
-              style={tab === t.key
-                ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
-                : { color: '#8A8A9A' }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Toggle — onglets "Mots interdits" et "Tags" masqués volontairement.
+          Les data restent en DB et continuent de fonctionner ; l'admin client
+          gère uniquement les utilisateurs. Pour modifier mots/tags : passer
+          par l'équipe dev (SQL direct ou migration). */}
 
       {/* Contenu */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 pb-10">
-        {tab === 'mots' ? <MotsInterditsTab /> :
-         tab === 'tags' ? <TagsAdminTab /> :
-         <UtilisateursTab />}
+      <div className="flex-1 overflow-y-auto px-5 py-4 pb-10 pt-4">
+        <UtilisateursTab />
       </div>
     </div>
   )

@@ -68,7 +68,7 @@ function ReviewItem({ review, isReceived, index, onClickProfile }) {
         >
           <div className="w-full h-full rounded-full overflow-hidden bg-white">
             {otherUser.avatar_url ? (
-              <img src={otherUser.avatar_url} alt="" className="w-full h-full object-cover" />
+              <img src={otherUser.avatar_url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
             ) : (
               <div
                 className="w-full h-full flex items-center justify-center font-bold text-white text-xs"

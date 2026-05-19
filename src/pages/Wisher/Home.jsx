@@ -12,8 +12,20 @@ import WishPackModal from '../../components/ui/WishPackModal'
 import PaymentForm from '../../components/ui/PaymentForm'
 import { applyPurchase } from '../../lib/stripe'
 import { getCached, setCached } from '../../lib/wishesCache'
-import lampeIcon from '../../assets/lampe.svg'
+import lampeGenieIcon from '../../assets/lampe-genie.svg'
 import CategoryFallback from '../../components/ui/CategoryFallback'
+import { CATEGORY_ICONS, CATEGORY_COLORS } from '../../lib/categoryIcons'
+
+// Exemples de vœux affichés en carrousel quand l'utilisateur a fermé la bannière Astuce.
+// Chaque exemple est associé à un slug de catégorie pour afficher l'icône + couleur.
+const WISH_EXAMPLES = [
+  { text: 'Quelqu’un pour monter mes meubles ce soir ?', slug: 'delegue' },
+  { text: 'J’ai besoin de farine pour finir mon gâteau', slug: 'sauve' },
+  { text: 'J’aimerais un jour monter dans une voiture de rallye', slug: 'exauce' },
+  { text: 'Cherche un coach pour me remettre au sport', slug: 'soin' },
+  { text: 'À l’aide, trouve-moi un DJ pour mon mariage', slug: 'divertis' },
+  { text: 'Ma voiture ne démarre plus, quelqu’un a-t-il des pinces ?', slug: 'transport' },
+]
 
 const TABS = ['en_attente', 'realise', 'expire']
 
@@ -162,7 +174,7 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
         {/* Photo de couverture ou fallback catégorie */}
         <div className="relative h-[200px] bg-[#F0F0F5]">
           {coverUrl ? (
-            <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+            <img src={coverUrl} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
           ) : (
             <CategoryFallback slug={wish.category_slug} iconSize={72} />
           )}
@@ -253,7 +265,12 @@ export default function WisherHome() {
     getMyWishes()
       .then((w) => {
         setWishes(w)
-        setCached('my_wishes', w)
+        // Évite d'écraser un cache existant avec une liste vide (race condition
+        // au mount : session pas encore prête → RLS renvoie []).
+        const existing = getCached('my_wishes')?.value
+        if (w.length > 0 || !existing || existing.length === 0) {
+          setCached('my_wishes', w)
+        }
         setLoading(false)
       })
       .catch((err) => {
@@ -489,8 +506,12 @@ export default function WisherHome() {
           >
             <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10" />
             <div className="absolute -bottom-4 -right-10 w-20 h-20 rounded-full bg-white/5" />
-            <img src={lampeIcon} alt="" className="absolute bottom-2 right-3 w-20 h-20 opacity-30 pointer-events-none" />
-            <div className="relative z-10">
+            <img
+              src={lampeGenieIcon}
+              alt=""
+              className="absolute -right-2 -bottom-1 w-32 h-32 opacity-25 pointer-events-none object-contain"
+            />
+            <div className="relative z-10 max-w-[65%]">
               <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mb-3">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
@@ -502,27 +523,55 @@ export default function WisherHome() {
           </motion.button>
         </div>
 
-        {/* Astuce */}
-        {showTip && (
-        <div className="px-5 mb-5">
-          <div className="rounded-2xl bg-white border border-[#F0F0F0] p-4 flex items-start gap-3 relative">
-            <button onClick={() => { setShowTip(false); localStorage.setItem('wishmaker-tip-dismissed', 'true') }}
-              className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#F0F0F0] flex items-center justify-center">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8A8A9A" strokeWidth="3" strokeLinecap="round">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            </button>
-            <div className="w-10 h-10 rounded-xl bg-[#FFF4E0] flex items-center justify-center flex-shrink-0">
-              <span className="text-lg">💡</span>
-            </div>
-            <div className="pr-6">
-              <p className="text-sm font-bold text-[#1A1A2E] mb-0.5">{t('wisher.home.astuce_titre')}</p>
-              <p className="text-xs text-[#8A8A9A] leading-relaxed">
-                {t('wisher.home.astuce_text')}
-              </p>
+        {/* Astuce — bannière dismissible. Quand fermée, on affiche un carrousel d'exemples de vœux. */}
+        {showTip ? (
+          <div className="px-5 mb-5">
+            <div className="rounded-2xl bg-white border border-[#F0F0F0] p-4 flex items-start gap-3 relative">
+              <button onClick={() => { setShowTip(false); localStorage.setItem('wishmaker-tip-dismissed', 'true') }}
+                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#F0F0F0] flex items-center justify-center">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8A8A9A" strokeWidth="3" strokeLinecap="round">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+              <div className="w-10 h-10 rounded-xl bg-[#FFF4E0] flex items-center justify-center flex-shrink-0">
+                <span className="text-lg">💡</span>
+              </div>
+              <div className="pr-6">
+                <p className="text-sm font-bold text-[#1A1A2E] mb-0.5">{t('wisher.home.astuce_titre')}</p>
+                <p className="text-xs text-[#8A8A9A] leading-relaxed">
+                  {t('wisher.home.astuce_text')}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="mb-5">
+            <p className="px-5 text-xs font-semibold text-[#8A8A9A] uppercase tracking-wide mb-2">
+              Exemples de vœux
+            </p>
+            <div className="flex gap-3 overflow-x-auto px-5 pb-2 snap-x snap-mandatory scrollbar-hide">
+              {WISH_EXAMPLES.map((ex, i) => {
+                const Icon = CATEGORY_ICONS[ex.slug]
+                const theme = CATEGORY_COLORS[ex.slug]
+                return (
+                  <div
+                    key={i}
+                    className="flex-shrink-0 w-[260px] rounded-2xl bg-white border border-[#F0F0F0] p-3 flex items-center gap-3 snap-start"
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
+                      style={{ background: theme?.grad }}
+                    >
+                      {Icon && <Icon size={20} stroke={2.2} />}
+                    </div>
+                    <p className="text-xs text-[#1A1A2E] leading-snug line-clamp-3">
+                      « {ex.text} »
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         )}
 
         {/* Section Mes vœux */}
@@ -615,7 +664,7 @@ export default function WisherHome() {
             onClose={() => setModal(null)}
             title={t('wisher.home.modal_prolonger_titre')}
             description={t('wisher.home.modal_prolonger_desc', { h: wishDurationHours })}
-            price="2,99€"
+            price="0,99€"
             buttonLabel={t('wisher.home.modal_prolonger_btn')}
             onConfirm={handleExtend}
             loading={actionLoading}
@@ -627,7 +676,7 @@ export default function WisherHome() {
             onClose={() => setModal(null)}
             title={t('wisher.home.modal_urgent_titre')}
             description={t('wisher.home.modal_urgent_desc')}
-            price="4,99€"
+            price="1,99€"
             buttonLabel={t('wisher.home.modal_urgent_btn')}
             onConfirm={handleMakeUrgent}
             loading={actionLoading}
@@ -687,7 +736,7 @@ export default function WisherHome() {
                 wish_id={paymentModal.wish_id}
                 onSuccess={handlePaymentSuccess}
                 onCancel={handlePaymentCancel}
-                submitLabel="Payer 0,99€"
+                submitLabel={paymentModal.type === 'urgent_boost' ? 'Payer 1,99€' : 'Payer 0,99€'}
               />
             </motion.div>
           </>

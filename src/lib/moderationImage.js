@@ -16,7 +16,10 @@
  *   if (!result.isClean) toast.error(result.reason)
  */
 
-import * as tf from '@tensorflow/tfjs'
+// NOTE: TensorFlow.js (`@tensorflow/tfjs`) n'est PAS importé statiquement.
+// nsfwjs le requiert en interne et sera chargé via le `import('nsfwjs')`
+// dans loadModel(). Ça permet de ne PAS bundler ~40MB de TF.js dans le
+// chunk initial — il n'est téléchargé que quand l'user upload une image.
 
 let modelPromise = null
 

@@ -4,7 +4,14 @@ import { supabase } from '../lib/supabase'
 import useAuthStore from '../store/authStore'
 
 export function useAuth() {
-  const { user, profile, setUser, setProfile, logout, bumpAuthTick } = useAuthStore()
+  // Sélecteurs sélectifs : chaque ligne n'observe qu'une seule slice du store,
+  // donc seuls les composants qui utilisent la prop changée re-renderent.
+  const user = useAuthStore((s) => s.user)
+  const profile = useAuthStore((s) => s.profile)
+  const setUser = useAuthStore((s) => s.setUser)
+  const setProfile = useAuthStore((s) => s.setProfile)
+  const logout = useAuthStore((s) => s.logout)
+  const bumpAuthTick = useAuthStore((s) => s.bumpAuthTick)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -33,13 +40,19 @@ export function useAuth() {
         // silencieusement bloqués par RLS, sensation de "BDD pas connectée".
         try { supabase.realtime.setAuth(activeSession.access_token) } catch {}
 
+        // ⚡ Bump authTick IMMÉDIATEMENT après validation session, AVANT le fetch
+        // profile. Sinon les pages (Inbox, Maker/Home) qui dépendent de authTick
+        // attendent ~500ms le retour du profil avant de re-fetcher → écran "vide"
+        // pendant ce temps. Le bump précoce déclenche le re-fetch des pages dès
+        // que la session est connue valide, en parallèle du fetch profile.
+        bumpAuthTick()
+
         // Skip refetch profil si déjà en store pour le bon user → évite flash blanc
         // au retour de Profile/Edit (le hook re-fire à chaque mount sinon).
         const cachedProfile = useAuthStore.getState().profile
         if (!cachedProfile || cachedProfile.id !== activeSession.user.id) {
           await fetchProfile(activeSession.user.id)
         }
-        bumpAuthTick()
       } else if (useAuthStore.getState().user) {
         logout()
         navigate('/auth', { replace: true })

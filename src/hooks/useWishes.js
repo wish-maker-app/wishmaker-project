@@ -15,7 +15,7 @@ function normalizeWish(wish) {
 }
 
 export function useWishes() {
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [loading, setLoading] = useState(false)
 
   // Pattern try/finally garanti : setLoading(false) est TOUJOURS appelé
@@ -124,21 +124,35 @@ export function useWishes() {
         await supabase.from('wish_tags').insert(tags.map((tag) => ({ wish_id: wish.id, tag })))
       }
 
+      const failedUploads = []
       for (const img of images || []) {
         const ext = img.file.name.split('.').pop()
         const path = `${user.id}/${wish.id}/${Date.now()}.${ext}`
         const { error: uploadError } = await supabase.storage
           .from('wish-images')
           .upload(path, img.file)
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage.from('wish-images').getPublicUrl(path)
-          await supabase.from('wish_images').insert({
-            wish_id: wish.id,
-            url: publicUrl,
-            is_cover: img.is_cover,
-            ordre: img.ordre,
-          })
+        if (uploadError) {
+          console.error('[createWish] upload failed:', uploadError, 'file:', img.file.name)
+          failedUploads.push(img.file.name)
+          continue
         }
+        const { data: { publicUrl } } = supabase.storage.from('wish-images').getPublicUrl(path)
+        const { error: insertErr } = await supabase.from('wish_images').insert({
+          wish_id: wish.id,
+          url: publicUrl,
+          is_cover: img.is_cover,
+          ordre: img.ordre,
+        })
+        if (insertErr) {
+          console.error('[createWish] wish_images insert failed:', insertErr)
+          failedUploads.push(img.file.name)
+        }
+      }
+
+      // Expose les uploads en échec sur l'objet wish pour que l'appelant
+      // puisse afficher un warning à l'user (sans bloquer la création).
+      if (failedUploads.length) {
+        wish._failedUploads = failedUploads
       }
 
       return wish
@@ -230,18 +244,30 @@ export function useWishes() {
     if (error) throw error
   }
 
-  async function updateWish(wishId, { titre, description, type_recompense, montant_recompense, adresse, latitude, longitude, tags }) {
+  async function updateWish(wishId, { titre, description, type_recompense, montant_recompense, adresse, latitude, longitude, tags, tag_ids, category_id }) {
     setLoading(true)
     try {
+      const updateFields = { titre, description, type_recompense, montant_recompense, adresse, latitude, longitude }
+      if (category_id !== undefined) updateFields.category_id = category_id
       const { error } = await supabase
         .from('wishes')
-        .update({ titre, description, type_recompense, montant_recompense, adresse, latitude, longitude })
+        .update(updateFields)
         .eq('id', wishId)
       if (error) throw error
+      // Synchronisation des tags string (rétrocompat)
       if (tags !== undefined) {
         await supabase.from('wish_tags').delete().eq('wish_id', wishId)
         if (tags?.length) {
           await supabase.from('wish_tags').insert(tags.map((tag) => ({ wish_id: wishId, tag })))
+        }
+      }
+      // Synchronisation des tag_ids (système V2 = KeywordPicker)
+      if (tag_ids !== undefined) {
+        await supabase.from('wish_tag_links').delete().eq('wish_id', wishId)
+        if (tag_ids?.length) {
+          await supabase.from('wish_tag_links').insert(
+            tag_ids.map((tag_id) => ({ wish_id: wishId, tag_id }))
+          )
         }
       }
     } finally {

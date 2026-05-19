@@ -29,7 +29,7 @@ function SmallAvatar({ user, size = 24 }) {
   const initials = `${user?.prenom?.[0] || ''}${user?.nom?.[0] || ''}`
   if (user?.avatar_url) {
     return (
-      <img src={user.avatar_url} alt="" className="rounded-full object-cover flex-shrink-0"
+      <img src={user.avatar_url} alt="" loading="lazy" decoding="async" className="rounded-full object-cover flex-shrink-0"
         style={{ width: size, height: size }} />
     )
   }
@@ -56,7 +56,7 @@ function WishGridCard({ wish, userLat, userLng, onClick }) {
       {/* Cover image + avatar overlay */}
       <div className="relative aspect-[4/3] bg-[#F0F0F5]">
         {coverUrl ? (
-          <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+          <img src={coverUrl} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
         ) : (
           <CategoryFallback slug={wish.category_slug} iconSize={56} />
         )}

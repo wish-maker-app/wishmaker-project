@@ -380,13 +380,26 @@ export default function WishDetail() {
                   />
                   <div className="absolute right-0 top-12 bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] py-1 min-w-[200px] z-50 overflow-hidden">
                   {isOwner ? (
-                    <button onClick={() => { setShowMenu(false); setShowDeleteConfirm(true) }}
-                      className="w-full px-4 py-3 text-left text-sm text-red-500 active:bg-red-50/60 flex items-center gap-2.5 transition-colors">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      Supprimer ce vœu
-                    </button>
+                    <>
+                      {(wish.statut === 'en_attente' || wish.statut === 'en_cours') &&(
+                        <button onClick={() => { setShowMenu(false); navigate(`/wisher/edit/${wish.id}`) }}
+                          className="w-full px-4 py-3 text-left text-sm text-[#1A1A2E] active:bg-black/5 flex items-center gap-2.5 transition-colors">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          Modifier ce vœu
+                        </button>
+                      )}
+                      {(wish.statut === 'en_attente' || wish.statut === 'en_cours') &&<div className="mx-3 h-px bg-black/5" />}
+                      <button onClick={() => { setShowMenu(false); setShowDeleteConfirm(true) }}
+                        className="w-full px-4 py-3 text-left text-sm text-red-500 active:bg-red-50/60 flex items-center gap-2.5 transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Supprimer ce vœu
+                      </button>
+                    </>
                   ) : (
                     <>
                       <button onClick={() => { setShowMenu(false); setShowReportWish(true) }}
@@ -553,7 +566,7 @@ export default function WishDetail() {
             <div className="flex gap-3 overflow-x-auto pb-1">
               {wish.images.map((img, i) => (
                 <div key={i} className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 bg-[#F5F5F7] cursor-pointer" onClick={() => setLightboxIndex(i)}>
-                  <img src={img.url} alt="" className="w-full h-full object-cover" />
+                  <img src={img.url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>

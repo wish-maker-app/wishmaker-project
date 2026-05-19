@@ -7,12 +7,6 @@ import Header from '../../components/layout/Header'
 import Button from '../../components/ui/Button'
 import useAuthStore from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
-import { prewarmModerationModel } from '../../lib/moderationImage'
-
-// Flag module-level : ne prewarm le modèle NSFW qu'une fois par session
-// (sinon chaque mount d'EditProfile re-déclenche un load et ralentit le retour).
-let moderationPrewarmed = false
-
 // ── Modal changement photo ──
 function PhotoModal({ open, onClose, onPickGallery, onDelete, hasPhoto }) {
   const { t } = useTranslation()
@@ -111,13 +105,6 @@ export default function EditProfile() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [photoModal, setPhotoModal] = useState(false)
-
-  // Prewarm modèle NSFW.js — une seule fois par session
-  useEffect(() => {
-    if (moderationPrewarmed) return
-    moderationPrewarmed = true
-    prewarmModerationModel()
-  }, [])
 
   const [avatarPreview, setAvatarPreview] = useState(profile?.avatar_url || null)
 

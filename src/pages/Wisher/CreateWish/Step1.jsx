@@ -62,6 +62,7 @@ export default function Step1() {
   const descValue = watch('description') || ''
   const [titreViolation, setTitreViolation] = useState(false)
   const [descViolation, setDescViolation] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   const checkModeration = useCallback(async () => {
     const [titreCheck, descCheck] = await Promise.all([
@@ -80,18 +81,24 @@ export default function Step1() {
   const hasViolation = titreViolation || descViolation
 
   async function onSubmit(data) {
-    // Double-check synchrone à la soumission (évite race condition avec debounce 300ms)
-    const [titreCheck, descCheck] = await Promise.all([
-      checkContent(data.titre),
-      checkContent(data.description),
-    ])
-    if (!titreCheck.isClean || !descCheck.isClean) {
-      setTitreViolation(!titreCheck.isClean)
-      setDescViolation(!descCheck.isClean)
-      return
+    if (submitting) return // anti-double-clic
+    setSubmitting(true)
+    try {
+      // Double-check synchrone à la soumission (évite race condition avec debounce 300ms)
+      const [titreCheck, descCheck] = await Promise.all([
+        checkContent(data.titre),
+        checkContent(data.description),
+      ])
+      if (!titreCheck.isClean || !descCheck.isClean) {
+        setTitreViolation(!titreCheck.isClean)
+        setDescViolation(!descCheck.isClean)
+        return
+      }
+      setStep1(data.titre, data.description)
+      navigate('/wisher/create/2')
+    } finally {
+      setSubmitting(false)
     }
-    setStep1(data.titre, data.description)
-    navigate('/wisher/create/2')
   }
 
   return (
@@ -133,7 +140,9 @@ export default function Step1() {
           </div>
 
           <div className="mt-auto">
-            <Button type="submit" disabled={hasViolation}>{t('common.continuer')}</Button>
+            <Button type="submit" disabled={hasViolation} loading={submitting}>
+              {t('common.continuer')}
+            </Button>
           </div>
         </form>
       </motion.div>

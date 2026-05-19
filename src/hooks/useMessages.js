@@ -4,7 +4,7 @@ import useAuthStore from '../store/authStore'
 import { getCached, setCached } from '../lib/wishesCache'
 
 export function useMessages(conversationId = null) {
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [messages, setMessages] = useState([])
   // Hydrate les conversations depuis le cache → pas d'écran vide au retour
   const [conversations, setConversations] = useState(() => getCached('conversations')?.value || [])
@@ -26,7 +26,7 @@ export function useMessages(conversationId = null) {
         .from('conversations')
         .select(`
           *,
-          wish:wishes(id, titre, statut, type_recompense, montant_recompense, marked_realized_at, marked_realized_by, wish_images(url, is_cover)),
+          wish:wishes(id, titre, statut, type_recompense, montant_recompense, marked_realized_at, marked_realized_by, wish_images(url, is_cover), category:categories(slug)),
           wisher:users!wisher_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
           maker:users!maker_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
           messages(contenu, created_at, is_read, sender_id)
@@ -36,7 +36,14 @@ export function useMessages(conversationId = null) {
       if (error) throw error
       const list = data || []
       setConversations(list)
-      setCached('conversations', list)
+      // On NE met PAS à jour le cache si la liste est vide ET qu'on a déjà
+      // du contenu en cache : ça évite de "geler" un écran "aucune conversation"
+      // si la query retourne [] à cause d'une session pas encore prête (RLS).
+      // Si list a du contenu OU si le cache est vide, on cache normalement.
+      const existingCache = getCached('conversations')?.value
+      if (list.length > 0 || !existingCache || existingCache.length === 0) {
+        setCached('conversations', list)
+      }
     } finally {
       setLoading(false)
     }

@@ -7,7 +7,6 @@ import useAuthStore from '../../store/authStore'
 import Header from '../../components/layout/Header'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
-import { prewarmModerationModel } from '../../lib/moderationImage'
 
 const GRADIENT = 'linear-gradient(135deg,#5B6BF5,#9B59F5)'
 
@@ -40,9 +39,6 @@ export default function SetupProfil() {
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const fileInputRef = useRef(null)
-
-  // Prewarm modèle NSFW.js
-  useEffect(() => { prewarmModerationModel() }, [])
 
   useEffect(() => {
     if (profile) {

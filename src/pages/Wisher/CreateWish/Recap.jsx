@@ -6,10 +6,7 @@ import toast from 'react-hot-toast'
 import useWishFormStore from '../../../store/wishFormStore'
 import { useWishes } from '../../../hooks/useWishes'
 import useAuthStore from '../../../store/authStore'
-import { checkContent } from '../../../lib/moderation'
 import { formatLocation } from '../../../lib/geo'
-import { supabase } from '../../../lib/supabase'
-import PaymentForm from '../../../components/ui/PaymentForm'
 import CategoryFallback from '../../../components/ui/CategoryFallback'
 import { useCatalog } from '../../../hooks/useTags'
 
@@ -30,14 +27,12 @@ export default function Recap() {
   const profile = useAuthStore((s) => s.profile)
   const { titre, description, images, adresse, quartier, ville, code_postal, latitude, longitude, tags, category_id, tag_ids, type_recompense, montant_recompense, description_bon_procede, setRecompense, reset } = useWishFormStore()
   const { createWish, loading: publishing } = useWishes()
-  const [error, setError] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
   const [recompenseType, setRecompenseType] = useState(type_recompense || 'bon_procede')
   const [montant, setMontant] = useState(montant_recompense || '')
   const [bonProcedeText, setBonProcedeText] = useState(description_bon_procede || '')
   const [isUrgent, setIsUrgent] = useState(false)
   const [showUrgentModal, setShowUrgentModal] = useState(false)
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [pendingWish, setPendingWish] = useState(null) // wish créé en statut pending_payment
 
   const cover = images.find((img) => img.is_cover) || images[0]
   const initials = profile ? `${profile.prenom?.[0] || ''}${profile.nom?.[0] || ''}` : '?'
@@ -49,102 +44,61 @@ export default function Recap() {
   const imgScale = useTransform(scrollY, [0, HERO_H], [1, 1.12])
   const imgOpacity = useTransform(scrollY, [0, HERO_H * 0.6], [1, 0.6])
 
-  async function validateFields() {
-    setError(null)
-    if (!titre || titre.length < 5) { setError(t('wisher.create.recap.err_titre')); return false }
-    if (!description || description.length < 10) { setError(t('wisher.create.recap.err_desc')); return false }
-    if (!latitude || !longitude) { setError(t('wisher.create.recap.err_loc')); return false }
-    const [titreCheck, descCheck] = await Promise.all([
-      checkContent(titre),
-      checkContent(description),
-    ])
-    if (!titreCheck.isClean || !descCheck.isClean) {
-      toast.error(t('wisher.create.recap.err_modere'))
-      return false
-    }
+  // Validation synchrone uniquement — la modération a déjà tourné en Step1
+  // et le texte n'est plus éditable ici, donc inutile de re-checker.
+  function validateFields() {
+    if (!titre || titre.length < 5) { toast.error(t('wisher.create.recap.err_titre')); return false }
+    if (!description || description.length < 10) { toast.error(t('wisher.create.recap.err_desc')); return false }
+    if (!latitude || !longitude) { toast.error(t('wisher.create.recap.err_loc')); return false }
     return true
   }
 
   async function handlePublish() {
-    const valid = await validateFields()
-    if (!valid) return
+    if (submitting || publishing) return // anti-double-clic
+    setSubmitting(true)
+    try {
+      if (!validateFields()) return
 
-    // Si récompense en argent → créer le wish en pending_payment + ouvrir paiement Stripe
-    if (recompenseType === 'argent') {
-      const montantNum = parseFloat(montant)
-      if (!montantNum || montantNum < 1) {
-        setError(t('wisher.create.recap.err_montant'))
+      // Si récompense en argent → vérifier que le montant est valide
+      if (recompenseType === 'argent') {
+        const montantNum = parseFloat(montant)
+        if (!montantNum || montantNum < 1) {
+          toast.error(t('wisher.create.recap.err_montant'))
+          return
+        }
+      }
+
+      // Modal urgent (paiement 0.99€) si l'option urgent est cochée
+      if (isUrgent) {
+        setShowUrgentModal(true)
         return
       }
-      await startPaymentFlow(montantNum, isUrgent)
-      return
+      await doPublish(false)
+    } finally {
+      setSubmitting(false)
     }
-
-    // Sinon (bon procédé) → publication directe
-    if (isUrgent) {
-      setShowUrgentModal(true)
-      return
-    }
-    await doPublish(false)
-  }
-
-  async function startPaymentFlow(montantEur, urgent) {
-    setRecompense(recompenseType, montantEur, bonProcedeText)
-    try {
-      const wish = await createWish({
-        titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, images,
-        category_id, tag_ids,
-        type_recompense: 'argent',
-        montant_recompense: montantEur,
-        is_urgent: urgent,
-        statut: 'pending_payment', // invisible tant que non payé
-      })
-      setPendingWish(wish)
-      setShowPaymentModal(true)
-    } catch (err) {
-      setError(err.message || t('wisher.create.recap.err_creation'))
-    }
-  }
-
-  async function handlePaymentSuccess(paymentIntent) {
-    // Passer le wish de pending_payment à en_attente (visible pour les makers)
-    await supabase.from('wishes').update({
-      statut: 'en_attente',
-      payment_status: 'authorized',
-    }).eq('id', pendingWish.id)
-
-    toast.success(t('wisher.create.recap.succes_paiement'))
-    reset()
-    setShowPaymentModal(false)
-    setPendingWish(null)
-    navigate('/wisher/create/success')
-  }
-
-  async function handlePaymentCancel() {
-    // Supprimer le wish draft (et les images + tags via CASCADE)
-    if (pendingWish?.id) {
-      await supabase.from('wishes').delete().eq('id', pendingWish.id)
-    }
-    setShowPaymentModal(false)
-    setPendingWish(null)
-    toast(t('wisher.create.recap.paiement_annule'), { icon: 'ℹ️' })
   }
 
   async function doPublish(urgent) {
     setRecompense(recompenseType, recompenseType === 'argent' ? parseFloat(montant) || null : null, bonProcedeText)
     try {
-      await createWish({
+      const wish = await createWish({
         titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, images,
         category_id, tag_ids,
         type_recompense: recompenseType,
         montant_recompense: recompenseType === 'argent' ? parseFloat(montant) || null : null,
         is_urgent: urgent,
       })
+      // Si des images n'ont pas pu être uploadées, on prévient l'user
+      if (wish?._failedUploads?.length) {
+        toast.error(`${wish._failedUploads.length} image(s) n'ont pas pu être ajoutées au vœu`, { duration: 5000 })
+      }
       reset()
       if (urgent) toast.success(t('wisher.create.recap.succes_urgent'))
       navigate('/wisher/create/success')
     } catch (err) {
-      setError(err.message || t('wisher.create.recap.err_publication'))
+      console.error('[Recap] doPublish:', err)
+      toast.error(err.message || t('wisher.create.recap.err_publication'))
     }
   }
 
@@ -334,20 +288,6 @@ export default function Recap() {
               </AnimatePresence>
             </motion.div>
 
-            {/* ── Erreur ── */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                  className="bg-red-50 border border-red-100 rounded-2xl px-4 py-3 text-red-600 text-sm text-center"
-                >
-                  {error}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             {/* ── Option Urgent ── */}
             <motion.div
               custom={2}
@@ -397,12 +337,18 @@ export default function Recap() {
               variants={sectionVariants}
               whileTap={{ scale: 0.97 }}
               onClick={handlePublish}
-              disabled={publishing}
-              className="w-full h-[52px] rounded-full text-white font-bold text-[15px] disabled:opacity-50 relative overflow-hidden"
+              disabled={publishing || submitting}
+              className="w-full h-[52px] rounded-full text-white font-bold text-[15px] disabled:opacity-50 relative overflow-hidden flex items-center justify-center gap-2"
               style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
             >
+              {(publishing || submitting) && (
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="3"/>
+                  <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8H4z"/>
+                </svg>
+              )}
               <span className="relative z-10">
-                {publishing ? t('wisher.create.recap.btn_publication') : isUrgent ? t('wisher.create.recap.btn_publier_urgent') : t('wisher.create.recap.btn_publier')}
+                {(publishing || submitting) ? t('wisher.create.recap.btn_publication') : isUrgent ? t('wisher.create.recap.btn_publier_urgent') : t('wisher.create.recap.btn_publier')}
               </span>
             </motion.button>
 
@@ -410,47 +356,7 @@ export default function Recap() {
         </div>
       </div>
 
-      {/* Modal paiement Stripe (récompense argent) */}
-      <AnimatePresence>
-        {showPaymentModal && pendingWish && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop"
-            />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 max-h-[90vh] overflow-y-auto bottom-sheet"
-            >
-              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
-              <div className="text-center mb-5">
-                <span className="text-3xl mb-2 block">💳</span>
-                <h2 className="text-lg font-bold text-[#1A1A2E]">{t('wisher.create.recap.paiement_titre')}</h2>
-                <p className="text-sm text-[#8A8A9A] mt-1">
-                  {t('wisher.create.recap.paiement_sous', { amount: parseFloat(montant).toFixed(2).replace('.', ',') })}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-[#F7F8FC] p-4 mb-5 text-xs text-[#8A8A9A] leading-relaxed">
-                <p className="mb-1">• <strong className="text-[#1A1A2E]">{t('wisher.create.recap.paiement_pre')}</strong>{t('wisher.create.recap.paiement_pre_text')}</p>
-                <p className="mb-1">• <strong className="text-[#1A1A2E]">{t('wisher.create.recap.paiement_debit')}</strong>{t('wisher.create.recap.paiement_debit_text')}</p>
-                <p>• <strong className="text-[#1A1A2E]">{t('wisher.create.recap.paiement_annulation')}</strong>{t('wisher.create.recap.paiement_annulation_text')}</p>
-              </div>
-              <PaymentForm
-                type="wish_payment"
-                amount_cents={Math.round(parseFloat(montant) * 100)}
-                wish_id={pendingWish.id}
-                metadata={{ is_urgent: isUrgent ? '1' : '0' }}
-                onSuccess={handlePaymentSuccess}
-                onCancel={handlePaymentCancel}
-                submitLabel={t('wisher.create.recap.paiement_btn', { amount: parseFloat(montant).toFixed(2).replace('.', ',') })}
-              />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Modal paiement urgent (bon procédé + urgent) */}
+      {/* Modal paiement urgent (option urgent — applique au bon procédé OU argent) */}
       <AnimatePresence>
         {showUrgentModal && (
           <>

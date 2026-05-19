@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -8,7 +8,6 @@ import Button from '../../../components/ui/Button'
 import CategoryFallback from '../../../components/ui/CategoryFallback'
 import useWishFormStore from '../../../store/wishFormStore'
 import { useCatalog } from '../../../hooks/useTags'
-import { prewarmModerationModel } from '../../../lib/moderationImage'
 
 function StepProgress({ current, total = 4 }) {
   return (
@@ -46,9 +45,6 @@ export default function Step2() {
   const { categories } = useCatalog()
   const inputRef = useRef()
   const categorySlug = categories.find((c) => c.id === category_id)?.slug
-
-  // Prewarm le modèle NSFW.js dès que l'user arrive sur Step2 → 1er upload instantané
-  useEffect(() => { prewarmModerationModel() }, [])
 
   async function handleFiles(e) {
     const files = Array.from(e.target.files)
@@ -118,8 +114,11 @@ export default function Step2() {
 
         {/* Grille de photos */}
         <div className="grid grid-cols-3 gap-3">
-          {/* Prévisualisation icône catégorie = ce qu'on verra si pas de photo */}
-          {images.length === 0 && categorySlug && (
+          {/* Prévisualisation icône = ce qu'on verra si pas de photo.
+              La catégorie est dérivée des mots-clés à l'étape 4, donc à ce
+              stade on affiche un placeholder générique (sparkle ✨ sur
+              gradient violet par défaut). */}
+          {images.length === 0 && (
             <div className="relative aspect-square rounded-2xl overflow-hidden">
               <CategoryFallback slug={categorySlug} iconSize={36} />
               <div className="absolute bottom-1.5 inset-x-0 text-center">

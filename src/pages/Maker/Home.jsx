@@ -1,5 +1,5 @@
 // Wish Maker v1.7
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion'
@@ -152,7 +152,7 @@ function WishGridCard({ wish, onClick, userLat, userLng }) {
       {/* Cover image + avatar overlay */}
       <div className="relative aspect-[4/3] bg-[#F0F0F5]">
         {coverUrl ? (
-          <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+          <img src={coverUrl} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
         ) : (
           <CategoryFallback slug={wish.category_slug} iconSize={56} />
         )}
@@ -204,7 +204,7 @@ function SponsoredCard({ wish, onClick, userLat, userLng }) {
       {/* Image côté gauche — avec capsule avatar/nom en overlay (cohérence DA) */}
       <div className="relative w-[120px] flex-shrink-0 bg-[#F0F0F5]">
         {coverUrl ? (
-          <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+          <img src={coverUrl} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
         ) : (
           <CategoryFallback slug={wish.category_slug} iconSize={42} />
         )}
@@ -260,7 +260,7 @@ function WishPreviewCard({ wish, userLat, userLng, onViewMore, onMessage }) {
       {/* Image gauche */}
       <div className="w-[110px] flex-shrink-0 bg-[#F0F0F5]">
         {coverUrl ? (
-          <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+          <img src={coverUrl} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
         ) : (
           <CategoryFallback slug={wish.category_slug} iconSize={42} />
         )}
@@ -353,7 +353,7 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
       {/* Image */}
       <div className="relative h-[170px] bg-[#F0F0F5]">
         {coverUrl ? (
-          <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+          <img src={coverUrl} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
         ) : (
           <CategoryFallback slug={wish.category_slug} iconSize={64} />
         )}
@@ -421,7 +421,9 @@ export default function MakerHome() {
   const [acceptMessage, setAcceptMessage] = useState('')
   const profile = useAuthStore((s) => s.profile)
   const authTick = useAuthStore((s) => s.authTick)
-  const { sortBy, maxDistance, selectedTagIds } = useMakerStore()
+  const sortBy = useMakerStore((s) => s.sortBy)
+  const maxDistance = useMakerStore((s) => s.maxDistance)
+  const selectedTagIds = useMakerStore((s) => s.selectedTagIds)
   const { getAvailableWishes, loading } = useWishes()
   const { favoriteIds } = useFavorites()
   const { tagIds: subscribedTagIds } = useUserTagSubscriptions()
@@ -432,15 +434,27 @@ export default function MakerHome() {
   const [userLocation, setUserLocation] = useState(null)
   const mapRef = useRef(null)
 
-  // Géolocalisation en temps réel
+  // Géolocalisation passive (économie batterie + perf UI) :
+  //  - enableHighAccuracy: false → précision ~10-50m, suffit largement pour
+  //    calculer la distance à des vœux affichés en km.
+  //  - maximumAge: 60000 → on accepte un fix de moins d'1 min sans re-déclencher
+  //    le GPS.
+  //  - On ne met à jour le state QUE si l'user a bougé de > 50m, sinon on
+  //    déclenche un re-render complet (carte + toutes les cards) pour rien.
   useEffect(() => {
     if (!navigator.geolocation) return
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        setUserLocation([pos.coords.latitude, pos.coords.longitude])
+        const next = [pos.coords.latitude, pos.coords.longitude]
+        setUserLocation((prev) => {
+          if (!prev) return next
+          // distanceKm() retourne des km → 0.05 = 50m
+          if (distanceKm(prev[0], prev[1], next[0], next[1]) < 0.05) return prev
+          return next
+        })
       },
       () => {},
-      { enableHighAccuracy: true, maximumAge: 5000 }
+      { enableHighAccuracy: false, maximumAge: 60000 }
     )
     return () => navigator.geolocation.clearWatch(watchId)
   }, [])
@@ -451,7 +465,12 @@ export default function MakerHome() {
     getAvailableWishes()
       .then((w) => {
         setWishes(w)
-        setCached('available_wishes', w)
+        // Évite d'écraser un cache existant avec une liste vide (cas race
+        // condition au mount : session pas encore prête → RLS renvoie []).
+        const existing = getCached('available_wishes')?.value
+        if (w.length > 0 || !existing || existing.length === 0) {
+          setCached('available_wishes', w)
+        }
         setLoadError(null)
       })
       .catch((err) => {
@@ -503,89 +522,102 @@ export default function MakerHome() {
     return () => { supabase.removeChannel(channel) }
   }, [refetchWishes])
 
-  // Polling fallback toutes les 30s (au cas où Realtime drop)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') refetchWishes()
-    }, 30000)
-    return () => clearInterval(interval)
-  }, [refetchWishes])
+  // Note : polling 30s supprimé. Le Realtime + le refetch on-focus/visibility
+  // suffisent largement. Le Realtime push instantanément les INSERTs/UPDATEs
+  // des wishes via WebSocket, donc le polling était une dépense réseau pour
+  // un gain ~zéro (et provoquait un re-render lourd toutes les 30s).
 
-  // Position : géoloc temps réel > profil > fallback Toulouse
-  const center = userLocation || [
+  // Position : géoloc temps réel > profil > fallback Toulouse.
+  // Mémoïsé pour éviter une nouvelle ref [lat,lng] à chaque render (qui
+  // invaliderait les useMemo en aval).
+  const center = useMemo(() => userLocation || [
     profile?.latitude || 43.6047,
     profile?.longitude || 1.4442,
-  ]
+  ], [userLocation, profile?.latitude, profile?.longitude])
 
-  // Filtrage textuel
-  const textFiltered = wishes.filter((w) =>
-    !search || w.titre.toLowerCase().includes(search.toLowerCase()) ||
-    w.description.toLowerCase().includes(search.toLowerCase()) ||
-    (w.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()))
-  )
+  // ⚡️ Tous les filtres/tris ci-dessous sont mémoïsés.
+  // Avant : recalculés à CHAQUE render (frappe search, tick GPS, etc.)
+  // → blocage UI dès >100 wishes. Maintenant : recalculés seulement quand
+  // une de leurs dépendances change.
 
-  // Filtrage par rayon de distance
-  const distanceFiltered = maxDistance >= 100
-    ? textFiltered
-    : textFiltered.filter((w) => {
-        if (!w.latitude || !w.longitude) return true
-        return distanceKm(center[0], center[1], w.latitude, w.longitude) <= maxDistance
-      })
+  const textFiltered = useMemo(() => {
+    if (!search) return wishes
+    const q = search.toLowerCase()
+    return wishes.filter((w) =>
+      w.titre.toLowerCase().includes(q) ||
+      w.description.toLowerCase().includes(q) ||
+      (w.tags || []).some((tag) => tag.toLowerCase().includes(q))
+    )
+  }, [wishes, search])
 
-  // Filtrage par mots-clés (intersection avec wish.tag_ids — nouveau système Leboncoin).
-  // Un vœu apparaît si au moins UN de ses mots-clés matche la sélection.
-  const categoryFiltered = selectedTagIds.length === 0
-    ? distanceFiltered
-    : distanceFiltered.filter((w) => (w.tag_ids || []).some((tid) => selectedTagIds.includes(tid)))
+  const distanceFiltered = useMemo(() => {
+    if (maxDistance >= 100) return textFiltered
+    return textFiltered.filter((w) => {
+      if (!w.latitude || !w.longitude) return true
+      return distanceKm(center[0], center[1], w.latitude, w.longitude) <= maxDistance
+    })
+  }, [textFiltered, maxDistance, center])
 
-  // Filtrage pour les Makers pros : seulement les vœux matchant au moins un tag souscrit.
-  // Si aucun tag souscrit, on affiche tout (sinon feed vide = mauvaise UX d'onboarding).
-  const filtered = isProMaker && subscribedTagIds.length > 0
-    ? categoryFiltered.filter((w) =>
+  const categoryFiltered = useMemo(() => {
+    if (selectedTagIds.length === 0) return distanceFiltered
+    return distanceFiltered.filter((w) => (w.tag_ids || []).some((tid) => selectedTagIds.includes(tid)))
+  }, [distanceFiltered, selectedTagIds])
+
+  const filtered = useMemo(() => {
+    if (isProMaker && subscribedTagIds.length > 0) {
+      return categoryFiltered.filter((w) =>
         (w.tag_ids || []).some((tagId) => subscribedTagIds.includes(tagId))
       )
-    : categoryFiltered
+    }
+    return categoryFiltered
+  }, [categoryFiltered, isProMaker, subscribedTagIds])
 
-  // Filtre favoris : si actif, on garde uniquement les vœux que l'user a mis en favori
-  const afterFavorites = favoritesMode
-    ? filtered.filter((w) => favoriteIds.has(w.id))
-    : filtered
+  const afterFavorites = useMemo(() => (
+    favoritesMode ? filtered.filter((w) => favoriteIds.has(w.id)) : filtered
+  ), [filtered, favoritesMode, favoriteIds])
 
-  const sponsored = favoritesMode ? [] : afterFavorites.filter((w) => w.is_sponsored || (w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now()))
-  const nonSponsored = [...afterFavorites]
-    .filter((w) => favoritesMode || (!w.is_sponsored && !(w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now())))
-    .sort((a, b) => {
-      // Tri selon filtre actif
-      if (sortBy === 'urgent') {
-        const aU = a.is_urgent && a.urgent_until && new Date(a.urgent_until) > Date.now()
-        const bU = b.is_urgent && b.urgent_until && new Date(b.urgent_until) > Date.now()
-        if (aU && !bU) return -1
-        if (!aU && bU) return 1
-      }
-      if (sortBy === 'distance') {
-        const dA = distanceKm(center[0], center[1], a.latitude, a.longitude)
-        const dB = distanceKm(center[0], center[1], b.latitude, b.longitude)
-        return dA - dB
-      }
-      if (sortBy === 'recent') {
-        return new Date(b.created_at) - new Date(a.created_at)
-      }
-      // Par défaut : urgents en premier
-      const aUrgent = a.is_urgent && a.urgent_until && new Date(a.urgent_until) > Date.now()
-      const bUrgent = b.is_urgent && b.urgent_until && new Date(b.urgent_until) > Date.now()
-      if (aUrgent && !bUrgent) return -1
-      if (!aUrgent && bUrgent) return 1
-      return 0
-    })
+  const sponsored = useMemo(() => (
+    favoritesMode
+      ? []
+      : afterFavorites.filter((w) => w.is_sponsored || (w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now()))
+  ), [afterFavorites, favoritesMode])
+
+  const nonSponsored = useMemo(() => {
+    return [...afterFavorites]
+      .filter((w) => favoritesMode || (!w.is_sponsored && !(w.is_urgent && w.urgent_until && new Date(w.urgent_until) > Date.now())))
+      .sort((a, b) => {
+        if (sortBy === 'urgent') {
+          const aU = a.is_urgent && a.urgent_until && new Date(a.urgent_until) > Date.now()
+          const bU = b.is_urgent && b.urgent_until && new Date(b.urgent_until) > Date.now()
+          if (aU && !bU) return -1
+          if (!aU && bU) return 1
+        }
+        if (sortBy === 'distance') {
+          const dA = distanceKm(center[0], center[1], a.latitude, a.longitude)
+          const dB = distanceKm(center[0], center[1], b.latitude, b.longitude)
+          return dA - dB
+        }
+        if (sortBy === 'recent') {
+          return new Date(b.created_at) - new Date(a.created_at)
+        }
+        const aUrgent = a.is_urgent && a.urgent_until && new Date(a.urgent_until) > Date.now()
+        const bUrgent = b.is_urgent && b.urgent_until && new Date(b.urgent_until) > Date.now()
+        if (aUrgent && !bUrgent) return -1
+        if (!aUrgent && bUrgent) return 1
+        return 0
+      })
+  }, [afterFavorites, favoritesMode, sortBy, center])
 
   // Vœux pour le mode swipe : exclure ses propres vœux + les refusés, max 30km
-  const swipeWishes = filtered.filter((w) => {
-    if (w.wisher_id === profile?.id || skippedIds.has(w.id)) return false
-    if (w.latitude && w.longitude) {
-      return distanceKm(center[0], center[1], w.latitude, w.longitude) <= 30
-    }
-    return true
-  })
+  const swipeWishes = useMemo(() => (
+    filtered.filter((w) => {
+      if (w.wisher_id === profile?.id || skippedIds.has(w.id)) return false
+      if (w.latitude && w.longitude) {
+        return distanceKm(center[0], center[1], w.latitude, w.longitude) <= 30
+      }
+      return true
+    })
+  ), [filtered, profile?.id, skippedIds, center])
 
   function handleSwipeAccept(wish) {
     setAcceptedWish(wish)

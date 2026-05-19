@@ -5,21 +5,28 @@ import toast from 'react-hot-toast'
 import Header from '../../../components/layout/Header'
 import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
+import KeywordPicker from '../../../components/ui/KeywordPicker'
 import { useWishes } from '../../../hooks/useWishes'
+import { useCatalog } from '../../../hooks/useTags'
 import { checkContent } from '../../../lib/moderation'
-import { prewarmModerationModel } from '../../../lib/moderationImage'
 import { supabase } from '../../../lib/supabase'
 import useAuthStore from '../../../store/authStore'
 import { formatLocation } from '../../../lib/geo'
 
-const CATEGORIES = [
-  { id: 'depannage', emoji: '\u{1F527}', label: 'Dépannage & Travaux', tags: ['Plomberie', 'Électricité', 'Serrurerie', 'Peinture', 'Carrelage', 'Maçonnerie'] },
-  { id: 'immobilier', emoji: '\u{1F3E0}', label: 'Immobilier & mobilier', tags: ['Meubles', 'Montage de meubles', "Décoration d'intérieur", 'Déménagement', 'Rangement'] },
-  { id: 'services', emoji: '\u{1F9F9}', label: 'Services à domicile', tags: ['Ménage', 'Aide à domicile', 'Repassage', 'Nettoyage', 'Baby-sitting', 'Cuisine'] },
-  { id: 'animaux', emoji: '\u{1F43E}', label: 'Animaux & Nature', tags: ['Garde animaux', 'Promenade chien', 'Jardinage', 'Entretien jardin', 'Vétérinaire'] },
-  { id: 'transport', emoji: '\u{1F697}', label: 'Transport & Livraison', tags: ['Livraison', 'Courses', 'Transport de personnes', 'Déplacement'] },
-  { id: 'cours', emoji: '\u{1F4DA}', label: 'Cours & Coaching', tags: ['Cours particuliers', 'Musique', 'Informatique', 'Langues', 'Sport', 'Soutien scolaire'] },
-]
+const MAX_KEYWORDS = 5
+
+// Dérive la catégorie principale d'un vœu à partir des mots-clés sélectionnés.
+// Même logique que Step4 — assure qu'on a toujours un category_id pour le visuel.
+function deriveCategory(tagIds, categoryTags, categories) {
+  for (const tagId of tagIds) {
+    const candidates = categoryTags.filter((ct) => ct.tag_id === tagId)
+    if (candidates.length === 0) continue
+    const primary = candidates.find((c) => c.is_suggested_primary)
+    return (primary || candidates[0]).category_id
+  }
+  if (categories && categories.length > 0) return categories[0].id
+  return null
+}
 
 export default function EditWish() {
   const { wishId } = useParams()
@@ -28,21 +35,18 @@ export default function EditWish() {
   const user = useAuthStore((s) => s.user)
   const inputRef = useRef()
 
+  const { tags: catalogTags, categoryTags, categories, loaded: catalogLoaded } = useCatalog()
   const [wish, setWish] = useState(null)
   const [titre, setTitre] = useState('')
   const [description, setDescription] = useState('')
-  const [selectedTags, setSelectedTags] = useState([])
+  const [selectedTagIds, setSelectedTagIds] = useState([])
   const [recompenseType, setRecompenseType] = useState('bon_procede')
   const [montant, setMontant] = useState('')
   const [pageLoading, setPageLoading] = useState(true)
-  const [openCategory, setOpenCategory] = useState(null)
   // Images : existantes (from DB) + nouvelles (from file picker)
   const [existingImages, setExistingImages] = useState([]) // { id, url, is_cover }
   const [newImages, setNewImages] = useState([]) // { id, file, preview, is_cover }
   const [deletedImageIds, setDeletedImageIds] = useState([])
-
-  // Prewarm modèle NSFW.js en arrière-plan
-  useEffect(() => { prewarmModerationModel() }, [])
 
   useEffect(() => {
     async function load() {
@@ -53,7 +57,7 @@ export default function EditWish() {
         setWish(w)
         setTitre(w.titre || '')
         setDescription(w.description || '')
-        setSelectedTags(w.tags || [])
+        setSelectedTagIds(w.tag_ids || [])
         setRecompenseType(w.type_recompense || 'bon_procede')
         setMontant(w.montant_recompense ? String(w.montant_recompense) : '')
         setExistingImages(w.images?.map((img, i) => ({ id: `existing-${i}`, url: img.url, is_cover: img.is_cover })) || [])
@@ -107,19 +111,21 @@ export default function EditWish() {
     }
   }
 
-  function toggleTag(tag) {
-    setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])
-  }
-
   async function handleSave() {
     if (titre.length < 5) { toast.error('Titre min. 5 caractères'); return }
     if (description.length < 10) { toast.error('Description min. 10 caractères'); return }
+    if (selectedTagIds.length === 0) { toast.error('Choisissez au moins un mot-clé'); return }
 
     const [titreCheck, descCheck] = await Promise.all([checkContent(titre), checkContent(description)])
     if (!titreCheck.isClean || !descCheck.isClean) {
       toast.error('Contenu non conforme.')
       return
     }
+
+    // Recalcul de la catégorie (dérivée du 1er tag) + labels de tags pour rétrocompat
+    const derivedCategoryId = deriveCategory(selectedTagIds, categoryTags, categories)
+    const tagsById = new Map(catalogTags.map((t) => [t.id, t]))
+    const tagLabels = selectedTagIds.map((id) => tagsById.get(id)?.label).filter(Boolean)
 
     try {
       // 1. Mettre à jour les champs du vœu
@@ -131,7 +137,9 @@ export default function EditWish() {
         adresse: wish.adresse,
         latitude: wish.latitude,
         longitude: wish.longitude,
-        tags: selectedTags,
+        tags: tagLabels,
+        tag_ids: selectedTagIds,
+        category_id: derivedCategoryId,
       })
 
       // 2. Supprimer les images marquées
@@ -247,56 +255,22 @@ export default function EditWish() {
             <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
           </div>
 
-          {/* Catégories / Tags */}
+          {/* Mots-clés */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-[#1A1A2E]">Catégories</label>
-            {CATEGORIES.map((cat) => {
-              const selectedInCat = cat.tags.filter((t) => selectedTags.includes(t))
-              const isOpen = openCategory === cat.id
-              return (
-                <div key={cat.id} className="rounded-2xl border border-[#F0F0F0] overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setOpenCategory(isOpen ? null : cat.id)}
-                    className="w-full flex items-center justify-between px-4 py-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span>{cat.emoji}</span>
-                      <span className="text-sm font-medium text-[#1A1A2E]">{cat.label}</span>
-                      {selectedInCat.length > 0 && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>
-                          {selectedInCat.length}
-                        </span>
-                      )}
-                    </div>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>
-                      <path d="M6 9l6 6 6-6" stroke="#8A8A9A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                  {isOpen && (
-                    <div className="flex flex-wrap gap-2 px-4 pb-3">
-                      {cat.tags.map((tag) => {
-                        const active = selectedTags.includes(tag)
-                        return (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => toggleTag(tag)}
-                            className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                            style={active
-                              ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
-                              : { background: '#F5F5F7', color: '#8A8A9A' }
-                            }
-                          >
-                            {tag}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+            <label className="text-sm font-medium text-[#1A1A2E]">
+              Mots-clés ({selectedTagIds.length}/{MAX_KEYWORDS})
+            </label>
+            {catalogLoaded ? (
+              <KeywordPicker
+                value={selectedTagIds}
+                onChange={setSelectedTagIds}
+                max={MAX_KEYWORDS}
+              />
+            ) : (
+              <div className="flex items-center justify-center py-4">
+                <div className="w-5 h-5 rounded-full border-[2px] border-[#5B6BF5] border-t-transparent animate-spin" />
+              </div>
+            )}
           </div>
 
           {/* Récompense */}

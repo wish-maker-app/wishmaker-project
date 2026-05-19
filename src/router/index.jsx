@@ -90,7 +90,8 @@ function nextSetupStep(profile) {
 }
 
 function ProtectedRoute() {
-  const { user, profile } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const profile = useAuthStore((s) => s.profile)
   if (!user) return <Navigate to="/auth" replace />
   // Onboarding pas terminé → redirige vers le 1er step manquant
   const missing = nextSetupStep(profile)
@@ -99,14 +100,16 @@ function ProtectedRoute() {
 }
 
 function SetupRoute() {
-  const { user, profile } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const profile = useAuthStore((s) => s.profile)
   if (!user) return <Navigate to="/auth" replace />
   if (profile?.onboarding_completed) return <Navigate to="/maker" replace />
   return <Outlet />
 }
 
 function PublicRoute() {
-  const { user, profile } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const profile = useAuthStore((s) => s.profile)
   if (user && profile?.onboarding_completed) return <Navigate to="/maker" replace />
   // Session active mais setup pas fini → reprendre au bon step
   if (user && profile) {
