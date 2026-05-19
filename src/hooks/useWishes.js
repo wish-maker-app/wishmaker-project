@@ -181,39 +181,15 @@ export function useWishes() {
   }
 
   async function markWishRealized(wishId) {
+    // V1 MVP : pas de transaction Stripe sur les services, le paiement se
+    // fait directement entre Wisher et Maker. On ne fait que mettre a jour
+    // le statut du voeu. Stripe reste uniquement pour les packs / urgent /
+    // extension.
     const { error } = await supabase
       .from('wishes')
       .update({ statut: 'realise' })
       .eq('id', wishId)
     if (error) throw error
-
-    const { data: wish } = await supabase
-      .from('wishes')
-      .select('payment_intent_id, payment_status')
-      .eq('id', wishId)
-      .single()
-
-    if (wish?.payment_intent_id && wish.payment_status === 'authorized') {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-        const res = await fetch(`${supabaseUrl}/functions/v1/capture-payment`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({ wish_id: wishId }),
-        })
-        if (!res.ok) {
-          const err = await res.json()
-          console.error('[capture-payment] Échec capture:', err)
-        }
-      } catch (err) {
-        console.error('[capture-payment]', err)
-      }
-    }
   }
 
   async function submitRating({ wishId, fromUser, toUser, note, commentaire }) {
@@ -288,6 +264,7 @@ export function useWishes() {
   }
 
   // Étape 2 : le Wisher confirme la réalisation → statut passe à 'realise'
+  // V1 MVP : pas de capture Stripe, le paiement est direct entre Wisher et Maker.
   async function confirmRealization(wishId) {
     const { error } = await supabase
       .from('wishes')
@@ -295,31 +272,6 @@ export function useWishes() {
       .eq('id', wishId)
       .eq('wisher_id', user.id)
     if (error) throw error
-
-    // Capture du paiement si Stripe
-    const { data: wish } = await supabase
-      .from('wishes')
-      .select('payment_intent_id, payment_status')
-      .eq('id', wishId)
-      .single()
-
-    if (wish?.payment_intent_id && wish.payment_status === 'authorized') {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-        await fetch(`${supabaseUrl}/functions/v1/capture-payment`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({ wish_id: wishId }),
-        })
-      } catch (err) {
-        console.error('[capture-payment]', err)
-      }
-    }
   }
 
   return { loading, getMyWishes, getAvailableWishes, getWishesByUser, getWishById, createWish, updateWish, updateWishStatus, extendWish, makeUrgent, markWishRealized, markRealizedByMaker, confirmRealization, submitRating, getUserRating, deleteWish }

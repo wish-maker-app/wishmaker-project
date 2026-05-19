@@ -28,9 +28,10 @@ export default function Recap() {
   const { titre, description, images, adresse, quartier, ville, code_postal, latitude, longitude, tags, category_id, tag_ids, type_recompense, montant_recompense, description_bon_procede, setRecompense, reset } = useWishFormStore()
   const { createWish, loading: publishing } = useWishes()
   const [submitting, setSubmitting] = useState(false)
-  const [recompenseType, setRecompenseType] = useState(type_recompense || 'bon_procede')
+  const [recompenseType, setRecompenseType] = useState(type_recompense || 'argent')
   const [montant, setMontant] = useState(montant_recompense || '')
   const [bonProcedeText, setBonProcedeText] = useState(description_bon_procede || '')
+  const [devisText, setDevisText] = useState('')
   const [isUrgent, setIsUrgent] = useState(false)
   const [showUrgentModal, setShowUrgentModal] = useState(false)
 
@@ -59,7 +60,7 @@ export default function Recap() {
     try {
       if (!validateFields()) return
 
-      // Si récompense en argent → vérifier que le montant est valide
+      // Si budget : verifier que le montant est valide (optionnel pour devis)
       if (recompenseType === 'argent') {
         const montantNum = parseFloat(montant)
         if (!montantNum || montantNum < 1) {
@@ -67,6 +68,7 @@ export default function Recap() {
           return
         }
       }
+      // Pour 'devis' et 'bon_procede' : pas de validation montant
 
       // Modal urgent (paiement 0.99€) si l'option urgent est cochée
       if (isUrgent) {
@@ -80,7 +82,9 @@ export default function Recap() {
   }
 
   async function doPublish(urgent) {
-    setRecompense(recompenseType, recompenseType === 'argent' ? parseFloat(montant) || null : null, bonProcedeText)
+    // Selon le mode, on stocke le bon texte descriptif (bon procede ou devis)
+    const descText = recompenseType === 'devis' ? devisText : bonProcedeText
+    setRecompense(recompenseType, recompenseType === 'argent' ? parseFloat(montant) || null : null, descText)
     try {
       const wish = await createWish({
         titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, images,
@@ -181,12 +185,13 @@ export default function Recap() {
               <div className="flex flex-wrap gap-1.5 mb-3.5">
                 {recompenseType && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
-                    style={recompenseType === 'argent'
-                      ? { background: '#ECFDF5', color: '#059669' }
+                    style={
+                      recompenseType === 'argent' ? { background: '#ECFDF5', color: '#059669' }
+                      : recompenseType === 'devis' ? { background: '#F2E9FF', color: '#7A3BC4' }
                       : { background: '#EFF6FF', color: '#3B82F6' }
                     }>
-                    {recompenseType === 'argent'
-                      ? `${montant ? montant + '€' : t('wisher.create.recap.argent_label')}`
+                    {recompenseType === 'argent' ? `${montant ? montant + '€' : t('wisher.create.recap.argent_label')}`
+                      : recompenseType === 'devis' ? t('wisher.create.recap.devis_label')
                       : t('wisher.create.recap.bon_procede_label')}
                   </span>
                 )}
@@ -232,24 +237,54 @@ export default function Recap() {
               style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06), 0 6px 16px rgba(26,26,46,0.04)' }}
             >
               <p className="text-sm font-bold text-[#1A1A2E] mb-3">{t('wisher.create.recap.recompense_titre')}</p>
-              <div className="flex gap-2 mb-3">
-                {['argent', 'bon_procede'].map((type) => (
-                  <motion.button
-                    key={type}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => setRecompenseType(type)}
-                    className="flex-1 h-10 rounded-full text-sm font-semibold transition-colors duration-200"
-                    style={recompenseType === type
-                      ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
-                      : { border: '1.5px solid #E8E8E8', color: '#8A8A9A' }
-                    }
-                  >
-                    {type === 'argent' ? t('wisher.create.recap.argent_label') : t('wisher.create.recap.bon_procede_label')}
-                  </motion.button>
-                ))}
+
+              {/* 3 cards verticales : Budget / Bon procede / Sur devis */}
+              <div className="flex flex-col gap-2 mb-3">
+                {[
+                  { id: 'argent', label: t('wisher.create.recap.argent_label'), sub: t('wisher.create.recap.argent_sub') },
+                  { id: 'bon_procede', label: t('wisher.create.recap.bon_procede_label'), sub: t('wisher.create.recap.bon_procede_sub') },
+                  { id: 'devis', label: t('wisher.create.recap.devis_label'), sub: t('wisher.create.recap.devis_sub') },
+                ].map((mode) => {
+                  const active = recompenseType === mode.id
+                  return (
+                    <motion.button
+                      key={mode.id}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setRecompenseType(mode.id)}
+                      className="text-left rounded-2xl px-4 py-3 border-2 transition-all"
+                      style={active
+                        ? { borderColor: '#5B6BF5', background: '#FAFBFF' }
+                        : { borderColor: '#F0F0F0', background: '#fff' }
+                      }
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[14px] font-bold text-[#1A1A2E]">{mode.label}</p>
+                          <p className="text-[11.5px] text-[#8A8A9A] leading-snug mt-0.5">{mode.sub}</p>
+                        </div>
+                        {/* Radio dot */}
+                        <span
+                          className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={active
+                            ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }
+                            : { border: '1.5px solid #D0D0D8', background: '#fff' }
+                          }
+                        >
+                          {active && (
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </span>
+                      </div>
+                    </motion.button>
+                  )
+                })}
               </div>
+
+              {/* Champ contextuel selon le mode choisi */}
               <AnimatePresence mode="wait">
-                {recompenseType === 'argent' ? (
+                {recompenseType === 'argent' && (
                   <motion.div
                     key="argent"
                     initial={{ opacity: 0, height: 0 }}
@@ -267,7 +302,8 @@ export default function Recap() {
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#8A8A9A]">€</span>
                   </motion.div>
-                ) : (
+                )}
+                {recompenseType === 'bon_procede' && (
                   <motion.div
                     key="bon"
                     initial={{ opacity: 0, height: 0 }}
@@ -285,7 +321,37 @@ export default function Recap() {
                     />
                   </motion.div>
                 )}
+                {recompenseType === 'devis' && (
+                  <motion.div
+                    key="devis"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <textarea
+                      value={devisText}
+                      onChange={(e) => setDevisText(e.target.value)}
+                      placeholder={t('wisher.create.recap.devis_ph')}
+                      rows={2}
+                      className="w-full bg-[#F7F8FC] rounded-xl px-4 py-3 text-sm text-[#1A1A2E] outline-none resize-none focus:ring-2 focus:ring-[#5B6BF5]/20 transition-shadow"
+                    />
+                  </motion.div>
+                )}
               </AnimatePresence>
+
+              {/* Disclaimer : Wish Maker ne traite pas le paiement */}
+              <div className="mt-3 flex items-start gap-2 px-3 py-2.5 rounded-xl bg-[#F7F8FC]">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A8A9A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 8v4" />
+                  <path d="M12 16h.01" />
+                </svg>
+                <p className="text-[11px] text-[#8A8A9A] leading-relaxed">
+                  {t('wisher.create.recap.disclaimer')}
+                </p>
+              </div>
             </motion.div>
 
             {/* ── Option Urgent ── */}
