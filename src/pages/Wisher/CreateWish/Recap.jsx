@@ -25,13 +25,24 @@ export default function Recap() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const profile = useAuthStore((s) => s.profile)
-  const { titre, description, images, adresse, quartier, ville, code_postal, latitude, longitude, tags, category_id, tag_ids, type_recompense, montant_recompense, description_bon_procede, setRecompense, reset } = useWishFormStore()
+  const {
+    titre, description, images, adresse, quartier, ville, code_postal, latitude, longitude,
+    tags, category_id, tag_ids,
+    type_recompense, montant_recompense, description_bon_procede,
+    prestation_type, prestation_montant,
+    setRecompense, setPrestation, reset,
+  } = useWishFormStore()
   const { createWish, loading: publishing } = useWishes()
   const [submitting, setSubmitting] = useState(false)
-  const [recompenseType, setRecompenseType] = useState(type_recompense || 'argent')
+  // RÉCOMPENSE : ce que le Maker touche pour la mise en relation (= commission)
+  const [recompenseType, setRecompenseType] = useState(type_recompense || 'bon_procede')
   const [montant, setMontant] = useState(montant_recompense || '')
   const [bonProcedeText, setBonProcedeText] = useState(description_bon_procede || '')
-  const [devisText, setDevisText] = useState('')
+  // PRESTATION (optionnel) : comment se définit le coût de la prestation.
+  // null = rien coché, 'devis' = attendre un devis, 'budget' = annoncer un budget.
+  // Click sur l'option active = désélection (toggle).
+  const [prestationType, setPrestationType] = useState(prestation_type || null)
+  const [prestationMontant, setPrestationMontant] = useState(prestation_montant || '')
   const [isUrgent, setIsUrgent] = useState(false)
   const [showUrgentModal, setShowUrgentModal] = useState(false)
 
@@ -60,7 +71,7 @@ export default function Recap() {
     try {
       if (!validateFields()) return
 
-      // Si budget : verifier que le montant est valide (optionnel pour devis)
+      // Récompense : si argent, montant ≥ 1€
       if (recompenseType === 'argent') {
         const montantNum = parseFloat(montant)
         if (!montantNum || montantNum < 1) {
@@ -68,7 +79,15 @@ export default function Recap() {
           return
         }
       }
-      // Pour 'devis' et 'bon_procede' : pas de validation montant
+
+      // Prestation : si budget annoncé, montant > 0
+      if (prestationType === 'budget') {
+        const presNum = parseFloat(prestationMontant)
+        if (!presNum || presNum <= 0) {
+          toast.error('Veuillez indiquer un budget pour la prestation')
+          return
+        }
+      }
 
       // Modal urgent (paiement 0.99€) si l'option urgent est cochée
       if (isUrgent) {
@@ -82,15 +101,16 @@ export default function Recap() {
   }
 
   async function doPublish(urgent) {
-    // Selon le mode, on stocke le bon texte descriptif (bon procede ou devis)
-    const descText = recompenseType === 'devis' ? devisText : bonProcedeText
-    setRecompense(recompenseType, recompenseType === 'argent' ? parseFloat(montant) || null : null, descText)
+    setRecompense(recompenseType, recompenseType === 'argent' ? parseFloat(montant) || null : null, bonProcedeText)
+    setPrestation(prestationType, prestationType === 'budget' ? parseFloat(prestationMontant) || null : null)
     try {
       const wish = await createWish({
         titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, images,
         category_id, tag_ids,
         type_recompense: recompenseType,
         montant_recompense: recompenseType === 'argent' ? parseFloat(montant) || null : null,
+        prestation_type: prestationType,
+        prestation_montant: prestationType === 'budget' ? parseFloat(prestationMontant) || null : null,
         is_urgent: urgent,
       })
       // Si des images n'ont pas pu être uploadées, on prévient l'user
@@ -227,7 +247,7 @@ export default function Recap() {
               </div>
             </motion.div>
 
-            {/* ── Récompense ── */}
+            {/* ── 1. RÉCOMPENSE — commission Maker pour la mise en relation ── */}
             <motion.div
               custom={1}
               initial="hidden"
@@ -236,21 +256,79 @@ export default function Recap() {
               className="bg-white rounded-2xl p-4"
               style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06), 0 6px 16px rgba(26,26,46,0.04)' }}
             >
-              <p className="text-sm font-bold text-[#1A1A2E] mb-3">{t('wisher.create.recap.recompense_titre')}</p>
+              <p className="text-sm font-bold text-[#1A1A2E] mb-1">Récompense</p>
+              <p className="text-[11.5px] text-[#8A8A9A] mb-3 leading-snug">
+                Petit montant que le Maker touche pour avoir répondu à votre vœu.
+              </p>
 
-              {/* 3 cards verticales : Budget / Bon procede / Sur devis */}
-              <div className="flex flex-col gap-2 mb-3">
+              {/* 2 boutons côte à côte (chip horizontal) */}
+              <div className="flex gap-2">
+                {['argent', 'bon_procede'].map((mode) => (
+                  <motion.button
+                    key={mode}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => setRecompenseType(mode)}
+                    className="flex-1 h-10 rounded-full text-sm font-semibold transition-colors duration-200"
+                    style={recompenseType === mode
+                      ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
+                      : { border: '1.5px solid #E8E8E8', color: '#8A8A9A', background: '#fff' }
+                    }
+                  >
+                    {mode === 'argent' ? 'Argent' : 'Bon procédé'}
+                  </motion.button>
+                ))}
+              </div>
+
+              {/* Champ montant si Argent */}
+              <AnimatePresence>
+                {recompenseType === 'argent' && (
+                  <motion.div
+                    key="recompense-argent"
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="relative overflow-hidden"
+                  >
+                    <input
+                      type="number" min="1" step="1"
+                      value={montant}
+                      onChange={(e) => setMontant(e.target.value)}
+                      placeholder="Ex : 5"
+                      className="w-full h-11 bg-[#F7F8FC] rounded-xl pl-4 pr-10 text-sm text-[#1A1A2E] outline-none"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#8A8A9A]">€</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* ── 2. PRESTATION (optionnel) — comment se définit le coût ── */}
+            <motion.div
+              custom={1.5}
+              initial="hidden"
+              animate="visible"
+              variants={sectionVariants}
+              className="bg-white rounded-2xl p-4"
+              style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06), 0 6px 16px rgba(26,26,46,0.04)' }}
+            >
+              <p className="text-sm font-bold text-[#1A1A2E] mb-1">Prestation <span className="text-[11px] font-medium text-[#8A8A9A]">(optionnel)</span></p>
+              <p className="text-[11.5px] text-[#8A8A9A] mb-3 leading-snug">
+                Coût éventuel de la prestation elle-même (réglé directement au Maker).
+              </p>
+
+              <div className="flex flex-col gap-2">
                 {[
-                  { id: 'argent', label: t('wisher.create.recap.argent_label'), sub: t('wisher.create.recap.argent_sub') },
-                  { id: 'bon_procede', label: t('wisher.create.recap.bon_procede_label'), sub: t('wisher.create.recap.bon_procede_sub') },
-                  { id: 'devis', label: t('wisher.create.recap.devis_label'), sub: t('wisher.create.recap.devis_sub') },
+                  { id: 'devis', label: 'Sur devis', sub: 'Les Makers vous envoient un devis via la messagerie' },
+                  { id: 'budget', label: 'Budget de la prestation', sub: 'Vous indiquez le budget que vous êtes prêt à mettre' },
                 ].map((mode) => {
-                  const active = recompenseType === mode.id
+                  const active = prestationType === mode.id
                   return (
                     <motion.button
                       key={mode.id}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => setRecompenseType(mode.id)}
+                      // Toggle : click sur l'option active → désélection
+                      onClick={() => setPrestationType(active ? null : mode.id)}
                       className="text-left rounded-2xl px-4 py-3 border-2 transition-all"
                       style={active
                         ? { borderColor: '#5B6BF5', background: '#FAFBFF' }
@@ -262,16 +340,16 @@ export default function Recap() {
                           <p className="text-[14px] font-bold text-[#1A1A2E]">{mode.label}</p>
                           <p className="text-[11.5px] text-[#8A8A9A] leading-snug mt-0.5">{mode.sub}</p>
                         </div>
-                        {/* Radio dot */}
+                        {/* Checkbox style carré coché */}
                         <span
-                          className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                          className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
                           style={active
                             ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }
                             : { border: '1.5px solid #D0D0D8', background: '#fff' }
                           }
                         >
                           {active && (
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M5 13l4 4L19 7" />
                             </svg>
                           )}
@@ -282,61 +360,25 @@ export default function Recap() {
                 })}
               </div>
 
-              {/* Champ contextuel selon le mode choisi */}
-              <AnimatePresence mode="wait">
-                {recompenseType === 'argent' && (
+              {/* Champ montant si Budget coché */}
+              <AnimatePresence>
+                {prestationType === 'budget' && (
                   <motion.div
-                    key="argent"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
+                    key="prestation-budget"
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
                     transition={{ duration: 0.2 }}
                     className="relative overflow-hidden"
                   >
                     <input
-                      type="number" min="0" step="1"
-                      value={montant}
-                      onChange={(e) => setMontant(e.target.value)}
-                      placeholder={t('wisher.create.recap.montant_ph')}
-                      className="w-full h-11 bg-[#F7F8FC] rounded-xl pl-4 pr-10 text-sm text-[#1A1A2E] outline-none focus:ring-2 focus:ring-[#5B6BF5]/20 transition-shadow"
+                      type="number" min="1" step="1"
+                      value={prestationMontant}
+                      onChange={(e) => setPrestationMontant(e.target.value)}
+                      placeholder="Ex : 20"
+                      className="w-full h-11 bg-[#F7F8FC] rounded-xl pl-4 pr-10 text-sm text-[#1A1A2E] outline-none"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#8A8A9A]">€</span>
-                  </motion.div>
-                )}
-                {recompenseType === 'bon_procede' && (
-                  <motion.div
-                    key="bon"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    <textarea
-                      value={bonProcedeText}
-                      onChange={(e) => setBonProcedeText(e.target.value)}
-                      placeholder={t('wisher.create.recap.bon_ph')}
-                      rows={2}
-                      className="w-full bg-[#F7F8FC] rounded-xl px-4 py-3 text-sm text-[#1A1A2E] outline-none resize-none focus:ring-2 focus:ring-[#5B6BF5]/20 transition-shadow"
-                    />
-                  </motion.div>
-                )}
-                {recompenseType === 'devis' && (
-                  <motion.div
-                    key="devis"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    <textarea
-                      value={devisText}
-                      onChange={(e) => setDevisText(e.target.value)}
-                      placeholder={t('wisher.create.recap.devis_ph')}
-                      rows={2}
-                      className="w-full bg-[#F7F8FC] rounded-xl px-4 py-3 text-sm text-[#1A1A2E] outline-none resize-none focus:ring-2 focus:ring-[#5B6BF5]/20 transition-shadow"
-                    />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -349,7 +391,7 @@ export default function Recap() {
                   <path d="M12 16h.01" />
                 </svg>
                 <p className="text-[11px] text-[#8A8A9A] leading-relaxed">
-                  {t('wisher.create.recap.disclaimer')}
+                  Wish Maker met en relation. Le paiement se fait directement entre vous et le Maker.
                 </p>
               </div>
             </motion.div>

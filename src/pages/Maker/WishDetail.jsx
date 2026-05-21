@@ -494,18 +494,32 @@ export default function WishDetail() {
               </div>
             )
           })()}
-          {/* Badge récompense */}
-          {wish.type_recompense && (
-            <div className="mt-2">
-              <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full"
-                style={wish.type_recompense === 'argent'
-                  ? { background: '#ECFDF5', color: '#059669' }
-                  : { background: '#EFF6FF', color: '#3B82F6' }
-                }>
-                {wish.type_recompense === 'argent'
-                  ? `${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
-                  : 'Bon procédé'}
-              </span>
+          {/* Badge récompense + prestation */}
+          {(wish.type_recompense || wish.prestation_type) && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {wish.type_recompense && (
+                <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full"
+                  style={wish.type_recompense === 'argent'
+                    ? { background: '#ECFDF5', color: '#059669' }
+                    : { background: '#EFF6FF', color: '#3B82F6' }
+                  }>
+                  Récompense : {wish.type_recompense === 'argent'
+                    ? `${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
+                    : 'Bon procédé'}
+                </span>
+              )}
+              {wish.prestation_type === 'devis' && (
+                <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full"
+                  style={{ background: '#F3E8FF', color: '#7C3AED' }}>
+                  Sur devis
+                </span>
+              )}
+              {wish.prestation_type === 'budget' && wish.prestation_montant && (
+                <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full"
+                  style={{ background: '#F3E8FF', color: '#7C3AED' }}>
+                  Budget : {wish.prestation_montant}€
+                </span>
+              )}
             </div>
           )}
         </motion.div>

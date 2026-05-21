@@ -18,10 +18,14 @@ const useWishFormStore = create((set) => ({
   tag_ids: [],        // array d'uuid de tags (1 min, 3 max)
   // Legacy : garder tags (array de strings) pour rétrocompat pendant la migration
   tags: [],
-  // Récompense
-  type_recompense: 'bon_procede',
-  montant_recompense: null,
+  // Récompense (= commission Maker pour mise en relation)
+  type_recompense: 'bon_procede',  // 'bon_procede' | 'argent'
+  montant_recompense: null,         // numeric si type_recompense = 'argent'
   description_bon_procede: '',
+
+  // Prestation (optionnel) : null = rien coché, 'devis' ou 'budget'
+  prestation_type: null,
+  prestation_montant: null,
 
   setStep1: (titre, description) => set({ titre, description }),
   setImages: (images) => set({ images }),
@@ -32,12 +36,15 @@ const useWishFormStore = create((set) => ({
     set({ category_id, tag_ids, tags }),
   setRecompense: (type_recompense, montant_recompense, description_bon_procede) =>
     set({ type_recompense, montant_recompense, description_bon_procede }),
+  setPrestation: (prestation_type, prestation_montant) =>
+    set({ prestation_type, prestation_montant }),
 
   reset: () => set({
     titre: '', description: '', images: [],
     latitude: null, longitude: null, adresse: '', quartier: null, ville: null, code_postal: null,
     category_id: null, tag_ids: [], tags: [],
     type_recompense: 'bon_procede', montant_recompense: null, description_bon_procede: '',
+    prestation_type: null, prestation_montant: null,
   }),
 }))
 

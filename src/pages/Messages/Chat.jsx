@@ -141,7 +141,7 @@ export default function Chat() {
       import('../../lib/supabase').then(({ supabase }) => {
         supabase.from('users').select('id, prenom, nom, pseudo, avatar_url, is_online, rating').eq('id', draftWisherId).single()
           .then(({ data }) => { if (data) setInterlocuteur(data) })
-        supabase.from('wishes').select('id, titre, statut, type_recompense, montant_recompense, wish_images(url, is_cover), category:categories(slug)').eq('id', draftWishId).single()
+        supabase.from('wishes').select('id, titre, statut, type_recompense, montant_recompense, prestation_type, prestation_montant, wish_images(url, is_cover), category:categories(slug)').eq('id', draftWishId).single()
           .then(({ data }) => {
             if (data) {
               setWishTitre(data.titre || '')
@@ -448,13 +448,22 @@ export default function Chat() {
           )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-[#1A1A2E] truncate">{convData.wish.titre}</p>
-            {convData.wish.type_recompense && (
-              <p className="text-xs font-bold mt-0.5" style={{
-                color: convData.wish.type_recompense === 'argent' ? '#059669' : '#3B82F6'
-              }}>
-                {convData.wish.type_recompense === 'argent'
-                  ? `${convData.wish.montant_recompense ? convData.wish.montant_recompense + ' €' : 'Argent'}`
-                  : 'Bon procédé'}
+            {(convData.wish.type_recompense || convData.wish.prestation_type) && (
+              <p className="text-xs font-medium text-[#8A8A9A] mt-0.5">
+                {convData.wish.type_recompense && (
+                  <span style={{ color: convData.wish.type_recompense === 'argent' ? '#059669' : '#3B82F6', fontWeight: 'bold' }}>
+                    {convData.wish.type_recompense === 'argent'
+                      ? `${convData.wish.montant_recompense ? convData.wish.montant_recompense + '€' : 'Argent'}`
+                      : 'Bon procédé'}
+                  </span>
+                )}
+                {convData.wish.type_recompense && convData.wish.prestation_type && ' · '}
+                {convData.wish.prestation_type === 'devis' && (
+                  <span style={{ color: '#7C3AED', fontWeight: 'bold' }}>Sur devis</span>
+                )}
+                {convData.wish.prestation_type === 'budget' && convData.wish.prestation_montant && (
+                  <span style={{ color: '#7C3AED', fontWeight: 'bold' }}>Budget {convData.wish.prestation_montant}€</span>
+                )}
               </p>
             )}
           </div>

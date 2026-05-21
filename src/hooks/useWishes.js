@@ -93,7 +93,7 @@ export function useWishes() {
     }
   }
 
-  async function createWish({ titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, tag_ids, category_id, images, type_recompense, montant_recompense, is_urgent, statut }) {
+  async function createWish({ titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, tag_ids, category_id, images, type_recompense, montant_recompense, prestation_type, prestation_montant, is_urgent, statut }) {
     setLoading(true)
     try {
       let { data: { session } } = await supabase.auth.getSession()
@@ -107,6 +107,9 @@ export function useWishes() {
       const insertData = { titre, description, latitude, longitude, adresse, quartier, ville, code_postal, category_id, wisher_id: wisherId, type_recompense, montant_recompense }
       if (statut) insertData.statut = statut
       if (is_urgent) insertData.is_urgent = true
+      // Nouveaux champs : type/montant de la prestation (en plus de la récompense Maker)
+      if (prestation_type !== undefined) insertData.prestation_type = prestation_type
+      if (prestation_montant !== undefined) insertData.prestation_montant = prestation_montant
 
       const { data: wish, error } = await supabase
         .from('wishes')

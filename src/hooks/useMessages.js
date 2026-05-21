@@ -26,7 +26,7 @@ export function useMessages(conversationId = null) {
         .from('conversations')
         .select(`
           *,
-          wish:wishes(id, titre, statut, type_recompense, montant_recompense, marked_realized_at, marked_realized_by, wish_images(url, is_cover), category:categories(slug)),
+          wish:wishes(id, titre, statut, type_recompense, montant_recompense, prestation_type, prestation_montant, marked_realized_at, marked_realized_by, wish_images(url, is_cover), category:categories(slug)),
           wisher:users!wisher_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
           maker:users!maker_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
           messages(contenu, created_at, is_read, sender_id)

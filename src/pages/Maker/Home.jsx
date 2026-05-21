@@ -281,13 +281,49 @@ function WishPreviewCard({ wish, userLat, userLng, onViewMore, onMessage }) {
           </div>
 
           {/* Distance */}
-          <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold mb-2.5">
+          <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold mb-1.5">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#5B6BF5"/>
               <circle cx="12" cy="9" r="2.5" fill="white"/>
             </svg>
             {dist}
           </div>
+
+          {/* Badges récompense + prestation + mots-clés */}
+          {(wish.type_recompense || wish.prestation_type || wish.tags?.length > 0) && (
+            <div className="flex items-center gap-1 flex-wrap mb-2">
+              {wish.type_recompense && (
+                <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={wish.type_recompense === 'argent'
+                    ? { background: '#ECFDF5', color: '#059669' }
+                    : { background: '#EFF6FF', color: '#3B82F6' }
+                  }>
+                  {wish.type_recompense === 'argent'
+                    ? `${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
+                    : 'Bon procédé'}
+                </span>
+              )}
+              {wish.prestation_type === 'devis' && (
+                <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ background: '#F3E8FF', color: '#7C3AED' }}>
+                  Sur devis
+                </span>
+              )}
+              {wish.prestation_type === 'budget' && wish.prestation_montant && (
+                <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ background: '#F3E8FF', color: '#7C3AED' }}>
+                  Budget {wish.prestation_montant}€
+                </span>
+              )}
+              {/* Mots-clés (max 3 pour ne pas surcharger) */}
+              {(wish.tags || []).slice(0, 3).map((tag) => (
+                <span key={tag} className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                  style={{ background: '#EEF0FF', color: '#5B6BF5' }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Boutons */}
           <div className="flex items-center gap-2">
@@ -387,7 +423,7 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
           <span className="text-xs text-[#8A8A9A]">{timeAgo(wish.created_at)}</span>
         </div>
 
-        {/* Ligne 2 : type de compte + récompense */}
+        {/* Ligne 2 : type de compte + récompense + prestation */}
         <div className="flex items-center gap-2 flex-wrap">
           <AccountTypeBadge type={wish.wisher.type_compte} />
           {wish.type_recompense && (
@@ -399,6 +435,18 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
               {wish.type_recompense === 'argent'
                 ? `${wish.montant_recompense ? wish.montant_recompense + '€' : 'Argent'}`
                 : 'Bon procédé'}
+            </span>
+          )}
+          {wish.prestation_type === 'devis' && (
+            <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full"
+              style={{ background: '#F3E8FF', color: '#7C3AED' }}>
+              Sur devis
+            </span>
+          )}
+          {wish.prestation_type === 'budget' && wish.prestation_montant && (
+            <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full"
+              style={{ background: '#F3E8FF', color: '#7C3AED' }}>
+              Budget {wish.prestation_montant}€
             </span>
           )}
         </div>
@@ -792,7 +840,7 @@ export default function MakerHome() {
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: '100%', opacity: 0 }}
                   transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-                  className="absolute bottom-20 left-4 right-4 z-[600]"
+                  className="absolute bottom-24 left-4 right-4 z-[600]"
                 >
                   <WishPreviewCard
                     wish={selectedWish}
