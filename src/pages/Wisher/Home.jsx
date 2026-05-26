@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -258,6 +258,57 @@ export default function WisherHome() {
   const [showPackModal, setShowPackModal] = useState(false)
   const [paymentModal, setPaymentModal] = useState(null) // { type, wish_id, label }
   const [showTip, setShowTip] = useState(() => localStorage.getItem('wishmaker-tip-dismissed') !== 'true')
+
+  // ─── Drag-to-scroll horizontal pour le carrousel exemples (desktop uniquement) ───
+  // Sur mobile/tablette le swipe natif fonctionne deja. Sur desktop, par defaut
+  // overflow-x ne reagit pas au clic-glisser souris → on ajoute la behavior
+  // manuellement (pattern Airbnb / Booking / Google Flights).
+  const examplesRef = useRef(null)
+  useEffect(() => {
+    const el = examplesRef.current
+    if (!el) return
+    let isDown = false
+    let startX = 0
+    let startScroll = 0
+
+    function onMouseDown(e) {
+      isDown = true
+      startX = e.pageX - el.offsetLeft
+      startScroll = el.scrollLeft
+      el.style.cursor = 'grabbing'
+      el.style.userSelect = 'none'
+    }
+    function onMouseLeave() {
+      isDown = false
+      el.style.cursor = 'grab'
+      el.style.userSelect = ''
+    }
+    function onMouseUp() {
+      isDown = false
+      el.style.cursor = 'grab'
+      el.style.userSelect = ''
+    }
+    function onMouseMove(e) {
+      if (!isDown) return
+      e.preventDefault()
+      const x = e.pageX - el.offsetLeft
+      const walk = (x - startX) * 1.2 // multiplicateur pour glisse plus fluide
+      el.scrollLeft = startScroll - walk
+    }
+
+    el.addEventListener('mousedown', onMouseDown)
+    el.addEventListener('mouseleave', onMouseLeave)
+    el.addEventListener('mouseup', onMouseUp)
+    el.addEventListener('mousemove', onMouseMove)
+    el.style.cursor = 'grab'
+
+    return () => {
+      el.removeEventListener('mousedown', onMouseDown)
+      el.removeEventListener('mouseleave', onMouseLeave)
+      el.removeEventListener('mouseup', onMouseUp)
+      el.removeEventListener('mousemove', onMouseMove)
+    }
+  }, [showTip]) // re-attache si le carrousel apparait/disparait
 
   const [, setTick] = useState(0)
 
@@ -557,6 +608,7 @@ export default function WisherHome() {
                   bord de la card (sinon le padding px-5 du conteneur decalerait
                   les cards et on en verrait toujours une moitie) */}
             <div
+              ref={examplesRef}
               className="flex gap-3 overflow-x-auto px-5 pb-2 snap-x snap-mandatory scrollbar-hide"
               style={{ scrollPaddingLeft: '20px', scrollPaddingRight: '20px' }}
             >
