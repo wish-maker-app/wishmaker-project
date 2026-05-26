@@ -549,7 +549,17 @@ export default function WisherHome() {
             <p className="px-5 text-xs font-semibold text-[#8A8A9A] uppercase tracking-wide mb-2">
               Exemples de vœux
             </p>
-            <div className="flex gap-3 overflow-x-auto px-5 pb-2 snap-x snap-mandatory scrollbar-hide">
+            {/* Carrousel "aimante" facon Airbnb :
+                - snap-x + snap-mandatory + scroll-snap-stop:always → on ne peut pas
+                  s'arreter entre deux cards, le navigateur cale toujours sur la
+                  prochaine
+                - scroll-padding-inline:20px → le point de snap coincide avec le
+                  bord de la card (sinon le padding px-5 du conteneur decalerait
+                  les cards et on en verrait toujours une moitie) */}
+            <div
+              className="flex gap-3 overflow-x-auto px-5 pb-2 snap-x snap-mandatory scrollbar-hide"
+              style={{ scrollPaddingLeft: '20px', scrollPaddingRight: '20px' }}
+            >
               {WISH_EXAMPLES.map((ex, i) => {
                 const Icon = CATEGORY_ICONS[ex.slug]
                 const theme = CATEGORY_COLORS[ex.slug]
@@ -557,6 +567,7 @@ export default function WisherHome() {
                   <div
                     key={i}
                     className="flex-shrink-0 w-[260px] rounded-2xl bg-white border border-[#F0F0F0] p-3 flex items-center gap-3 snap-start"
+                    style={{ scrollSnapStop: 'always' }}
                   >
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
