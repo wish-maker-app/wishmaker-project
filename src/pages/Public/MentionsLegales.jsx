@@ -23,7 +23,12 @@ export default function MentionsLegales() {
       <header className="border-b border-[#EEEEF2] flex-shrink-0 bg-white/80 backdrop-blur-md">
         <div className="max-w-[1100px] mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              // History back si on vient de quelque part dans l'app
+              // (ex: depuis /profile). Fallback / si entree directe.
+              if (window.history.length > 1) navigate(-1)
+              else navigate('/')
+            }}
             className="flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-lg text-[13px] font-medium text-[#1A1A2E] hover:bg-[#F5F5F7] transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
