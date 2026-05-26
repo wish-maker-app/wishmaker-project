@@ -171,22 +171,16 @@ export async function checkContent(text) {
     }
   }
 
-  // 4) Fallback : substring compact (attrape "s a l o p e")
-  if (violations.length === 0 && compact.length > 3) {
-    for (const token of tokens) {
-      // Match compact uniquement pour mots ≥ 4 char (évite faux positif)
-      if (token.length >= 4 && badWordsSet.has(token)) {
-        violations.push({ mot: token, categorie: 'profanity' })
-      }
-    }
-    // Last resort : cherche un mot interdit concaténé dans la version compacte
-    if (violations.length === 0) {
-      for (const bad of badWordsSet) {
-        if (bad.length >= 5 && compact.includes(bad)) {
-          violations.push({ mot: bad, categorie: 'profanity_compact' })
-          break
-        }
-      }
+  // 4) Fallback compact pour attraper les espacements ruse "s a l o p e".
+  //    On verifie uniquement si le COMPACT TOTAL est un mot interdit exact
+  //    (pas de substring match qui produit trop de faux positifs sur des
+  //    textes normaux : "baisse" -> compact "baise" matchait l'insulte, etc).
+  //    L'ancien "last resort substring" est desactive : il provoquait des
+  //    faux positifs sur des descriptions normales (Maison du bonheur,
+  //    Emmener ma grand mere en courses, Achat voiture, etc.).
+  if (violations.length === 0 && compact.length >= 4 && compact.length <= 20) {
+    if (badWordsSet.has(compact)) {
+      violations.push({ mot: compact, categorie: 'profanity_compact' })
     }
   }
 
