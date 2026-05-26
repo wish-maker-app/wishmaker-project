@@ -297,7 +297,12 @@ export default function Admin() {
     <div className="h-screen bg-[#F5F5F7] flex flex-col">
       {/* Header */}
       <div className="bg-white px-5 pt-4 pb-3 flex items-center gap-3 border-b border-[#F0F0F0]">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-[#F5F5F7] flex items-center justify-center">
+        <button
+          onClick={() => {
+            if (window.history.length > 1) navigate(-1)
+            else navigate('/profile')
+          }}
+          className="w-10 h-10 rounded-full bg-[#F5F5F7] flex items-center justify-center">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 className="text-lg font-bold text-[#1A1A2E] flex-1">Administration</h1>

@@ -136,7 +136,14 @@ export default function AdminStats() {
     <div className="h-screen bg-[#F5F5F7] flex flex-col">
       {/* Header */}
       <div className="bg-white px-5 pt-4 pb-3 flex items-center gap-3 border-b border-[#F0F0F0] flex-shrink-0">
-        <button onClick={() => navigate('/admin')} className="w-10 h-10 rounded-full bg-[#F5F5F7] flex items-center justify-center">
+        <button
+          onClick={() => {
+            // Retour intelligent : history back si possible (preserve le contexte
+            // de l'utilisateur qui peut venir de /profile ou /admin), sinon /profile
+            if (window.history.length > 1) navigate(-1)
+            else navigate('/profile')
+          }}
+          className="w-10 h-10 rounded-full bg-[#F5F5F7] flex items-center justify-center">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M15 18l-6-6 6-6" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
