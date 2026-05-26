@@ -74,7 +74,8 @@ export default function Profile() {
   const { signOut } = useAuth()
   const profile = useAuthStore((s) => s.profile)
   const user = useAuthStore((s) => s.user)
-  const isAdmin = user?.email === import.meta.env.VITE_ADMIN_EMAIL
+  // Source de verite : colonne users.is_admin en BDD (coherent avec /admin et /admin/stats)
+  const isAdmin = !!profile?.is_admin
 
   const [editModal, setEditModal] = useState(null) // 'password' | 'langue' | null
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
