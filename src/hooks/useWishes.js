@@ -81,33 +81,13 @@ export function useWishes() {
   async function getWishById(id) {
     setLoading(true)
     try {
-      // Helper : tente une fois la query avec un timeout court (3s).
-      // En cas de timeout (cas typique : tab revient d'arriere-plan, fetch
-      // suspendu par le navigateur), on relance une seconde fois — la nouvelle
-      // query est fraiche et marche.
-      const runQuery = () => Promise.race([
-        supabase
-          .from('wishes')
-          .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
-          .eq('id', id)
-          .single(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 3000)),
-      ])
-
-      let result
-      try {
-        result = await runQuery()
-      } catch (err) {
-        // Si c'est un timeout, retry silencieux (1 tentative supplementaire).
-        // Si c'est une vraie erreur Supabase, on re-throw direct.
-        if (err?.message === 'TIMEOUT') {
-          console.warn('[getWishById] 1er fetch timeout, retry...')
-          result = await runQuery()
-        } else {
-          throw err
-        }
-      }
-      const { data, error } = result
+      // Timeout + retry geres globalement dans lib/supabase.js (resilientFetch).
+      // Toutes les queries supabase beneficient du meme pattern automatiquement.
+      const { data, error } = await supabase
+        .from('wishes')
+        .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
+        .eq('id', id)
+        .single()
       if (error) throw error
       return normalizeWish(data)
     } finally {
