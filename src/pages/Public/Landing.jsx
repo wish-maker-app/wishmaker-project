@@ -325,13 +325,25 @@ export default function Landing() {
               <span className="text-[#D0D0D8]">·</span>
               <span>Wish Maker SAS</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap justify-center">
               <button onClick={() => navigate('/support')} className="hover:text-[#5B6BF5] transition-colors">
                 Support
               </button>
               <span className="text-[#D0D0D8]">·</span>
               <button onClick={() => navigate('/mentions-legales')} className="hover:text-[#5B6BF5] transition-colors">
                 Mentions légales
+              </button>
+              <span className="text-[#D0D0D8]">·</span>
+              <button onClick={() => navigate('/cgu')} className="hover:text-[#5B6BF5] transition-colors">
+                CGU
+              </button>
+              <span className="text-[#D0D0D8]">·</span>
+              <button onClick={() => navigate('/cgv')} className="hover:text-[#5B6BF5] transition-colors">
+                CGV
+              </button>
+              <span className="text-[#D0D0D8]">·</span>
+              <button onClick={() => navigate('/privacy')} className="hover:text-[#5B6BF5] transition-colors">
+                Confidentialité
               </button>
               <span className="text-[#D0D0D8]">·</span>
               <a href="mailto:wm@wishmaker.fr" className="hover:text-[#5B6BF5] transition-colors">

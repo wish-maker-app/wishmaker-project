@@ -126,14 +126,19 @@ export default function Support() {
         </section>
 
           {/* Footer */}
-          <footer className="mt-16 pt-6 border-t border-[#EEEEF2] flex items-center justify-between text-[12px] text-[#8A8A9A]">
+          <footer className="mt-16 pt-6 border-t border-[#EEEEF2] flex items-center justify-between text-[12px] text-[#8A8A9A] flex-wrap gap-3">
             <span>Wish Maker SAS</span>
-            <button
-              onClick={() => navigate('/')}
-              className="hover:text-[#5B6BF5] transition-colors"
-            >
-              ← Accueil
-            </button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <button onClick={() => navigate('/mentions-legales')} className="hover:text-[#5B6BF5] transition-colors">Mentions légales</button>
+              <span className="text-[#D0D0D8]">·</span>
+              <button onClick={() => navigate('/cgu')} className="hover:text-[#5B6BF5] transition-colors">CGU</button>
+              <span className="text-[#D0D0D8]">·</span>
+              <button onClick={() => navigate('/cgv')} className="hover:text-[#5B6BF5] transition-colors">CGV</button>
+              <span className="text-[#D0D0D8]">·</span>
+              <button onClick={() => navigate('/privacy')} className="hover:text-[#5B6BF5] transition-colors">Confidentialité</button>
+              <span className="text-[#D0D0D8]">·</span>
+              <button onClick={() => navigate('/')} className="hover:text-[#5B6BF5] transition-colors">← Accueil</button>
+            </div>
           </footer>
         </div>
       </main>

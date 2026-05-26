@@ -12,6 +12,8 @@ import AuthShell from '../../components/layout/AuthShell'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
 
+const CGU_VERSION = '1.0'
+
 const schema = z.object({
   email: z.string().email('Email invalide'),
   password: z.string().min(8, 'Minimum 8 caractères'),
@@ -48,13 +50,16 @@ export default function Register() {
       // Les champs prenom/nom/pseudo seront renseignés dans /setup/*
       if (authData.session) {
         useAuthStore.getState().setUser(authData.user)
-        // Sauvegarder le consentement email
-        if (emailConsent) {
-          await supabase.from('users').update({
-            email_consent: true,
-            email_consent_at: new Date().toISOString(),
-          }).eq('id', authData.user.id)
+        // Tracer l'acceptation des CGU/CGV/Privacy (best-effort, non-bloquant)
+        const updates = {
+          cgu_accepted_at: new Date().toISOString(),
+          cgu_version: CGU_VERSION,
         }
+        if (emailConsent) {
+          updates.email_consent = true
+          updates.email_consent_at = new Date().toISOString()
+        }
+        await supabase.from('users').update(updates).eq('id', authData.user.id)
         const { data: profile } = await supabase
           .from('users').select('*').eq('id', authData.user.id).single()
         if (profile) useAuthStore.getState().setProfile(profile)
@@ -139,7 +144,12 @@ export default function Register() {
                 className="w-4 h-4 mt-0.5 rounded accent-[#5B6BF5] flex-shrink-0"
               />
               <span className="text-[12px] text-[#8A8A9A] leading-relaxed">
-                J'accepte les <span className="text-[#5B6BF5] font-medium">CGU</span> et la <span className="text-[#5B6BF5] font-medium">politique de confidentialité</span>
+                J'accepte les{' '}
+                <a href="/cgu" target="_blank" rel="noopener noreferrer" className="text-[#5B6BF5] font-medium hover:underline" onClick={(e) => e.stopPropagation()}>CGU</a>
+                , les{' '}
+                <a href="/cgv" target="_blank" rel="noopener noreferrer" className="text-[#5B6BF5] font-medium hover:underline" onClick={(e) => e.stopPropagation()}>CGV</a>
+                {' '}et la{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#5B6BF5] font-medium hover:underline" onClick={(e) => e.stopPropagation()}>politique de confidentialité</a>
               </span>
             </label>
             <label className="flex items-start gap-2.5 cursor-pointer">

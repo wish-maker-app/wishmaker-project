@@ -13,6 +13,9 @@ const RouteResolver = lazy(() => import('../pages/RouteResolver'))
 // publique de l'editeur) et pour la conformite LCEN cote francais.
 const Support = lazy(() => import('../pages/Public/Support'))
 const MentionsLegales = lazy(() => import('../pages/Public/MentionsLegales'))
+const CGU = lazy(() => import('../pages/Public/CGU'))
+const CGV = lazy(() => import('../pages/Public/CGV'))
+const Privacy = lazy(() => import('../pages/Public/Privacy'))
 
 // Onboarding
 const OnboardingStep1 = lazy(() => import('../pages/Onboarding/Step1'))
@@ -134,6 +137,9 @@ const router = createBrowserRouter([
   // Pages publiques (accessibles a tous, hors wrappers auth)
   { path: '/support',         element: <Suspense fallback={<PageLoader />}><Support /></Suspense> },
   { path: '/mentions-legales', element: <Suspense fallback={<PageLoader />}><MentionsLegales /></Suspense> },
+  { path: '/cgu',             element: <Suspense fallback={<PageLoader />}><CGU /></Suspense> },
+  { path: '/cgv',             element: <Suspense fallback={<PageLoader />}><CGV /></Suspense> },
+  { path: '/privacy',         element: <Suspense fallback={<PageLoader />}><Privacy /></Suspense> },
 
   // Onboarding (public)
   {

@@ -232,6 +232,9 @@ export default function Profile() {
 
         <SectionTitle title={t('profile.section_about')} />
         <ProfileItem icon={icons.legal} label={t('profile.item_legal')} onClick={() => navigate('/mentions-legales')} />
+        <ProfileItem icon={icons.legal} label={t('profile.item_cgu')} onClick={() => navigate('/cgu')} />
+        <ProfileItem icon={icons.legal} label={t('profile.item_cgv')} onClick={() => navigate('/cgv')} />
+        <ProfileItem icon={icons.legal} label={t('profile.item_privacy')} onClick={() => navigate('/privacy')} />
         <ProfileItem icon={icons.help} label={t('profile.item_help')} onClick={() => navigate('/support')} />
         <ProfileItem icon={icons.trash} label="Supprimer mon compte" onClick={() => setShowDeleteConfirm(true)} />
 
