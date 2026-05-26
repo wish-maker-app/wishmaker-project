@@ -416,8 +416,8 @@ export default function WisherHome() {
   return (
     <div className="h-screen bg-[#FAFAFA] flex flex-col overflow-hidden">
 
-      {/* Header */}
-      <div className="px-5 pt-4 pb-4 flex items-center justify-between">
+      {/* Header — sticky en haut, separe du contenu scrollable par une fine border */}
+      <div className="px-5 pt-4 pb-4 flex items-center justify-between border-b border-[#EEEEF2] flex-shrink-0">
         <div className="flex items-center gap-3">
           <div onClick={() => navigate('/profile')} className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-[#E8E8E8] cursor-pointer">
             {user.avatar_url ? (

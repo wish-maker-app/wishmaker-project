@@ -143,8 +143,8 @@ export default function Profile() {
   return (
     <div className="h-screen bg-white flex flex-col">
 
-      {/* Header profil — fixe en haut */}
-      <div className="px-5 pt-4 pb-2 flex items-center gap-4 flex-shrink-0">
+      {/* Header profil — fixe en haut, separe du contenu par une fine border */}
+      <div className="px-5 pt-4 pb-4 flex items-center gap-4 flex-shrink-0 border-b border-[#EEEEF2]">
         <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border border-[#E8E8E8]">
           {profile.avatar_url ? (
             <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
