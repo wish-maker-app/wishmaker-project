@@ -277,17 +277,24 @@ export default function WisherHome() {
       startScroll = el.scrollLeft
       el.style.cursor = 'grabbing'
       el.style.userSelect = 'none'
+      // CRITIQUE : on desactive scroll-snap pendant le drag. Sinon le navigateur
+      // re-aligne immediatement le scroll sur le snap-point a chaque update de
+      // scrollLeft → les cards "ne bougent pas" visuellement pendant le drag.
+      el.style.scrollSnapType = 'none'
+      el.style.scrollBehavior = 'auto'
     }
-    function onMouseLeave() {
+    function release() {
+      if (!isDown) return
       isDown = false
       el.style.cursor = 'grab'
       el.style.userSelect = ''
+      // On reactive le snap + animation smooth pour que le navigateur glisse
+      // la card jusqu'au snap-point le plus proche au moment du relachement.
+      el.style.scrollBehavior = 'smooth'
+      el.style.scrollSnapType = 'x mandatory'
     }
-    function onMouseUp() {
-      isDown = false
-      el.style.cursor = 'grab'
-      el.style.userSelect = ''
-    }
+    function onMouseLeave() { release() }
+    function onMouseUp() { release() }
     function onMouseMove(e) {
       if (!isDown) return
       e.preventDefault()
