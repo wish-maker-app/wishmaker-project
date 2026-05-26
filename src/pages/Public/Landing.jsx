@@ -81,11 +81,16 @@ export default function Landing() {
               </span>
             </h1>
 
-            <p className="text-[15.5px] sm:text-[17px] leading-[1.6] text-[#3A3A4E] max-w-[560px] mx-auto mb-8">
-              Wish Maker connecte celles et ceux qui ont un besoin avec les Makers, vos voisins,
-              vos talents locaux qui peuvent l'exaucer. Mécanique, jardinage, déménagement,
-              cours, soins… un vœu publié, une réponse autour de vous.
-            </p>
+            <div className="max-w-[560px] mx-auto mb-8 flex flex-col gap-4">
+              <p className="text-[15.5px] sm:text-[17px] leading-[1.6] text-[#3A3A4E]">
+                Wish Maker connecte celles et ceux qui ont un besoin avec les Makers,
+                vos génies locaux (particuliers ou professionnels) qui peuvent l'exaucer.
+                Une envie, une urgence, un dépannage… faites un vœu, la solution se trouve autour de vous.
+              </p>
+              <p className="text-[15.5px] sm:text-[17px] leading-[1.6] text-[#3A3A4E]">
+                Du temps libre, un talent, des objets utiles… exaucez les vœux de Wishers et empochez des récompenses.
+              </p>
+            </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
@@ -131,7 +136,7 @@ export default function Landing() {
               </div>
 
               <Step n="1" title="Publiez votre vœu">
-                Décrivez ce dont vous avez besoin en 2 minutes : titre, mots-clés, lieu, et une récompense (argent ou bon procédé).
+                Décrivez ce dont vous avez besoin en 2 minutes : titre, mots-clés, lieu, et ajouter une éventuelle récompense pour motiver vos génies.
               </Step>
               <Step n="2" title="Les Makers répondent">
                 Les Makers autour de vous voient votre vœu et vous écrivent. Vous choisissez celui qui vous convient.
@@ -149,7 +154,7 @@ export default function Landing() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold tracking-[0.12em] uppercase text-[#9B59F5]">Maker</p>
-                  <p className="text-[15px] font-bold tracking-[-0.01em] text-[#1A1A2E]">J'aide mes voisins</p>
+                  <p className="text-[15px] font-bold tracking-[-0.01em] text-[#1A1A2E]">Je réalise des vœux</p>
                 </div>
               </div>
 
@@ -170,7 +175,7 @@ export default function Landing() {
         <Section className="py-16 sm:py-20 border-t border-[#EEEEF2]">
           <SectionHeader
             eyebrow="Catégories"
-            title="Pour à peu près tout"
+            title="À chaque besoin sa solution"
             subtitle="Du dépannage le plus urgent au cours particulier, les Makers couvrent un large éventail."
           />
 
@@ -269,8 +274,8 @@ export default function Landing() {
             <div className="text-[14.5px] leading-[1.7] text-[#3A3A4E] flex flex-col gap-4">
               <p>
                 Wish Maker est édité par <strong className="font-semibold text-[#1A1A2E]">Wish Maker SAS</strong>,
-                société à mission locale basée dans le Tarn (81). Notre objectif : remettre du lien entre voisins
-                en facilitant les coups de main du quotidien, là où les plateformes nationales sont trop éloignées
+                société à mission locale basée dans le Tarn (81). Notre objectif : répondre à chaque besoin en
+                privilégiant l'entraide et les talents locaux, là où les plateformes nationales sont trop éloignées
                 de la vraie vie d'un quartier.
               </p>
               <p>
