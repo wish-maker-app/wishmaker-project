@@ -305,19 +305,7 @@ export default function Admin() {
           className="w-10 h-10 rounded-full bg-[#F5F5F7] flex items-center justify-center">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
-        <h1 className="text-lg font-bold text-[#1A1A2E] flex-1">Administration</h1>
-        <button
-          onClick={() => navigate('/admin/stats')}
-          className="h-9 px-4 rounded-full text-white text-xs font-semibold flex items-center gap-1.5 transition-transform active:scale-95"
-          style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="20" x2="18" y2="10" />
-            <line x1="12" y1="20" x2="12" y2="4" />
-            <line x1="6" y1="20" x2="6" y2="14" />
-          </svg>
-          Stats
-        </button>
+        <h1 className="text-lg font-bold text-[#1A1A2E]">Administration</h1>
       </div>
 
       {/* Toggle — onglets "Mots interdits" et "Tags" masqués volontairement.
