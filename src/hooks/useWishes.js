@@ -81,11 +81,19 @@ export function useWishes() {
   async function getWishById(id) {
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      // Timeout de securite : si la query reste suspendue (cas typique : tab
+      // revient d'arriere-plan, le fetch a ete pause par le navigateur et le
+      // promise ne resout jamais), on rejette apres 8s pour eviter le spinner
+      // infini. L'UI affichera l'ecran "Erreur de chargement" + bouton Reessayer.
+      const queryPromise = supabase
         .from('wishes')
         .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
         .eq('id', id)
         .single()
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Query timeout (8s)')), 8000)
+      )
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise])
       if (error) throw error
       return normalizeWish(data)
     } finally {

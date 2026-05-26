@@ -206,6 +206,7 @@ export default function WishDetail() {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const profile = useAuthStore((s) => s.profile)
+  const authTick = useAuthStore((s) => s.authTick)
   const { getWishById, deleteWish, loading } = useWishes()
   const { createConversation, sendMessage } = useMessages()
   const [wish, setWish] = useState(null)
@@ -249,7 +250,9 @@ export default function WishDetail() {
           setLoadStatus('error')
         }
       })
-  }, [id])
+  }, [id, authTick])
+  // authTick : re-fetch quand on revient d'arriere-plan (visibilitychange dans
+  // useAuth bump authTick) → debloque les promises "fantomes" pausees.
 
   // ---- Fallbacks : pas de spinner infini ----
   if (loadStatus === 'loading' && !wish) {

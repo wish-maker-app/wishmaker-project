@@ -59,6 +59,35 @@ export function useAuth() {
       }
     })()
 
+    // ─── Gestion visibilitychange ───
+    // Quand l'app revient d'arriere-plan (utilisateur revient sur l'onglet/PWA
+    // apres avoir bascule sur une autre app), le navigateur a pu suspendre des
+    // requetes en cours qui ne se resolvent jamais (promise "fantome"). Le token
+    // peut aussi etre expire silencieusement. On force un refresh + un bump
+    // authTick pour que les pages re-fetchent leur data avec un token valide.
+    async function handleVisibilityChange() {
+      if (document.visibilityState !== 'visible') return
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        const expiresAt = (session.expires_at || 0) * 1000
+        // Refresh si token expire dans < 60s
+        if (expiresAt - Date.now() < 60 * 1000) {
+          const { data: refreshed } = await supabase.auth.refreshSession()
+          if (refreshed?.session) {
+            setUser(refreshed.session.user)
+            try { supabase.realtime.setAuth(refreshed.session.access_token) } catch {}
+          }
+        }
+        // Bump systematique → force les pages a re-fetcher leur data,
+        // ce qui debloque les queries fantomes pausees pendant le suspend.
+        bumpAuthTick()
+      } catch (err) {
+        console.warn('[useAuth] visibility refresh failed:', err?.message)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     // Écoute les changements de session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -82,7 +111,10 @@ export function useAuth() {
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
   async function fetchProfile(userId) {
