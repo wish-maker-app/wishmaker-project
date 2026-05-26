@@ -1,0 +1,468 @@
+{
+  "common": {
+    "continuer": "Continuar",
+    "retour": "Volver",
+    "annuler": "Cancelar",
+    "valider": "Confirmar",
+    "enregistrer": "Guardar",
+    "sauvegarder": "Guardar",
+    "loading": "Cargando...",
+    "erreur": "Se produjo un error",
+    "succes": "Éxito",
+    "supprimer": "Eliminar",
+    "modifier": "Editar",
+    "fermer": "Cerrar",
+    "rechercher": "Buscar",
+    "aucun_resultat": "Sin resultados",
+    "essaie_autres_mots": "Prueba con otras palabras clave"
+  },
+  "splash": {
+    "version": "Versión 1.0.0"
+  },
+  "onboarding": {
+    "step1": {
+      "titre": "¡Bienvenido a Wish Maker!",
+      "sous_titre": "¿Una necesidad? Publica tu deseo en un instante. Los Genios a tu alrededor se encargan del resto."
+    },
+    "step2": {
+      "titre": "¿Tienes tiempo libre? ¡Conviértete en Genio! ✨",
+      "sous_titre": "Un talento, una mano amiga, buena vibra... Y listo, cumples deseos a tu alrededor."
+    },
+    "step3": {
+      "titre": "Simple, rápido y gratificante",
+      "sous_titre": "Conexión instantánea gracias a nuestro mapa interactivo. Sigue tus deseos en tiempo real."
+    },
+    "commencer": "Empezar"
+  },
+  "auth": {
+    "landing": {
+      "titre": "¡Hola, bienvenido! 👋",
+      "sous_titre": "Cumple tus necesidades diarias en un abrir y cerrar de ojos.",
+      "email_label": "Email",
+      "email_placeholder": "Introduce tu correo electrónico",
+      "btn_email": "Continuar con el email",
+      "btn_google": "Continuar con Google",
+      "btn_apple": "Continuar con Apple",
+      "ou": "O continúa con",
+      "pas_de_compte": "¿No tienes cuenta?",
+      "inscrire": "Regístrate"
+    },
+    "login": {
+      "titre": "Iniciar sesión",
+      "email_label": "Dirección email",
+      "password_label": "Contraseña",
+      "remember": "Recuérdame",
+      "forgot": "Contraseña olvidada",
+      "btn": "Iniciar sesión",
+      "succes": "Has iniciado sesión correctamente",
+      "pas_de_compte": "¿No tienes cuenta?",
+      "inscrire": "Regístrate",
+      "erreur_credentials": "Email o contraseña incorrectos"
+    },
+    "register_email": {
+      "titre": "Crear una cuenta",
+      "sous_titre": "¡Crea tus deseos o cúmplelos!",
+      "email_label": "Email",
+      "btn": "Registrarse",
+      "deja_compte": "¿Ya tienes cuenta?",
+      "connecter": "Inicia sesión"
+    },
+    "register": {
+      "titre": "Completa tu cuenta",
+      "sous_titre": "Estás a 2 pasos de convertirte en genio",
+      "prenom_label": "Nombre",
+      "nom_label": "Apellido",
+      "email_label": "Email",
+      "password_label": "Contraseña",
+      "confirm_label": "Confirma la contraseña",
+      "btn": "Continuar",
+      "succes": "¡Tu cuenta se ha creado correctamente!",
+      "deja_compte": "¿Ya tienes cuenta?",
+      "connecter": "Inicia sesión"
+    },
+    "otp": {
+      "titre": "Introduce el código",
+      "sous_titre": "Acabamos de enviarte un código de 4 dígitos por email.",
+      "btn": "Continuar",
+      "pas_recu": "¿No has recibido el código?",
+      "renvoyer": "Reenviar el código",
+      "renvoi_succes": "¡Código reenviado!",
+      "erreur": "Código no válido"
+    },
+    "forgot": {
+      "titre": "Contraseña olvidada",
+      "sous_titre": "Recupera la contraseña de tu cuenta",
+      "email_label": "Email",
+      "btn": "Continuar",
+      "email_envoye": "¡Email enviado! Revisa tu bandeja de entrada."
+    },
+    "new_password": {
+      "titre": "Crear una nueva contraseña",
+      "sous_titre": "Introduce tu nueva contraseña",
+      "new_label": "Nueva contraseña",
+      "confirm_label": "Confirma la contraseña",
+      "btn": "Continuar"
+    },
+    "verify_banner": {
+      "message": "Verifica tu email para disfrutar de todas las funciones.",
+      "renvoyer": "Reenviar el email",
+      "succes": "Email de verificación reenviado"
+    }
+  },
+  "setup": {
+    "langue": {
+      "titre": "Selecciona tu idioma",
+      "label": "Idioma",
+      "placeholder": "Seleccionar",
+      "modal_titre": "Selecciona un idioma",
+      "btn": "Continuar"
+    },
+    "localisation": {
+      "titre": "Elige tu ubicación",
+      "sous_titre": "Indica tu barrio para ver a los vecinos que ofrecen sus servicios cerca de ti.",
+      "placeholder": "Tu ciudad",
+      "sur_carte": "📍 Definir la ubicación en el mapa",
+      "btn": "Continuar"
+    },
+    "carte": {
+      "titre": "Elegir una ubicación",
+      "recherche": "Buscar...",
+      "lieux_populaires": "Lugar popular",
+      "btn": "Confirmar la ubicación"
+    },
+    "pseudo": {
+      "titre": "Elige tu nombre de usuario",
+      "placeholder": "ej: maxime33",
+      "min_chars": "Mín. 3 caracteres",
+      "max_chars": "Máx. 20 caracteres",
+      "format_invalide": "Solo letras, números, _ y .",
+      "deja_pris": "Este nombre de usuario ya está en uso",
+      "btn": "Continuar"
+    }
+  },
+  "wisher": {
+    "home": {
+      "bonjour": "Buenos días",
+      "bon_apres_midi": "Buenas tardes",
+      "bonsoir": "Buenas noches",
+      "bienvenue": "Bienvenido Wisher",
+      "faire_voeu": "Pedir un deseo",
+      "faire_voeu_sub": "Completa la información",
+      "mes_voeux": "Mis deseos",
+      "mes_voeux_sub": "deseos guardados",
+      "tab_en_attente": "Pendiente",
+      "tab_realise": "Cumplido",
+      "tab_expire": "Caducado",
+      "il_y_a_instant": "ahora mismo",
+      "il_y_a_min": "hace {{n}}min",
+      "il_y_a_h": "hace {{n}}h",
+      "il_y_a_j": "hace {{n}}d",
+      "aucun_voeu": "Aún no hay deseos",
+      "make_wish_sub": "Publica tu deseo y deja que los Makers te ayuden",
+      "astuce_titre": "Consejo",
+      "astuce_text": "¡Añade fotos y una ubicación precisa a tus deseos para atraer a más Makers!",
+      "expire": "Caducado",
+      "expire_dans_h": "Caduca en {{h}}h {{m}}min",
+      "expire_dans_min": "Caduca en {{m}}min",
+      "expire_bientot": "¡Este deseo caduca pronto!",
+      "prolonger": "Prolongar",
+      "supprimer": "Eliminar",
+      "modifier": "Editar",
+      "modifier_voeu": "Editar este deseo",
+      "mettre_urgent": "Marcar como urgente",
+      "section_mes_voeux": "Mis deseos",
+      "modal_prolonger_titre": "Prolongar mi deseo",
+      "modal_prolonger_btn": "Pagar y prolongar",
+      "modal_urgent_titre": "Marcar como urgente",
+      "modal_prolonger_label": "Prolongar el deseo",
+      "modal_prolonger_desc": "Prolonga tu deseo por {{h}}h adicionales.",
+      "modal_urgent_desc": "Tu deseo se destacará durante 24h.",
+      "modal_urgent_btn": "Pagar y activar",
+      "modal_delete_titre": "¿Eliminar este deseo?",
+      "modal_delete_desc": "Esta acción es definitiva.",
+      "modal_delete_btn": "Eliminar",
+      "quota_zero": "0 restantes",
+      "quota_label": "Deseo"
+    },
+    "create": {
+      "step1_titre": "Pide tu deseo",
+      "step2_titre": "Añadir fotos",
+      "step3_titre": "Añadir una ubicación",
+      "step4_titre": "Añadir palabras clave",
+      "titre_placeholder": "Título de tu deseo",
+      "description_placeholder": "Describe tu necesidad...",
+      "ajouter_images": "Añadir imágenes",
+      "position_actuelle": "Usar mi ubicación actual",
+      "publier": "Publicar mi deseo",
+      "succes_titre": "¡Bravo!",
+      "succes_sous": "Oficialmente eres un Wisher",
+      "succes_extra": "Los Makers a tu alrededor verán tu deseo.",
+      "retour_accueil": "Volver al inicio",
+      "category": {
+        "header": "Nuevo deseo",
+        "intent_titre": "¿Cuál es tu intención?",
+        "intent_sous": "Elige la que más se parezca a tu deseo. Los Makers adecuados te encontrarán más rápido.",
+        "btn_continuer": "Continuar",
+        "btn_choisir": "Elige una intención"
+      },
+      "step1": {
+        "label_titre": "Título del deseo",
+        "label_desc": "Descripción",
+        "min5": "Mínimo 5 caracteres",
+        "max80": "Máximo 80 caracteres",
+        "min10": "Mínimo 10 caracteres",
+        "max500": "Máximo 500 caracteres",
+        "violation": "Este contenido contiene términos no permitidos."
+      },
+      "step2": {
+        "max5": "Máximo 5 fotos",
+        "image_invalide": "Una imagen no respeta nuestras reglas",
+        "intro": "Añade hasta 5 fotos (opcional). La primera será la foto principal.",
+        "apercu_sans": "Vista previa sin foto",
+        "cover": "Portada",
+        "ajouter": "Añadir",
+        "passer": "Saltar este paso"
+      },
+      "step3": {
+        "geoloc_unsupported": "Geolocalización no compatible",
+        "geoloc_failed": "Imposible recuperar tu posición",
+        "intro": "Introduce tu dirección exacta, nunca aparecerá en tu anuncio.",
+        "label_adresse": "Dirección *",
+        "placeholder": "Introduce tu dirección...",
+        "hint_carte": "Haz clic en el mapa o introduce una dirección"
+      },
+      "step4": {
+        "header": "Etiquetas",
+        "intro": "Elige hasta {{n}} etiquetas para ayudar a los Makers a encontrarte.",
+        "search_ph": "Buscar una etiqueta…",
+        "aucun_match": "Ninguna etiqueta coincide.",
+        "compteur": "{{n}} / {{max}} seleccionado{{s}}",
+        "min_required": "Al menos 1 requerida",
+        "btn_terminer": "Terminar"
+      },
+      "keywords": {
+        "header": "Palabras clave",
+        "intro": "Elige de 1 a {{max}} palabras clave para describir tu deseo",
+        "search_ph": "Buscar una palabra clave…",
+        "aucun": "Ninguna palabra clave coincide",
+        "compteur": "{{n}} / {{max}} seleccionada",
+        "min_required": "Al menos 1 requerida",
+        "max_atteint": "{{max}} máximo",
+        "btn_terminer": "Terminar"
+      },
+      "recap": {
+        "label": "Resumen",
+        "titre_default": "Título del deseo",
+        "desc_default": "Descripción del deseo...",
+        "argent_label": "Presupuesto",
+        "bon_procede_label": "Buena acción",
+        "devis_label": "A presupuestar",
+        "devis_ph": "Describe tu necesidad para que los Makers puedan hacerte un presupuesto (opcional)",
+        "devis_sub": "Los Makers te proponen un precio por mensajería",
+        "argent_sub": "Indicas el presupuesto que deseas dedicar",
+        "bon_procede_sub": "Mano amiga entre vecinos, sin pago",
+        "disclaimer": "Wish Maker pone en contacto. El pago se realiza directamente entre tú y el Maker.",
+        "non_renseignee": "No indicada",
+        "recompense_titre": "Recompensa",
+        "montant_ph": "Importe",
+        "bon_ph": "Describe tu buena acción (opcional)",
+        "urgent_active": "Urgente activado",
+        "urgent_mettre": "Marcar este deseo como urgente",
+        "urgent_sub": "Tu deseo se destacará durante 24h",
+        "btn_publier": "Publicar mi deseo",
+        "btn_publier_urgent": "⚡ Publicar como urgente",
+        "btn_publication": "Publicando...",
+        "err_titre": "El título es obligatorio (mín. 5 caracteres)",
+        "err_desc": "La descripción es obligatoria (mín. 10 caracteres)",
+        "err_loc": "La ubicación es obligatoria. Vuelve al paso \"Lugar\".",
+        "err_montant": "Importe no válido (mínimo 1€)",
+        "err_publication": "Error al publicar",
+        "err_creation": "Error al crear el deseo",
+        "err_modere": "Publicación imposible: contenido no permitido.",
+        "succes_paiement": "💳 ¡Pago autorizado, tu deseo está publicado!",
+        "succes_urgent": "⚡ ¡Tu deseo está publicado como urgente!",
+        "paiement_annule": "Pago cancelado, deseo no publicado.",
+        "paiement_titre": "Pago seguro",
+        "paiement_sous": "Recompensa de {{amount}}€, pre-autorizada en tu tarjeta, cobrada solo al cumplir el deseo.",
+        "paiement_pre": "Pre-autorización",
+        "paiement_pre_text": ": el importe queda retenido en tu tarjeta, no cobrado.",
+        "paiement_debit": "Cobro",
+        "paiement_debit_text": ": únicamente cuando validas el cumplimiento del deseo.",
+        "paiement_annulation": "Cancelación",
+        "paiement_annulation_text": ": sin cargo si nadie acepta el deseo.",
+        "paiement_btn": "Pre-autorizar {{amount}}€",
+        "modal_urgent_titre": "Marcar como urgente",
+        "modal_urgent_sub": "Tu deseo se destacará durante 24h por encima de todos los demás.",
+        "modal_urgent_option": "Opción urgente 24h",
+        "modal_urgent_option_sub": "Visible con prioridad para los Makers",
+        "modal_urgent_pay": "Pagar 0,99€ y publicar",
+        "modal_urgent_skip": "Publicar sin la opción urgente",
+        "photos_plus": "+{{n}} foto",
+        "photos_plus_pluriel": "+{{n}} fotos"
+      }
+    },
+    "mes_voeux": {
+      "titre": "Mis deseos",
+      "en_cours": "En curso",
+      "realise": "Cumplido",
+      "annule": "Cancelado",
+      "vide": "Sin deseos en esta categoría"
+    }
+  },
+  "maker": {
+    "home": {
+      "bienvenue": "Bienvenido Maker",
+      "aucun_voeu": "Ningún deseo encontrado",
+      "aucun_voeu_sub": "Prueba con otras palabras clave",
+      "aucun_voeu_zone": "Sin deseos en esta zona",
+      "aucun_favori": "Aún no hay favoritos",
+      "voeux_trouves": "Deseos encontrados",
+      "tab_liste": "Lista",
+      "tab_carte": "Mapa",
+      "tab_swipe": "Swipe",
+      "msg_placeholder": "Hola, me interesa tu deseo…"
+    },
+    "search": {
+      "placeholder": "Buscar un deseo...",
+      "historique": "Búsquedas recientes",
+      "aucun_resultat": "Sin resultados"
+    },
+    "filters": {
+      "titre": "Filtros",
+      "tri": "Ordenar por",
+      "pertinence": "Relevancia",
+      "distance": "Distancia",
+      "recent": "Más recientes",
+      "rayon": "Radio de búsqueda",
+      "categories": "Categorías",
+      "voir_resultats": "Ver los {{count}} resultados",
+      "reinitialiser": "Reiniciar"
+    },
+    "detail": {
+      "realiser": "Cumplir este deseo",
+      "ouvrir_map": "Abrir en Google Maps",
+      "succes_titre": "¡Bravo!",
+      "succes_sous": "Has cumplido el deseo de {{prenom}}",
+      "retour_accueil": "Volver al inicio"
+    }
+  },
+  "messages": {
+    "titre": "Mensajes",
+    "mes_voeux": "Mis deseos",
+    "mes_missions": "Mis misiones",
+    "recherche": "Buscar...",
+    "vide": "Sin mensajes",
+    "envoyer": "Enviar",
+    "ecrire": "Escribir un mensaje…"
+  },
+  "invite": {
+    "btn": "Invitar amigos",
+    "share_text": "¡Descubre Wish Maker, la app que cumple tus deseos diarios!",
+    "lien_copie": "¡Enlace copiado! Compártelo con tus amigos"
+  },
+  "profile": {
+    "titre": "Perfil",
+    "deconnexion": "Cerrar sesión",
+    "modifier": "Editar perfil",
+    "aucun_avis": "Sin reseñas",
+    "section_personal": "Información personal",
+    "section_security": "Seguridad",
+    "section_general": "General",
+    "section_admin": "Administración",
+    "section_about": "Acerca de",
+    "item_profil": "Perfil",
+    "item_avis": "Mis reseñas",
+    "item_favoris": "Mis deseos favoritos",
+    "item_pro_tags": "Mis etiquetas pro",
+    "item_password": "Cambiar contraseña",
+    "item_langue": "Idioma",
+    "item_notifications": "Notificaciones",
+    "item_admin_panel": "Panel Admin",
+    "item_legal": "Aviso legal",
+    "item_help": "Ayuda y asistencia",
+    "notifications_on": "Activadas",
+    "notifications_off": "Desactivadas",
+    "notifications_success": "¡Notificaciones activadas!",
+    "notifications_help": "Para activar las notificaciones, ve a Ajustes → Wishmaker → Notificaciones",
+    "password": {
+      "min_chars": "Mín. 6 caracteres",
+      "no_match": "Las contraseñas no coinciden",
+      "success": "¡Contraseña actualizada!",
+      "modal_titre": "Cambiar la contraseña",
+      "nouveau": "Nueva contraseña",
+      "confirmer": "Confirmar",
+      "confirmer_placeholder": "Confirma la contraseña",
+      "btn": "Actualizar"
+    },
+    "logout": {
+      "titre": "Cerrar sesión",
+      "confirm_question": "¿Seguro que quieres cerrar sesión?",
+      "confirm": "Cerrar sesión",
+      "loading": "Cerrando sesión…"
+    },
+    "lang_updated": "¡Idioma actualizado!",
+    "edit": {
+      "titre": "Perfil",
+      "prenom": "Nombre",
+      "prenom_ph": "Tu nombre",
+      "nom": "Apellido",
+      "nom_ph": "Tu apellido",
+      "pseudo": "Nombre de usuario",
+      "pseudo_ph": "Tu nombre de usuario (ej: john_doe)",
+      "type_compte": "Tipo de cuenta",
+      "type_particulier": "Particular",
+      "type_pro": "Profesional",
+      "email": "Email",
+      "localisation": "Ubicación",
+      "localisation_ph": "Buscar una ciudad...",
+      "btn_save": "Guardar",
+      "photo_titre": "Cambia tu foto",
+      "photo_galerie": "Elige de tu galería",
+      "photo_supprimer": "Eliminar la foto",
+      "max_taille": "Máx 10 MB",
+      "image_invalide": "Esta imagen no respeta nuestras reglas",
+      "photo_maj": "¡Foto actualizada!",
+      "photo_supprimee": "Foto eliminada",
+      "upload_erreur": "Error al subir",
+      "nom_obligatoire": "Nombre y apellido obligatorios",
+      "pseudo_format": "Usuario: 3-20 caracteres (letras, números, espacios, _)",
+      "pseudo_pris": "Este nombre de usuario ya está en uso",
+      "profil_maj": "¡Perfil actualizado!",
+      "save_erreur": "Error al guardar"
+    },
+    "reviews": {
+      "titre": "Mis reseñas",
+      "tab_recus": "Recibidas",
+      "tab_donnes": "Dadas",
+      "vide_recus_titre": "Aún no hay reseñas",
+      "vide_recus_text": "Las reseñas aparecerán aquí cuando un usuario valore tus servicios.",
+      "vide_donnes_titre": "Sin reseñas dadas",
+      "vide_donnes_text": "Valora a un usuario después de una misión para que aparezca aquí.",
+      "compteur_un": "{{n}} reseña",
+      "compteur": "{{n}} reseñas",
+      "utilisateur": "Usuario",
+      "erreur_titre": "Error de carga",
+      "reessayer": "Reintentar"
+    },
+    "favorites": {
+      "titre": "Mis favoritos",
+      "vide_titre": "Aún no hay favoritos",
+      "vide_text": "Pulsa el corazón de un deseo para encontrarlo fácilmente aquí.",
+      "btn_explorer": "Explorar deseos",
+      "compteur_un": "deseo guardado",
+      "compteur_pluriel": "deseos guardados"
+    }
+  },
+  "wish_pack": {
+    "titre": "Comprar deseos"
+  },
+  "payment": {
+    "secure": "🔒 Pago seguro con Stripe. No almacenamos ninguna tarjeta."
+  },
+  "nav": {
+    "accueil": "Wisher",
+    "explorer": "Maker",
+    "messages": "Mensajes",
+    "profil": "Perfil"
+  }
+}

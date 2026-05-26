@@ -25,6 +25,12 @@ const LANGUAGES = [
       <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" strokeWidth="6"/>
     </svg>
   ), region: 'United States' },
+  { code: 'es', label: 'Español', flag: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 24" width="36" height="26" className="rounded-sm">
+      <rect width="36" height="24" fill="#AA151B"/>
+      <rect y="6" width="36" height="12" fill="#F1BF00"/>
+    </svg>
+  ), region: 'España' },
 ]
 
 export default function SelectLanguage() {

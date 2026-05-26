@@ -317,6 +317,12 @@ export default function Profile() {
                 <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" strokeWidth="6"/>
               </svg>
             )},
+            { code: 'es', label: 'Español', flag: (
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 24" width="32" height="22" className="rounded-sm">
+                <rect width="36" height="24" fill="#AA151B"/>
+                <rect y="6" width="36" height="12" fill="#F1BF00"/>
+              </svg>
+            )},
           ].map((lang) => {
             const current = selectedLang || i18n.language?.split('-')[0]
             const isActive = current === lang.code
