@@ -69,6 +69,7 @@ const ProTags = lazy(() => import('../pages/Profile/ProTags'))
 
 // Admin
 const Admin = lazy(() => import('../pages/Admin/index'))
+const AdminStats = lazy(() => import('../pages/Admin/Stats'))
 
 // Loader minimal pendant le lazy loading
 function PageLoader() {
@@ -213,6 +214,7 @@ const router = createBrowserRouter([
 
       // Admin
       { path: '/admin',               element: <Suspense fallback={<PageLoader />}><Admin /></Suspense> },
+      { path: '/admin/stats',         element: <Suspense fallback={<PageLoader />}><AdminStats /></Suspense> },
     ],
   },
 
