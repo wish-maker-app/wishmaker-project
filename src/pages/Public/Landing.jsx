@@ -142,7 +142,7 @@ export default function Landing() {
                 Les Makers autour de vous voient votre vœu et vous écrivent. Vous choisissez celui qui vous convient.
               </Step>
               <Step n="3" title="Validez la réalisation">
-                Une fois le vœu réalisé, vous validez et le paiement est libéré. Sécurisé par Stripe.
+                Une fois le vœu réalisé, vous le confirmez dans l'application. Le règlement se fait directement entre vous et le Maker.
               </Step>
             </div>
 
@@ -260,7 +260,7 @@ export default function Landing() {
           </div>
 
           <p className="mt-6 text-[12px] text-[#8A8A9A] text-center max-w-[560px] mx-auto">
-            Le Maker reçoit l'intégralité de la récompense fixée par le Wisher, moins 15% de commission plateforme.
+            Le Maker reçoit l'intégralité de la récompense fixée par le Wisher. Wish Maker met en relation, le règlement se fait directement entre les deux personnes.
           </p>
         </Section>
 
@@ -563,8 +563,8 @@ const FEATURES = [
     ),
   },
   {
-    title: 'Paiement sécurisé',
-    text: 'Stripe gère l\'argent en pré-autorisation : le Maker n\'est payé qu\'après confirmation du Wisher. Pas de litiges sur le paiement.',
+    title: 'Mise en relation simple',
+    text: 'Wish Maker met en relation Wishers et Makers. Le règlement de la récompense se fait directement entre les deux personnes, en toute liberté.',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="5" width="20" height="14" rx="3" />

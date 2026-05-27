@@ -231,7 +231,9 @@ export default function Chat() {
     setActionLoading(true)
     try {
       const wishId = convData.wish_id || convData.wish?.id
-      await markRealizedByMaker(wishId)
+      // On passe le conv_id pour que la notif push redirige le Wisher droit
+      // sur la bonne conversation (au lieu de la page détail du vœu).
+      await markRealizedByMaker(wishId, convData.id || id)
       setMarkedRealizedAt(new Date().toISOString())
       setMarkedRealizedBy(userId)
       toast.success('En attente de confirmation du Wisher')
@@ -490,8 +492,12 @@ export default function Chat() {
         </div>
       )}
 
-      {/* MAKER : bouton "J'ai réalisé ce vœu" */}
-      {!isWisher && wishStatut !== 'realise' && wishStatut !== 'expire' && !markedRealizedAt && (
+      {/* MAKER : bouton "J'ai réalisé ce vœu".
+          On NE bloque PAS sur statut='expire' : si le Wisher et le Maker sont
+          déjà en conversation (= ils sont arrivés dans Chat), le délai d'expiration
+          n'a pas à les bloquer. Ils s'arrangent entre eux, le Maker doit pouvoir
+          confirmer la réalisation même après la date d'expiration. */}
+      {!isWisher && wishStatut !== 'realise' && wishStatut !== 'annule' && !markedRealizedAt && (
         <div className="bg-white px-4 py-3 border-b border-[#F0F0F0]">
           <button
             onClick={handleMakerMarkRealized}

@@ -257,7 +257,9 @@ export function useWishes() {
   }
 
   // Étape 1 : le Maker indique avoir réalisé le vœu (en attente de confirmation Wisher)
-  async function markRealizedByMaker(wishId) {
+  // → envoie également une notification push au Wisher pour l'alerter qu'il a
+  //   une action à faire (confirmer la réalisation dans la conversation).
+  async function markRealizedByMaker(wishId, conversationId = null) {
     const { error } = await supabase
       .from('wishes')
       .update({
@@ -266,6 +268,35 @@ export function useWishes() {
       })
       .eq('id', wishId)
     if (error) throw error
+
+    // Notification push au Wisher (best-effort, ne bloque pas si ça rate)
+    try {
+      const { data: wish } = await supabase
+        .from('wishes')
+        .select('wisher_id, titre')
+        .eq('id', wishId)
+        .single()
+      if (wish && wish.wisher_id !== user.id) {
+        const { data: { session } } = await supabase.auth.getSession()
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            user_id: wish.wisher_id,
+            title: 'Votre vœu a été réalisé !',
+            body: `Un Maker a marqué "${wish.titre}" comme réalisé. Confirmez la réalisation.`,
+            url: conversationId ? `/messages/${conversationId}` : `/maker/wish/${wishId}?owner=1`,
+          }),
+        })
+      }
+    } catch (err) {
+      console.warn('[markRealizedByMaker] push notif failed:', err?.message)
+    }
   }
 
   // Étape 2 : le Wisher confirme la réalisation → statut passe à 'realise'
