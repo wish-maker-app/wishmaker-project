@@ -18,13 +18,8 @@ export default function Support() {
     // pour que la page soit responsive desktop ET mobile. La zone main
     // scrolle son propre contenu (le shell global a overflow:hidden).
     <div
-      className="fixed inset-0 z-[1000] bg-white text-[#1A1A2E] antialiased flex flex-col overflow-hidden"
-      style={{
-        width: '100vw',
-        maxWidth: '100vw',
-        paddingTop: 'env(safe-area-inset-top)',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-      }}
+      className="public-fixed-page fixed inset-0 z-[1000] bg-white text-[#1A1A2E] antialiased flex flex-col overflow-hidden"
+      style={{ width: '100vw', maxWidth: '100vw' }}
     >
 
       {/* Header — fixe en haut */}

@@ -149,7 +149,7 @@ export default function BottomTabBar() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white z-40
+      <nav className="has-safe-bottom fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white z-40
                       flex items-center justify-around px-2 pt-2
                       shadow-[0_-2px_16px_rgba(0,0,0,0.07)]"
         style={{ paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))' }}>

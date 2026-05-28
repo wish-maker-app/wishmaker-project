@@ -15,13 +15,8 @@ export default function MentionsLegales() {
     // fixed inset-0 + z-[1000] : on s'echappe du shell mobile 430px (#root)
     // pour que la page soit responsive desktop ET mobile.
     <div
-      className="fixed inset-0 z-[1000] bg-white text-[#1A1A2E] antialiased flex flex-col overflow-hidden"
-      style={{
-        width: '100vw',
-        maxWidth: '100vw',
-        paddingTop: 'env(safe-area-inset-top)',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-      }}
+      className="public-fixed-page fixed inset-0 z-[1000] bg-white text-[#1A1A2E] antialiased flex flex-col overflow-hidden"
+      style={{ width: '100vw', maxWidth: '100vw' }}
     >
 
       {/* Header — fixe en haut */}
