@@ -170,16 +170,13 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete, onConfirmRealization
           Le Wisher peut confirmer en 1 clic SANS aller dans la conversation. */}
       {awaitingConfirmation && (
         <div className="px-4 pt-3.5 pb-3" style={{ background: 'linear-gradient(135deg,#ECFDF5,#D1FAE5)', borderBottom: '1px solid #A7F3D0' }}>
-          <div className="flex items-start gap-2.5 mb-2.5">
-            <span className="text-lg leading-none mt-0.5">✅</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[12.5px] font-bold text-[#065F46] leading-snug">
-                Un Maker a indiqué avoir réalisé ce vœu
-              </p>
-              <p className="text-[11px] text-[#047857] mt-0.5 leading-snug">
-                Confirmez si c'est exact pour clôturer la mise en relation.
-              </p>
-            </div>
+          <div className="flex-1 min-w-0 mb-2.5">
+            <p className="text-[12.5px] font-bold text-[#065F46] leading-snug">
+              Un Maker a indiqué avoir réalisé ce vœu
+            </p>
+            <p className="text-[11px] text-[#047857] mt-0.5 leading-snug">
+              Confirmez si c'est exact pour clôturer la mise en relation.
+            </p>
           </div>
           <div className="flex gap-2">
             <button
@@ -193,13 +190,13 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete, onConfirmRealization
               className="flex-1 h-9 rounded-full text-[12px] font-bold text-white disabled:opacity-60"
               style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}
             >
-              {confirming ? 'Confirmation…' : '✓ Confirmer la réalisation'}
+              {confirming ? 'Confirmation…' : 'Confirmer la réalisation'}
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); navigate(`/messages?wishId=${wish.id}`) }}
               className="h-9 px-4 rounded-full text-[12px] font-semibold text-[#065F46] border border-[#A7F3D0] bg-white"
             >
-              💬 Discuter
+              Discuter
             </button>
           </div>
         </div>

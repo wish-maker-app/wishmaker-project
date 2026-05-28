@@ -664,7 +664,7 @@ export default function Chat() {
                 @{markedRealizedByUser?.pseudo || markedRealizedByUser?.prenom || '…'}
               </p>
               <p className="text-[13.5px] font-bold text-[#064E3B] leading-snug">
-                indique avoir réalisé votre vœu 🎉
+                indique avoir réalisé votre vœu
               </p>
             </div>
           </div>
@@ -696,13 +696,8 @@ export default function Chat() {
               whileTap={{ scale: 0.97 }}
               onClick={() => setShowMenu(true)}
               disabled={actionLoading}
-              className="h-10 px-4 rounded-full text-[12.5px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-60 bg-white border border-[#A7F3D0] text-[#065F46] transition-all"
+              className="h-10 px-4 rounded-full text-[12.5px] font-semibold flex items-center justify-center disabled:opacity-60 bg-white border border-[#A7F3D0] text-[#065F46] transition-all"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
               Signaler
             </motion.button>
           </div>
