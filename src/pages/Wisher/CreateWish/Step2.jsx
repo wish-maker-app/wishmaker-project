@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -50,22 +50,14 @@ export default function Step2() {
   // pendant que NSFW.js charge le modèle (~40MB la 1ère fois sur 4G).
   const [processing, setProcessing] = useState(0)
 
-  // Prewarm NSFW.js en background des qu'on arrive sur Step2 (l'user va
-  // probablement ajouter une photo). Differe via requestIdleCallback pour
-  // ne pas bloquer le thread principal au mount de la page. Si l'user clique
-  // sur "Ajouter photo" tres vite, le download se finit en parallele avec
-  // le file picker iOS.
-  useEffect(() => {
-    const schedulePrewarm = () => {
-      import('../../../lib/moderationImage').then((m) => m.prewarmModerationModel?.())
-    }
-    if ('requestIdleCallback' in window) {
-      const id = window.requestIdleCallback(schedulePrewarm, { timeout: 3000 })
-      return () => window.cancelIdleCallback?.(id)
-    }
-    const id = setTimeout(schedulePrewarm, 1500)
-    return () => clearTimeout(id)
-  }, [])
+  // Prewarm NSFW.js DECLENCHE PAR LE CLIC sur "Ajouter photo" uniquement.
+  // L'user qui n'ajoute pas de photo ne telecharge JAMAIS les 40Mo. Le
+  // download se fait en parallele de l'ouverture du file picker iOS (1-2s)
+  // et de la selection (3-5s) → quasi-transparent pour l'user normal.
+  function handleAddPhotoClick() {
+    import('../../../lib/moderationImage').then((m) => m.prewarmModerationModel?.())
+    inputRef.current?.click()
+  }
 
   async function handleFiles(e) {
     const files = Array.from(e.target.files)
@@ -214,7 +206,7 @@ export default function Step2() {
           {images.length < 5 && processing === 0 && (
             <motion.button
               whileTap={{ scale: 0.97 }}
-              onClick={() => inputRef.current?.click()}
+              onClick={handleAddPhotoClick}
               className="aspect-square rounded-2xl border-2 border-dashed border-[#D0D0E0] bg-[#F5F5F7]
                 flex flex-col items-center justify-center gap-1.5"
             >
