@@ -1,5 +1,5 @@
 import { motion, AnimatePresence, useMotionValue, animate, useDragControls } from 'framer-motion'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 /**
  * Bottom sheet reutilisable avec drag-to-dismiss facon iOS/Android natif.
@@ -35,11 +35,26 @@ export default function BottomSheet({
   showHandle = true,
 }) {
   const y = useMotionValue(0)
-  // dragControls : on declenche le drag depuis le handle uniquement.
-  // dragListener=false desactive les listeners par defaut, et on appelle
-  // dragControls.start(e) sur onPointerDown du handle pour declencher
-  // manuellement. Evite le conflit avec overflow-y-auto du contenu.
+  // dragControls : on declenche manuellement le drag (depuis le handle OU
+  // depuis le contenu si scroll est en haut). Pattern iOS classique.
   const dragControls = useDragControls()
+  const scrollRef = useRef(null)
+  // touchStartY pour detecter une swipe vers le BAS (drag intent) vs un
+  // simple click / scroll up — sinon on bloque le scroll natif inutilement.
+  const touchStartY = useRef(null)
+
+  // onPointerDown sur le contenu : si on est tout en haut du scroll, on
+  // declenche le drag (= permet de fermer en swipant depuis n'importe ou).
+  // Si le contenu a deja scroll, on laisse le scroll natif faire son boulot.
+  function handleContentPointerDown(e) {
+    touchStartY.current = e.clientY
+    const el = scrollRef.current
+    if (!el) return
+    if (el.scrollTop <= 0) {
+      // Scroll en haut → on autorise le drag du sheet via dragControls
+      dragControls.start(e)
+    }
+  }
 
   // Reset position quand on rouvre
   useEffect(() => {
@@ -106,8 +121,17 @@ export default function BottomSheet({
               </div>
             )}
 
-            {/* Contenu scrollable separe → pas de conflit avec overflow-y */}
-            <div className="px-5 pb-8 pt-1 overflow-y-auto" style={{ maxHeight }}>
+            {/* Contenu scrollable. onPointerDown declenche le drag du sheet
+                UNIQUEMENT si on est en haut du scroll (scrollTop <= 0) → on
+                peut donc fermer en swipant depuis n'importe ou si le contenu
+                tient sur 1 ecran, mais on garde le scroll natif si le contenu
+                est long et qu'on est deja en bas. */}
+            <div
+              ref={scrollRef}
+              onPointerDown={handleContentPointerDown}
+              className="px-5 pb-8 pt-1 overflow-y-auto"
+              style={{ maxHeight }}
+            >
               {children}
             </div>
           </motion.div>
