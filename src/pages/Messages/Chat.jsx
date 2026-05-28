@@ -516,59 +516,159 @@ export default function Chat() {
         </div>
       )}
 
-      {/* MAKER : bouton "J'ai réalisé ce vœu".
-          On NE bloque PAS sur statut='expire' : si le Wisher et le Maker sont
-          déjà en conversation (= ils sont arrivés dans Chat), le délai d'expiration
-          n'a pas à les bloquer. Ils s'arrangent entre eux, le Maker doit pouvoir
-          confirmer la réalisation même après la date d'expiration. */}
+      {/* ─── MAKER : bouton "J'ai réalisé ce vœu" (etat initial) ─── */}
       {!isWisher && wishStatut !== 'realise' && wishStatut !== 'annule' && !markedRealizedAt && (
-        <div className="bg-white px-4 py-3 border-b border-[#F0F0F0]">
-          <button
+        <div className="px-4 py-3 bg-white border-b border-[#F0F0F0]">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
             onClick={handleMakerMarkRealized}
             disabled={actionLoading}
-            className="w-full h-11 rounded-full text-sm font-bold text-white disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}
+            className="w-full h-11 rounded-full text-[13.5px] font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-60 transition-all"
+            style={{
+              background: 'linear-gradient(135deg,#22C55E,#16A34A)',
+              boxShadow: '0 4px 14px -2px rgba(34, 197, 94, 0.35)',
+            }}
           >
-            ✅ J'ai réalisé ce vœu
-          </button>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            J'ai réalisé ce vœu
+          </motion.button>
         </div>
       )}
 
-      {/* MAKER : en attente de confirmation */}
+      {/* ─── MAKER : en attente de confirmation du Wisher (apres clic) ─── */}
       {!isWisher && wishStatut !== 'realise' && markedRealizedAt && markedRealizedBy === userId && (
-        <div className="bg-[#FFF7ED] px-4 py-3 border-b border-[#FFEDD5] flex items-center justify-center gap-2">
-          <span className="text-base">⏳</span>
-          <span className="text-xs font-semibold text-[#EA580C]">
-            En attente de confirmation par le Wisher…
-          </span>
-        </div>
-      )}
-
-      {/* WISHER : bannière de confirmation */}
-      {isWisher && wishStatut !== 'realise' && markedRealizedAt && (
-        <div className="bg-[#EEF0FF] px-4 py-3 border-b border-[#E0E5FF]">
-          <p className="text-xs font-semibold text-[#1A1A2E] mb-2 text-center">
-            @{interlocuteur.pseudo || interlocuteur.prenom} indique avoir réalisé votre vœu.
-            Confirmez-vous ?
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={handleWisherConfirm}
-              disabled={actionLoading}
-              className="flex-1 h-10 rounded-full text-xs font-bold text-white disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}
-            >
-              ✓ Oui, confirmer
-            </button>
-            <button
-              onClick={() => setShowMenu(true)}
-              disabled={actionLoading}
-              className="flex-1 h-10 rounded-full text-xs font-bold text-[#EF4444] border border-[#EF4444] bg-white disabled:opacity-60"
-            >
-              ✕ Signaler un problème
-            </button>
+        <div
+          className="px-4 py-3.5 border-b"
+          style={{
+            background: 'linear-gradient(135deg, #FFF7ED, #FFEDD5)',
+            borderColor: '#FED7AA',
+          }}
+        >
+          <div className="flex items-center gap-3">
+            {/* Icône horloge animée */}
+            <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0 shadow-[0_2px_6px_rgba(234,88,12,0.15)]">
+              <motion.svg
+                animate={{ rotate: 360 }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EA580C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </motion.svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold text-[#9A3412] leading-tight">
+                En attente de confirmation
+              </p>
+              <p className="text-[11.5px] text-[#C2410C] mt-0.5 leading-snug">
+                {interlocuteur?.pseudo || interlocuteur?.prenom || 'Le Wisher'} doit valider que le vœu a bien été réalisé.
+              </p>
+            </div>
           </div>
         </div>
+      )}
+
+      {/* ─── WISHER : banniere "Le Maker indique avoir realise ce voeu" ─── */}
+      {isWisher && wishStatut !== 'realise' && markedRealizedAt && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="px-4 py-4 border-b relative overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #ECFDF5, #D1FAE5)',
+            borderColor: '#A7F3D0',
+          }}
+        >
+          {/* Glow décoratif en haut à droite */}
+          <div
+            className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-40 pointer-events-none"
+            style={{ background: 'radial-gradient(circle, #6EE7B7, transparent 70%)' }}
+          />
+
+          {/* Header : avatar Maker + label */}
+          <div className="relative flex items-center gap-3 mb-3">
+            {/* Avatar du Maker */}
+            <div className="relative">
+              {interlocuteur?.avatar_url ? (
+                <img
+                  src={interlocuteur.avatar_url}
+                  alt=""
+                  className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
+                />
+              ) : (
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm border-2 border-white shadow-sm"
+                  style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+                >
+                  {(interlocuteur?.prenom?.[0] || '') + (interlocuteur?.nom?.[0] || '')}
+                </div>
+              )}
+              {/* Petit badge check vert */}
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                <div
+                  className="w-4 h-4 rounded-full flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}
+                >
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[10px] font-bold tracking-wide uppercase text-[#047857]">Maker</span>
+                <span className="text-[11px] font-semibold text-[#065F46] truncate">
+                  {interlocuteur?.pseudo || interlocuteur?.prenom || 'Le Maker'}
+                </span>
+              </div>
+              <p className="text-[13.5px] font-bold text-[#064E3B] leading-snug">
+                indique avoir réalisé votre vœu 🎉
+              </p>
+            </div>
+          </div>
+
+          {/* Sous-texte explicatif */}
+          <p className="relative text-[11.5px] text-[#047857] leading-snug mb-3 pl-0.5">
+            Confirmez si c'est bien le cas pour clôturer la mise en relation.
+            Sinon, signalez un souci pour discuter avec le Maker.
+          </p>
+
+          {/* CTAs */}
+          <div className="relative flex gap-2">
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleWisherConfirm}
+              disabled={actionLoading}
+              className="flex-1 h-10 rounded-full text-[13px] font-bold text-white flex items-center justify-center gap-1.5 disabled:opacity-60 transition-all"
+              style={{
+                background: 'linear-gradient(135deg,#22C55E,#16A34A)',
+                boxShadow: '0 4px 12px -2px rgba(34, 197, 94, 0.4)',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              Confirmer
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setShowMenu(true)}
+              disabled={actionLoading}
+              className="h-10 px-4 rounded-full text-[12.5px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-60 bg-white border border-[#A7F3D0] text-[#065F46] transition-all"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              Signaler
+            </motion.button>
+          </div>
+        </motion.div>
       )}
 
       {/* Messages */}
