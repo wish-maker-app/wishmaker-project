@@ -110,6 +110,10 @@ export default function Chat() {
   const [showWisherConfirm, setShowWisherConfirm] = useState(false)
   const [markedRealizedAt, setMarkedRealizedAt] = useState(null)
   const [markedRealizedBy, setMarkedRealizedBy] = useState(null)
+  // User qui a effectivement clique "J'ai realise ce voeu" — fetch dynamiquement
+  // depuis markedRealizedBy (qui est l'auth.uid() au moment du clic). On l'affiche
+  // dans la banniere cote Wisher au lieu de presumer que c'est l'interlocuteur.
+  const [markedRealizedByUser, setMarkedRealizedByUser] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [convId, setConvId] = useState(isDraft ? null : id)
   const [showMenu, setShowMenu] = useState(false)
@@ -175,6 +179,33 @@ export default function Chat() {
       }
     }
   }, [conversations, id, userId])
+
+  // Fetch dynamiquement le user qui a clique "J'ai realise ce voeu" pour
+  // afficher SON pseudo dans la banniere (et pas presumer que c'est
+  // l'interlocuteur, qui dans certains cas peut etre mal identifie).
+  // Si markedRealizedBy === userId (cote Maker qui vient de cliquer), on
+  // sait que c'est lui — pas besoin de re-fetch.
+  useEffect(() => {
+    if (!markedRealizedBy) { setMarkedRealizedByUser(null); return }
+    if (markedRealizedBy === userId) {
+      // C'est moi (le Maker qui a clique) — pas besoin de fetch
+      setMarkedRealizedByUser({
+        id: userId,
+        pseudo: useAuthStore.getState().profile?.pseudo,
+        prenom: useAuthStore.getState().profile?.prenom,
+        nom: useAuthStore.getState().profile?.nom,
+        avatar_url: useAuthStore.getState().profile?.avatar_url,
+      })
+      return
+    }
+    // Sinon (cote Wisher : on doit savoir qui est le Maker qui a clique)
+    supabase
+      .from('users')
+      .select('id, pseudo, prenom, nom, avatar_url')
+      .eq('id', markedRealizedBy)
+      .single()
+      .then(({ data }) => { if (data) setMarkedRealizedByUser(data) })
+  }, [markedRealizedBy, userId])
 
   // Realtime listener sur le voeu de cette conversation. Sans ca, quand le
   // Maker clique "J'ai realise ce voeu", le Wisher (deja dans le chat) ne
@@ -587,13 +618,13 @@ export default function Chat() {
             style={{ background: 'radial-gradient(circle, #6EE7B7, transparent 70%)' }}
           />
 
-          {/* Header : avatar Maker + label */}
+          {/* Header : avatar + nom de la personne qui a marque le voeu comme realise
+              (fetch dynamiquement depuis markedRealizedBy → toujours juste). */}
           <div className="relative flex items-center gap-3 mb-3">
-            {/* Avatar du Maker */}
             <div className="relative">
-              {interlocuteur?.avatar_url ? (
+              {markedRealizedByUser?.avatar_url ? (
                 <img
-                  src={interlocuteur.avatar_url}
+                  src={markedRealizedByUser.avatar_url}
                   alt=""
                   className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
                 />
@@ -602,7 +633,7 @@ export default function Chat() {
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm border-2 border-white shadow-sm"
                   style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
                 >
-                  {(interlocuteur?.prenom?.[0] || '') + (interlocuteur?.nom?.[0] || '')}
+                  {(markedRealizedByUser?.prenom?.[0] || '') + (markedRealizedByUser?.nom?.[0] || '') || '?'}
                 </div>
               )}
               {/* Petit badge check vert */}
@@ -619,12 +650,9 @@ export default function Chat() {
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[10px] font-bold tracking-wide uppercase text-[#047857]">Maker</span>
-                <span className="text-[11px] font-semibold text-[#065F46] truncate">
-                  {interlocuteur?.pseudo || interlocuteur?.prenom || 'Le Maker'}
-                </span>
-              </div>
+              <p className="text-[13px] font-semibold text-[#065F46] truncate">
+                @{markedRealizedByUser?.pseudo || markedRealizedByUser?.prenom || '…'}
+              </p>
               <p className="text-[13.5px] font-bold text-[#064E3B] leading-snug">
                 indique avoir réalisé votre vœu 🎉
               </p>
