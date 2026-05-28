@@ -122,14 +122,6 @@ function ConversationItem({ conv, onClick, onDelete }) {
           // dans la liste façon iMessage / WhatsApp.
           style={{ background: conv.non_lus > 0 ? '#F2F4FF' : '#fff' }}
         >
-          {/* Barre verticale violette à gauche pour souligner la conv non-lue */}
-          {conv.non_lus > 0 && (
-            <span
-              className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full"
-              style={{ background: 'linear-gradient(180deg,#5B6BF5,#9B59F5)' }}
-            />
-          )}
-
           <WishThumb wish={conv.wish} />
           <div className="flex-1 min-w-0">
             <p
