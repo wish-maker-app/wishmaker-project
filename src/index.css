@@ -54,12 +54,15 @@ body {
 }
 
 /* ─── PWA standalone mode (iOS safe areas) ─── */
-/* Strategie "encapsuler l'app entre les safe-areas" : le BODY recoit le
-   padding safe-area sur les 4 cotes, ET on lui applique transform:translateZ(0)
-   pour qu'il devienne le "containing block" de tous les position:fixed enfants.
-   Resultat : la BottomTabBar et les pages publiques (fixed inset-0) sont
-   automatiquement contenues dans la zone safe sans logique par composant.
-   Le mode navigateur normal (non standalone) n'est PAS affecte par ce bloc. */
+/* Approche simple, sans body padding ni transform trick (qui se sont averes
+   peu fiables sur iOS PWA). Chaque composant qui peut chevaucher une zone
+   sensible gere son propre padding safe-area :
+   - #root (base style) : padding-top safe-area-top → headers sticky internes
+     sous le Dynamic Island
+   - BottomTabBar (inline) : padding-bottom 8px + safe-area-bottom → icones
+     au-dessus du home indicator
+   - .public-fixed-page (CSS) : padding-top/bottom safe-area → back button
+     sous le Dynamic Island, footer au-dessus du home indicator */
 @media all and (display-mode: standalone) {
   html {
     background: #FFFFFF !important;
@@ -68,48 +71,21 @@ body {
 
   body {
     margin: 0;
-    height: 100dvh;
+    padding: 0 !important;
     overflow: hidden;
     background: #FFFFFF !important;
     overscroll-behavior: none;
-    box-sizing: border-box;
-    padding:
-      env(safe-area-inset-top)
-      env(safe-area-inset-right)
-      env(safe-area-inset-bottom)
-      env(safe-area-inset-left) !important;
-    /* Transforme body en containing block pour les position:fixed enfants →
-       ils respectent maintenant le padding safe-area du body au lieu de
-       coller aux bords du viewport. Magic. */
-    transform: translateZ(0);
   }
 
   #root {
-    height: 100%;
-    min-height: 100% !important;
     overflow: hidden;
     box-shadow: none;
-    padding-top: 0; /* body assume deja le safe-area-top */
+    /* On laisse le base style gerer la hauteur 100dvh + padding-top safe-area */
   }
 
-  /* Le containing-block est body → les fixed inset-0 et la BottomTabBar
-     respectent deja les safe-areas. On annule leurs paddings safe-area
-     internes pour eviter le double padding. */
-  .has-safe-bottom {
-    padding-bottom: 8px !important;
-  }
-  .bottom-sheet {
-    padding-bottom: 2rem !important;
-  }
-
-  /* Pages publiques fixed inset-0 : en PWA, le containing-block est body donc
-     elles respectent deja les safe-areas. Annule leur padding interne. */
-  .public-fixed-page {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-  }
-
-  /* En standalone, les pages prennent la hauteur exacte de l'écran */
+  /* Pages internes : 100% du #root content area (qui exclut deja le
+     safe-area-top via padding-top) → headers sticky bien sous le Dynamic
+     Island, contenu scrollable rentre exactement dans la zone disponible. */
   .h-screen, .min-h-screen {
     height: 100% !important;
     min-height: 100% !important;
@@ -117,10 +93,12 @@ body {
   }
 }
 
-/* ─── Mode navigateur (non standalone) : pages publiques fixed inset-0 ─── */
-/* Hors PWA, les position:fixed sont relatives au viewport et collent aux
-   bords → on ajoute manuellement le safe-area-top/bottom pour eviter le
-   chevauchement avec le notch / Dynamic Island. */
+/* ─── Pages publiques fixed inset-0 : safe-area top + bottom ─── */
+/* Les pages Landing/Mentions/CGU/CGV/Privacy/Support utilisent position:fixed
+   pour echapper au shell mobile 430px (responsive desktop). Comme fixed est
+   relatif au viewport, on ajoute leur propre padding safe-area pour eviter
+   le chevauchement avec le Dynamic Island et le home indicator. Vaut en PWA
+   ET en navigateur (env() retourne 0 si pas de zone safe). */
 .public-fixed-page {
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
