@@ -38,7 +38,10 @@ function WishThumb({ wish, size = 52 }) {
   const slug = wish?.category?.slug
   return (
     <div
-      className="rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center bg-[#EEF0FF]"
+      // rounded-xl (0.75rem) → distingue visuellement un voeu (carre arrondi)
+      // d'un avatar utilisateur (cercle parfait). Pattern Vinted / Marketplace
+      // pour signifier "produit / objet" vs "personne".
+      className="rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center bg-[#EEF0FF]"
       style={{ width: size, height: size }}
     >
       {coverUrl ? (
@@ -114,24 +117,61 @@ function ConversationItem({ conv, onClick, onDelete }) {
         <motion.button
           whileTap={{ scale: isOpen ? 1 : 0.98 }}
           onClick={handleClick}
-          className="flex items-center gap-3 w-full px-5 py-3 text-left bg-white"
+          className="flex items-center gap-3 w-full px-5 py-3 text-left relative"
+          // Background plus marque (bleute) si messages non lus → repere immediat
+          // dans la liste façon iMessage / WhatsApp.
+          style={{ background: conv.non_lus > 0 ? '#F2F4FF' : '#fff' }}
         >
+          {/* Barre verticale violette à gauche pour souligner la conv non-lue */}
+          {conv.non_lus > 0 && (
+            <span
+              className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full"
+              style={{ background: 'linear-gradient(180deg,#5B6BF5,#9B59F5)' }}
+            />
+          )}
+
           <WishThumb wish={conv.wish} />
           <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-bold text-[#1A1A2E] truncate">
+            <p
+              className={`text-[15px] truncate ${
+                conv.non_lus > 0 ? 'font-extrabold text-[#0F0F1F]' : 'font-bold text-[#1A1A2E]'
+              }`}
+            >
               {conv.wish_titre || 'Vœu'}
             </p>
-            <p className="text-[13px] font-medium text-[#4A4A5A] truncate">{conv.dernier_message}</p>
-            <p className="text-[12px] text-[#B0B0B0] truncate">
+            <p
+              className={`text-[13px] truncate ${
+                conv.non_lus > 0 ? 'font-semibold text-[#1A1A2E]' : 'font-medium text-[#8A8A9A]'
+              }`}
+            >
+              {conv.dernier_message}
+            </p>
+            <p
+              className={`text-[12px] truncate ${
+                conv.non_lus > 0 ? 'text-[#5B6BF5] font-semibold' : 'text-[#B0B0B0]'
+              }`}
+            >
               {conv.interlocuteur.pseudo || conv.interlocuteur.prenom}
               {conv.date && <span className="ml-1">· {conv.date}</span>}
             </p>
           </div>
           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-            <span className="text-[12px] text-[#8A8A9A]">{conv.heure}</span>
+            <span
+              className={`text-[12px] ${
+                conv.non_lus > 0 ? 'font-bold text-[#5B6BF5]' : 'text-[#8A8A9A]'
+              }`}
+            >
+              {conv.heure}
+            </span>
             {conv.non_lus > 0 && (
-              <span className="w-5 h-5 rounded-full bg-[#5B6BF5] text-white text-[10px] font-bold flex items-center justify-center">
-                {conv.non_lus}
+              <span
+                className="min-w-[20px] h-5 px-1.5 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)',
+                  boxShadow: '0 2px 6px rgba(91,107,245,0.35)',
+                }}
+              >
+                {conv.non_lus > 99 ? '99+' : conv.non_lus}
               </span>
             )}
           </div>
