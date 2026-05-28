@@ -176,6 +176,30 @@ export default function Chat() {
     }
   }, [conversations, id, userId])
 
+  // Realtime listener sur le voeu de cette conversation. Sans ca, quand le
+  // Maker clique "J'ai realise ce voeu", le Wisher (deja dans le chat) ne
+  // voit jamais la banniere de confirmation apparaitre — il faudrait qu'il
+  // ferme et reouvre la conv. Le listener fait remonter les updates instant.
+  useEffect(() => {
+    const wid = convData?.wish_id || convData?.wish?.id
+    if (!wid) return
+    const channel = supabase
+      .channel(`wish:${wid}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'wishes', filter: `id=eq.${wid}` },
+        (payload) => {
+          const fresh = payload.new
+          if (!fresh) return
+          setWishStatut(fresh.statut || '')
+          setMarkedRealizedAt(fresh.marked_realized_at || null)
+          setMarkedRealizedBy(fresh.marked_realized_by || null)
+        }
+      )
+      .subscribe()
+    return () => { try { supabase.removeChannel(channel) } catch {} }
+  }, [convData?.wish_id, convData?.wish?.id])
+
   // Ne PAS ouvrir automatiquement la modal — l'utilisateur clique sur "Noter" s'il veut noter
 
   useEffect(() => {
