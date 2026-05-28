@@ -24,7 +24,12 @@ export default function Landing() {
     // depuis les boutons Se connecter / S'inscrire).
     <div
       className="fixed inset-0 z-[1000] bg-white text-[#1A1A2E] antialiased flex flex-col overflow-hidden"
-      style={{ width: '100vw', maxWidth: '100vw' }}
+      style={{
+        width: '100vw',
+        maxWidth: '100vw',
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
     >
 
       {/* ── Header sticky ── */}

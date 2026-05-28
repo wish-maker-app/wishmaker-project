@@ -54,10 +54,12 @@ body {
 }
 
 /* ─── PWA standalone mode (iOS safe areas) ─── */
+/* Strategie : les safe areas sont gerees par chaque composant qui en a besoin
+   (header sticky, BottomTabBar, pages fixed inset-0). On evite de les declarer
+   au niveau HTML car cela provoque du double padding (HTML + composant) et des
+   bugs visibles (navbar trop haute, headers decales). */
 @media all and (display-mode: standalone) {
   html {
-    min-height: calc(100% + env(safe-area-inset-top));
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     background: #FFFFFF !important;
     overscroll-behavior: none;
   }
@@ -76,7 +78,10 @@ body {
     min-height: 100% !important;
     overflow: hidden;
     box-shadow: none;
-    padding-top: 0;
+    /* On garde le padding-top safe-area sur #root (cf base style) → le header
+       sticky des pages internes (Home, Profile, etc.) s'affiche bien sous le
+       Dynamic Island. Les pages fixed inset-0 (Landing, Mentions, CGU, etc.)
+       gerent leur propre safe-area inline. */
   }
 
   /* En standalone, les pages prennent la hauteur exacte de l'écran */

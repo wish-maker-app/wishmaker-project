@@ -14,7 +14,12 @@ export default function CGU() {
   return (
     <div
       className="fixed inset-0 z-[1000] bg-white text-[#1A1A2E] antialiased flex flex-col overflow-hidden"
-      style={{ width: '100vw', maxWidth: '100vw' }}
+      style={{
+        width: '100vw',
+        maxWidth: '100vw',
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
     >
       {/* Header */}
       <header className="border-b border-[#EEEEF2] flex-shrink-0 bg-white/80 backdrop-blur-md">
