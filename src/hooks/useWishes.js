@@ -225,11 +225,14 @@ export function useWishes() {
     if (error) throw error
   }
 
-  async function updateWish(wishId, { titre, description, type_recompense, montant_recompense, adresse, latitude, longitude, tags, tag_ids, category_id }) {
+  async function updateWish(wishId, { titre, description, type_recompense, montant_recompense, prestation_type, prestation_montant, adresse, latitude, longitude, tags, tag_ids, category_id }) {
     setLoading(true)
     try {
       const updateFields = { titre, description, type_recompense, montant_recompense, adresse, latitude, longitude }
       if (category_id !== undefined) updateFields.category_id = category_id
+      // Nouveaux champs prestation (Sur devis / Budget) — optionnels
+      if (prestation_type !== undefined) updateFields.prestation_type = prestation_type
+      if (prestation_montant !== undefined) updateFields.prestation_montant = prestation_montant
       const { error } = await supabase
         .from('wishes')
         .update(updateFields)

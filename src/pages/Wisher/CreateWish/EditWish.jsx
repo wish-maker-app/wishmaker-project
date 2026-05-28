@@ -42,6 +42,9 @@ export default function EditWish() {
   const [selectedTagIds, setSelectedTagIds] = useState([])
   const [recompenseType, setRecompenseType] = useState('bon_procede')
   const [montant, setMontant] = useState('')
+  // Nouveaux champs prestation (optionnel) — synchros avec Recap.jsx
+  const [prestationType, setPrestationType] = useState(null) // 'devis' | 'budget' | null
+  const [prestationMontant, setPrestationMontant] = useState('')
   const [pageLoading, setPageLoading] = useState(true)
   // Images : existantes (from DB) + nouvelles (from file picker)
   const [existingImages, setExistingImages] = useState([]) // { id, url, is_cover }
@@ -60,6 +63,8 @@ export default function EditWish() {
         setSelectedTagIds(w.tag_ids || [])
         setRecompenseType(w.type_recompense || 'bon_procede')
         setMontant(w.montant_recompense ? String(w.montant_recompense) : '')
+        setPrestationType(w.prestation_type || null)
+        setPrestationMontant(w.prestation_montant ? String(w.prestation_montant) : '')
         setExistingImages(w.images?.map((img, i) => ({ id: `existing-${i}`, url: img.url, is_cover: img.is_cover })) || [])
       } catch {
         toast.error('Erreur de chargement')
@@ -134,6 +139,8 @@ export default function EditWish() {
         description,
         type_recompense: recompenseType,
         montant_recompense: recompenseType === 'argent' ? parseFloat(montant) || null : null,
+        prestation_type: prestationType,
+        prestation_montant: prestationType === 'budget' ? parseFloat(prestationMontant) || null : null,
         adresse: wish.adresse,
         latitude: wish.latitude,
         longitude: wish.longitude,
@@ -273,35 +280,88 @@ export default function EditWish() {
             )}
           </div>
 
-          {/* Récompense */}
+          {/* Récompense (Maker pour la mise en relation) */}
           <div className="flex flex-col gap-3">
-            <label className="text-sm font-medium text-[#1A1A2E]">Récompense</label>
+            <div>
+              <label className="text-sm font-medium text-[#1A1A2E]">Récompense</label>
+              <p className="text-[11.5px] text-[#8A8A9A] mt-0.5 leading-snug">
+                Petit montant que le Maker touche pour avoir répondu à votre vœu.
+              </p>
+            </div>
             <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setRecompenseType('argent')}
-                className="flex-1 py-3 rounded-full text-sm font-semibold transition-all"
-                style={recompenseType === 'argent'
-                  ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
-                  : { border: '1.5px solid #D1D5DB', color: '#8A8A9A', background: 'transparent' }
-                }
-              >
-                Argent
-              </button>
-              <button
-                type="button"
-                onClick={() => setRecompenseType('bon_procede')}
-                className="flex-1 py-3 rounded-full text-sm font-semibold transition-all"
-                style={recompenseType === 'bon_procede'
-                  ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
-                  : { border: '1.5px solid #D1D5DB', color: '#8A8A9A', background: 'transparent' }
-                }
-              >
-                Bon procédé
-              </button>
+              {['argent', 'bon_procede'].map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setRecompenseType(mode)}
+                  className="flex-1 py-3 rounded-full text-sm font-semibold transition-all"
+                  style={recompenseType === mode
+                    ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', color: '#fff' }
+                    : { border: '1.5px solid #D1D5DB', color: '#8A8A9A', background: 'transparent' }
+                  }
+                >
+                  {mode === 'argent' ? 'Argent' : 'Bon procédé'}
+                </button>
+              ))}
             </div>
             {recompenseType === 'argent' && (
-              <Input label="Montant (€)" type="number" value={montant} onChange={(e) => setMontant(e.target.value)} placeholder="Ex: 15" />
+              <Input label="Montant (€)" type="number" value={montant} onChange={(e) => setMontant(e.target.value)} placeholder="Ex: 5" />
+            )}
+          </div>
+
+          {/* Prestation (optionnel) — coût éventuel de la prestation elle-même */}
+          <div className="flex flex-col gap-3">
+            <div>
+              <label className="text-sm font-medium text-[#1A1A2E]">
+                Prestation <span className="text-[11px] text-[#8A8A9A] font-normal">(optionnel)</span>
+              </label>
+              <p className="text-[11.5px] text-[#8A8A9A] mt-0.5 leading-snug">
+                Coût éventuel de la prestation elle-même (réglé directement au Maker).
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              {[
+                { id: 'devis', label: 'Sur devis', sub: 'Les Makers vous envoient un devis via la messagerie' },
+                { id: 'budget', label: 'Budget de la prestation', sub: 'Vous indiquez le budget que vous êtes prêt à mettre' },
+              ].map((mode) => {
+                const active = prestationType === mode.id
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    // Toggle : click sur l'option active → désélection (revient à null)
+                    onClick={() => setPrestationType(active ? null : mode.id)}
+                    className="text-left rounded-2xl px-4 py-3 border-2 transition-all"
+                    style={active
+                      ? { borderColor: '#5B6BF5', background: '#FAFBFF' }
+                      : { borderColor: '#F0F0F0', background: '#fff' }
+                    }
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-bold text-[#1A1A2E]">{mode.label}</p>
+                        <p className="text-[11.5px] text-[#8A8A9A] leading-snug mt-0.5">{mode.sub}</p>
+                      </div>
+                      <span
+                        className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
+                        style={active
+                          ? { background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }
+                          : { border: '1.5px solid #D0D0D8', background: '#fff' }
+                        }
+                      >
+                        {active && (
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            {prestationType === 'budget' && (
+              <Input label="Budget (€)" type="number" value={prestationMontant} onChange={(e) => setPrestationMontant(e.target.value)} placeholder="Ex: 20" />
             )}
           </div>
 
