@@ -230,7 +230,11 @@
         "apercu_sans": "Aperçu sans photo",
         "cover": "Cover",
         "ajouter": "Ajouter",
-        "passer": "Passer cette étape"
+        "passer": "Passer cette étape",
+        "verification": "Vérification…",
+        "verification_sub": "Analyse du contenu",
+        "compression": "Compression…",
+        "compression_sub": "Optimisation pour le réseau"
       },
       "step3": {
         "geoloc_unsupported": "Géolocalisation non supportée",

@@ -49,6 +49,8 @@ export default function Step2() {
   // On l'utilise pour afficher des slots-spinner provisoires dans la grille,
   // pendant que NSFW.js charge le modèle (~40MB la 1ère fois sur 4G).
   const [processing, setProcessing] = useState(0)
+  // Etape en cours pour l'UI : 'verify' (verification NSFW) | 'compress' (compression) | null
+  const [stage, setStage] = useState(null)
 
   // Prewarm NSFW.js DECLENCHE PAR LE CLIC sur "Ajouter photo" uniquement.
   // L'user qui n'ajoute pas de photo ne telecharge JAMAIS les 40Mo. Le
@@ -68,6 +70,7 @@ export default function Step2() {
     e.target.value = '' // reset tout de suite pour permettre re-sélection
 
     setProcessing(files.length)
+    setStage('verify')
     try {
       // Modération NSFW avant compression (bloque tout de suite si illicite)
       const { moderateImages } = await import('../../../lib/moderationImage')
@@ -78,6 +81,7 @@ export default function Step2() {
       }
 
       // Compression côté client : photo iPhone 4 MB → ~200-300 KB
+      setStage('compress')
       const { compressImage } = await import('../../../lib/imageCompression')
       const compressedFiles = await Promise.all(
         files.map(async (file) => {
@@ -99,6 +103,7 @@ export default function Step2() {
       setImages([...images, ...newImages])
     } finally {
       setProcessing(0)
+      setStage(null)
     }
   }
 
@@ -184,21 +189,43 @@ export default function Step2() {
             ))}
           </AnimatePresence>
 
-          {/* Slots-spinner pour les fichiers en cours de traitement (modération + compression).
-              Affichés au moment du choix de fichier, masqués dès que les vraies previews
-              s'ajoutent. Permet à l'user de voir que ça travaille pendant le DL du modèle. */}
+          {/* Slot-preview animé pour les fichiers en cours de traitement.
+              Étape : 'verify' (vérification NSFW.js) puis 'compress' (compression).
+              Le texte est clair, gros, et change selon l'étape pour rassurer l'user. */}
           {Array.from({ length: processing }).map((_, i) => (
             <div
               key={`processing-${i}`}
-              className="aspect-square rounded-2xl bg-[#F5F5F7] flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#D0D0E0]"
+              className="aspect-square rounded-2xl flex flex-col items-center justify-center gap-2 p-3 relative overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #EEF0FF, #F2E9FF)',
+                border: '2px dashed #C5CBFF',
+              }}
             >
-              <svg className="animate-spin" width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="#5B6BF5" strokeWidth="3"/>
-                <path className="opacity-75" fill="#5B6BF5" d="M4 12a8 8 0 018-8v8H4z"/>
-              </svg>
-              <span className="text-[9px] font-medium text-[#8A8A9A] text-center px-1">
-                Analyse…
-              </span>
+              {/* Cercle gradient en rotation */}
+              <div className="relative w-9 h-9">
+                <svg className="animate-spin absolute inset-0" width="36" height="36" viewBox="0 0 36 36" fill="none">
+                  <circle cx="18" cy="18" r="15" stroke="#D4DAFF" strokeWidth="3" fill="none"/>
+                  <path d="M18 3 a15 15 0 0 1 0 30" stroke="url(#gradStage)" strokeWidth="3" strokeLinecap="round" fill="none"/>
+                  <defs>
+                    <linearGradient id="gradStage" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#5B6BF5"/>
+                      <stop offset="100%" stopColor="#9B59F5"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <div className="text-center">
+                <p className="text-[11px] font-bold text-[#1A1A2E] leading-tight">
+                  {stage === 'compress'
+                    ? t('wisher.create.step2.compression') ?? 'Compression…'
+                    : t('wisher.create.step2.verification') ?? 'Vérification…'}
+                </p>
+                <p className="text-[9px] text-[#8A8A9A] mt-0.5 leading-tight">
+                  {stage === 'compress'
+                    ? t('wisher.create.step2.compression_sub') ?? 'Optimisation pour le réseau'
+                    : t('wisher.create.step2.verification_sub') ?? 'Analyse du contenu'}
+                </p>
+              </div>
             </div>
           ))}
 

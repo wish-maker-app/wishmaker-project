@@ -230,7 +230,11 @@
         "apercu_sans": "Vista previa sin foto",
         "cover": "Portada",
         "ajouter": "Añadir",
-        "passer": "Saltar este paso"
+        "passer": "Saltar este paso",
+        "verification": "Verificando…",
+        "verification_sub": "Analizando el contenido",
+        "compression": "Comprimiendo…",
+        "compression_sub": "Optimizando para la red"
       },
       "step3": {
         "geoloc_unsupported": "Geolocalización no compatible",
