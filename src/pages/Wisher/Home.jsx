@@ -83,14 +83,17 @@ function ConfirmModal({ open, onClose, title, description, price, buttonLabel, o
   )
 }
 
-function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
+function WishCard({ wish, onExtend, onMakeUrgent, onDelete, onConfirmRealization }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const exp = expirationInfo(wish.expires_at, t)
   const isActive = wish.statut === 'en_attente' || wish.statut === 'en_cours'
   const isExpired = wish.statut === 'expire' || wish.statut === 'annule' || (isActive && exp?.expired)
   const coverUrl = wish.images?.[0]?.url || null
+  // Un Maker a marque ce voeu comme realise → on attend la confirmation du Wisher
+  const awaitingConfirmation = !!wish.marked_realized_at && wish.statut !== 'realise'
 
   return (
     <motion.div
@@ -162,6 +165,45 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete }) {
           </>
         )}
       </AnimatePresence>
+
+      {/* Banniere "Un Maker a marque ce voeu comme realise" — TRES visible, en haut de la card.
+          Le Wisher peut confirmer en 1 clic SANS aller dans la conversation. */}
+      {awaitingConfirmation && (
+        <div className="px-4 pt-3.5 pb-3" style={{ background: 'linear-gradient(135deg,#ECFDF5,#D1FAE5)', borderBottom: '1px solid #A7F3D0' }}>
+          <div className="flex items-start gap-2.5 mb-2.5">
+            <span className="text-lg leading-none mt-0.5">✅</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12.5px] font-bold text-[#065F46] leading-snug">
+                Un Maker a indiqué avoir réalisé ce vœu
+              </p>
+              <p className="text-[11px] text-[#047857] mt-0.5 leading-snug">
+                Confirmez si c'est exact pour clôturer la mise en relation.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={async (e) => {
+                e.stopPropagation()
+                if (confirming) return
+                setConfirming(true)
+                try { await onConfirmRealization?.(wish) } finally { setConfirming(false) }
+              }}
+              disabled={confirming}
+              className="flex-1 h-9 rounded-full text-[12px] font-bold text-white disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}
+            >
+              {confirming ? 'Confirmation…' : '✓ Confirmer la réalisation'}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/messages?wishId=${wish.id}`) }}
+              className="h-9 px-4 rounded-full text-[12px] font-semibold text-[#065F46] border border-[#A7F3D0] bg-white"
+            >
+              💬 Discuter
+            </button>
+          </div>
+        </div>
+      )}
 
       <div onClick={() => navigate(`/maker/wish/${wish.id}?owner=1`)} className="cursor-pointer">
         {/* Photo de couverture ou fallback catégorie */}
@@ -241,7 +283,7 @@ export default function WisherHome() {
   const user = useAuthStore((s) => s.profile)
   const authTick = useAuthStore((s) => s.authTick)
   const wishDurationHours = useConfigStore((s) => s.wish_duration_hours)
-  const { getMyWishes, extendWish, makeUrgent, deleteWish } = useWishes()
+  const { getMyWishes, extendWish, makeUrgent, deleteWish, confirmRealization } = useWishes()
   // Hydratation depuis le cache (évite l'écran vide à chaque retour sur la page)
   const [wishes, setWishes] = useState(() => getCached('my_wishes')?.value || [])
   const [loading, setLoading] = useState(() => !getCached('my_wishes'))
@@ -686,6 +728,17 @@ export default function WisherHome() {
                     onExtend={(w) => setModal({ type: 'extend', wish: w })}
                     onMakeUrgent={(w) => setModal({ type: 'urgent', wish: w })}
                     onDelete={(w) => setModal({ type: 'delete', wish: w })}
+                    onConfirmRealization={async (w) => {
+                      try {
+                        await confirmRealization(w.id)
+                        toast.success('Vœu confirmé comme réalisé ! 🎉')
+                        const updated = await getMyWishes()
+                        setWishes(updated)
+                        setCached('my_wishes', updated)
+                      } catch (err) {
+                        toast.error(err.message || 'Erreur')
+                      }
+                    }}
                   />
                 ))
               ) : (
