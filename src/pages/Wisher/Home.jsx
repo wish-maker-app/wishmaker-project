@@ -16,16 +16,9 @@ import lampeGenieIcon from '../../assets/lampe-genie.svg'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import { CATEGORY_ICONS, CATEGORY_COLORS } from '../../lib/categoryIcons'
 
-// Exemples de vœux affichés en carrousel quand l'utilisateur a fermé la bannière Astuce.
-// Chaque exemple est associé à un slug de catégorie pour afficher l'icône + couleur.
-const WISH_EXAMPLES = [
-  { text: 'Quelqu’un pour monter mes meubles ce soir ?', slug: 'delegue' },
-  { text: 'J’ai besoin de farine pour finir mon gâteau', slug: 'sauve' },
-  { text: 'J’aimerais un jour monter dans une voiture de rallye', slug: 'exauce' },
-  { text: 'Cherche un coach pour me remettre au sport', slug: 'soin' },
-  { text: 'À l’aide, trouve-moi un DJ pour mon mariage', slug: 'divertis' },
-  { text: 'Ma voiture ne démarre plus, quelqu’un a-t-il des pinces ?', slug: 'transport' },
-]
+// Slugs des exemples de voeux (couleur + icone par categorie).
+// Les textes sont dans i18n : wisher.home.exemples (FR/EN/ES).
+const WISH_EXAMPLE_SLUGS = ['delegue', 'sauve', 'exauce', 'soin', 'divertis', 'transport']
 
 const TABS = ['en_attente', 'realise', 'expire']
 
@@ -605,7 +598,7 @@ export default function WisherHome() {
         ) : (
           <div className="mb-5">
             <p className="px-5 text-xs font-semibold text-[#8A8A9A] uppercase tracking-wide mb-2">
-              Exemples de vœux
+              {t('wisher.home.exemples_titre')}
             </p>
             {/* Carrousel "aimante" facon Airbnb :
                 - snap-x + snap-mandatory + scroll-snap-stop:always → on ne peut pas
@@ -619,27 +612,33 @@ export default function WisherHome() {
               className="flex gap-3 overflow-x-auto px-5 pb-2 snap-x snap-mandatory scrollbar-hide"
               style={{ scrollPaddingLeft: '20px', scrollPaddingRight: '20px' }}
             >
-              {WISH_EXAMPLES.map((ex, i) => {
-                const Icon = CATEGORY_ICONS[ex.slug]
-                const theme = CATEGORY_COLORS[ex.slug]
-                return (
-                  <div
-                    key={i}
-                    className="flex-shrink-0 w-[260px] rounded-2xl bg-white border border-[#F0F0F0] p-3 flex items-center gap-3 snap-start"
-                    style={{ scrollSnapStop: 'always' }}
-                  >
+              {(() => {
+                // Recupere les textes traduits depuis i18n (fallback array vide)
+                const texts = t('wisher.home.exemples', { returnObjects: true })
+                const exemples = Array.isArray(texts) ? texts : []
+                return exemples.map((text, i) => {
+                  const slug = WISH_EXAMPLE_SLUGS[i] || 'autre'
+                  const Icon = CATEGORY_ICONS[slug]
+                  const theme = CATEGORY_COLORS[slug]
+                  return (
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
-                      style={{ background: theme?.grad }}
+                      key={i}
+                      className="flex-shrink-0 w-[260px] rounded-2xl bg-white border border-[#F0F0F0] p-3 flex items-center gap-3 snap-start"
+                      style={{ scrollSnapStop: 'always' }}
                     >
-                      {Icon && <Icon size={20} stroke={2.2} />}
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
+                        style={{ background: theme?.grad }}
+                      >
+                        {Icon && <Icon size={20} stroke={2.2} />}
+                      </div>
+                      <p className="text-xs text-[#1A1A2E] leading-snug line-clamp-3">
+                        « {text} »
+                      </p>
                     </div>
-                    <p className="text-xs text-[#1A1A2E] leading-snug line-clamp-3">
-                      « {ex.text} »
-                    </p>
-                  </div>
-                )
-              })}
+                  )
+                })
+              })()}
             </div>
           </div>
         )}

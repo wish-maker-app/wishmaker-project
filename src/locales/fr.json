@@ -161,6 +161,15 @@
       "make_wish_sub": "Publie ton vœu et laisse les Makers t'aider",
       "astuce_titre": "Astuce",
       "astuce_text": "Ajoute des photos, une localisation précise et une récompense pour attirer plus de Makers !",
+      "exemples_titre": "Exemples de vœux",
+      "exemples": [
+        "Quelqu'un pour monter mes meubles ce soir ?",
+        "J'ai besoin de farine pour finir mon gâteau",
+        "J'aimerais un jour monter dans une voiture de rallye",
+        "Cherche un coach pour me remettre au sport",
+        "À l'aide, trouve-moi un DJ pour mon mariage",
+        "Ma voiture ne démarre plus, quelqu'un a-t-il des pinces ?"
+      ],
       "expire": "Expiré",
       "expire_dans_h": "Expire dans {{h}}h {{m}}min",
       "expire_dans_min": "Expire dans {{m}}min",

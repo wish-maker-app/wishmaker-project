@@ -161,6 +161,15 @@
       "make_wish_sub": "Publica tu deseo y deja que los Makers te ayuden",
       "astuce_titre": "Consejo",
       "astuce_text": "¡Añade fotos, una ubicación precisa y una recompensa para atraer a más Makers!",
+      "exemples_titre": "Ejemplos de deseos",
+      "exemples": [
+        "¿Alguien para montar mis muebles esta noche?",
+        "Necesito harina para terminar mi pastel",
+        "Me encantaría subirme algún día a un coche de rally",
+        "Busco un coach para volver a hacer deporte",
+        "¡Ayuda, encuéntrenme un DJ para mi boda!",
+        "Mi coche no arranca, ¿alguien tiene pinzas?"
+      ],
       "expire": "Caducado",
       "expire_dans_h": "Caduca en {{h}}h {{m}}min",
       "expire_dans_min": "Caduca en {{m}}min",

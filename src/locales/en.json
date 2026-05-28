@@ -161,6 +161,15 @@
       "make_wish_sub": "Post your wish and let Makers help you",
       "astuce_titre": "Tip",
       "astuce_text": "Add photos, a precise location and a reward to your wishes to attract more Makers!",
+      "exemples_titre": "Wish examples",
+      "exemples": [
+        "Anyone to assemble my furniture tonight?",
+        "I need some flour to finish my cake",
+        "I'd love to ride in a rally car one day",
+        "Looking for a coach to get back into sports",
+        "Help, find me a DJ for my wedding",
+        "My car won't start, anyone has jumper cables?"
+      ],
       "expire": "Expired",
       "expire_dans_h": "Expires in {{h}}h {{m}}min",
       "expire_dans_min": "Expires in {{m}}min",
