@@ -1,4 +1,4 @@
-import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, animate, useDragControls } from 'framer-motion'
 import { useEffect } from 'react'
 
 /**
@@ -35,6 +35,11 @@ export default function BottomSheet({
   showHandle = true,
 }) {
   const y = useMotionValue(0)
+  // dragControls : on declenche le drag depuis le handle uniquement.
+  // dragListener=false desactive les listeners par defaut, et on appelle
+  // dragControls.start(e) sur onPointerDown du handle pour declencher
+  // manuellement. Evite le conflit avec overflow-y-auto du contenu.
+  const dragControls = useDragControls()
 
   // Reset position quand on rouvre
   useEffect(() => {
@@ -74,26 +79,37 @@ export default function BottomSheet({
             className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop"
           />
 
-          {/* Sheet */}
+          {/* Sheet (drag manuel via dragControls depuis le handle uniquement) */}
           <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
             drag="y"
+            dragControls={dragControls}
+            dragListener={false}
             dragConstraints={{ top: 0 }}
             dragElastic={{ top: 0, bottom: 0.5 }}
-            style={{ y, maxHeight }}
+            dragMomentum={false}
+            style={{ y }}
             onDragEnd={handleDragEnd}
-            className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-3 bottom-sheet overflow-y-auto ${className}`}
+            className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] flex flex-col bottom-sheet ${className}`}
           >
-            {/* Handle bar — drag target naturel */}
+            {/* Handle bar — declenche le drag (touch + souris) via onPointerDown */}
             {showHandle && (
-              <div className="w-full flex justify-center pb-2 cursor-grab active:cursor-grabbing">
-                <div className="w-10 h-1 rounded-full bg-[#E0E0E0]" />
+              <div
+                onPointerDown={(e) => dragControls.start(e)}
+                className="w-full pt-3 pb-2 flex justify-center cursor-grab active:cursor-grabbing select-none"
+                style={{ touchAction: 'none' }}
+              >
+                <div className="w-12 h-1.5 rounded-full bg-[#D0D0D8]" />
               </div>
             )}
-            {children}
+
+            {/* Contenu scrollable separe → pas de conflit avec overflow-y */}
+            <div className="px-5 pb-8 pt-1 overflow-y-auto" style={{ maxHeight }}>
+              {children}
+            </div>
           </motion.div>
         </>
       )}
