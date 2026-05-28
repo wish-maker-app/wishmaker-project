@@ -148,11 +148,22 @@ export async function checkContent(text) {
   const violations = []
 
   // 1) Admin Supabase : substring match (mots OU phrases)
+  // PROTECTION ANTI-FAUX-POSITIF : si le mot interdit normalise fait < 3 chars,
+  // on bascule sur du whole-word match (sinon "xxx" → collapse-doublons → "x"
+  // et match TOUT mot contenant la lettre x : voeux, taxi, exemple, deux...).
   const customWords = await loadCustomWords()
   for (const w of customWords) {
     if (!w.normalized) continue
     const n = w.normalized
-    if (normalized.includes(n) || compact.includes(n.replace(/\s+/g, ''))) {
+    const compactN = n.replace(/\s+/g, '')
+    if (compactN.length < 3) {
+      // Mot trop court : whole-word match uniquement sur les tokens
+      if (tokens.includes(compactN)) {
+        violations.push({ mot: w.mot, categorie: w.categorie })
+      }
+      continue
+    }
+    if (normalized.includes(n) || compact.includes(compactN)) {
       violations.push({ mot: w.mot, categorie: w.categorie })
     }
   }
