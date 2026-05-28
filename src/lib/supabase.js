@@ -16,7 +16,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // jamais resoudre → spinner infini sur les pages qui en dependent.
 //
 // Notre wrapper :
-// 1. Met un timeout par requete (4s par defaut, configurable)
+// 1. Met un timeout par requete (4s par defaut, 60s pour les uploads)
 // 2. Si timeout → AbortController abort proprement (libere la connexion morte)
 // 3. Retry une fois automatiquement avec une connexion fraiche
 // 4. Si 2e timeout → throw, l'UI peut gerer l'erreur normalement
@@ -24,15 +24,32 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Effet : transparent pour le code metier (toutes les queries supabase en
 // beneficient), pas de spinner infini, et 99% des cas resolus en <50ms.
 const FETCH_TIMEOUT_MS = 4000
+const UPLOAD_TIMEOUT_MS = 60000 // 60s pour les uploads (photos peuvent etre lourdes en 4G/3G)
+
+// Detecte si une requete est un upload Supabase Storage. Les uploads ont :
+// - URL contenant '/storage/v1/' (endpoints Supabase Storage)
+// - ET un body binaire (File / Blob / FormData / ArrayBuffer)
+// On leur applique un timeout beaucoup plus genereux + PAS de retry (un retry
+// d'upload partiel = renvoyer toute l'image, gaspillage data mobile).
+function isStorageUpload(input, init) {
+  const url = typeof input === 'string' ? input : input?.url || ''
+  if (!url.includes('/storage/v1/')) return false
+  const body = init?.body
+  if (!body) return false
+  return body instanceof Blob || body instanceof FormData || body instanceof ArrayBuffer
+}
 
 async function resilientFetch(input, init = {}) {
+  const isUpload = isStorageUpload(input, init)
+  const timeoutMs = isUpload ? UPLOAD_TIMEOUT_MS : FETCH_TIMEOUT_MS
+
   const attemptFetch = (attempt = 1) => {
     const controller = new AbortController()
     // Si l'appelant fournit son propre signal, on respecte la composition
     if (init.signal) {
       init.signal.addEventListener('abort', () => controller.abort(), { once: true })
     }
-    const timeoutId = setTimeout(() => controller.abort('timeout'), FETCH_TIMEOUT_MS)
+    const timeoutId = setTimeout(() => controller.abort('timeout'), timeoutMs)
 
     return fetch(input, { ...init, signal: controller.signal })
       .then((res) => {
@@ -42,8 +59,10 @@ async function resilientFetch(input, init = {}) {
       .catch(async (err) => {
         clearTimeout(timeoutId)
         const isTimeout = err?.name === 'AbortError' || err?.message === 'timeout'
-        // Retry une seule fois sur timeout (avec nouvelle connexion fraiche)
-        if (isTimeout && attempt === 1) {
+        // Retry une seule fois sur timeout — sauf pour les uploads (re-envoyer
+        // une image lourde sur connexion lente n'aiderait pas, le retry timeout
+        // pareil et l'user gaspille sa data).
+        if (isTimeout && attempt === 1 && !isUpload) {
           console.warn(`[supabase] fetch timeout, retry #${attempt + 1}…`, input)
           return attemptFetch(attempt + 1)
         }
