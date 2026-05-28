@@ -369,10 +369,20 @@ export default function Chat() {
           }}
         >
           <div className="relative flex-shrink-0">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs border border-[#E8E8E8]"
-              style={{ background: 'linear-gradient(135deg,#8A8A9A,#B0B0B0)' }}>
-              {interlocuteur?.prenom?.[0]}{interlocuteur?.nom?.[0]}
-            </div>
+            {interlocuteur?.avatar_url ? (
+              <img
+                src={interlocuteur.avatar_url}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="w-10 h-10 rounded-full object-cover border border-[#E8E8E8]"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs border border-[#E8E8E8]"
+                style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>
+                {(interlocuteur?.prenom?.[0] || '') + (interlocuteur?.nom?.[0] || '') || '?'}
+              </div>
+            )}
             {interlocuteur.is_online && (
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-white" />
             )}
