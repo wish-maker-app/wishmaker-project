@@ -68,12 +68,23 @@ export default function Step1() {
   // dispo instantanément à Step2/Step4 (au lieu de recharger à chaque mount).
   useCatalog()
 
-  // Prewarm le modèle NSFW.js en arrière-plan pendant que l'user tape titre/desc.
-  // Comme ça quand il arrive à Step2 et uploade une photo, le modèle (40MB) est
-  // déjà en cache → modération quasi-instantanée. Si l'user passe vite (titre
-  // court), le DL continue en background sans gêner.
+  // Prewarm le modèle NSFW.js en arrière-plan APRES que la page soit
+  // interactive. Sinon le parsing TensorFlow.js (chunk ~10Mo + 40Mo de poids
+  // modele) bloque le thread principal 3-4s au mount → impossible de cliquer
+  // dans les inputs ou sur Retour pendant ce temps. On differe via requestIdle
+  // Callback (ou setTimeout fallback) : l'user peut taper son titre tranquille
+  // pendant que le modele se charge en background sans la moindre frame drop.
   useEffect(() => {
-    import('../../../lib/moderationImage').then((m) => m.prewarmModerationModel?.())
+    const schedulePrewarm = () => {
+      import('../../../lib/moderationImage').then((m) => m.prewarmModerationModel?.())
+    }
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(schedulePrewarm, { timeout: 3000 })
+      return () => window.cancelIdleCallback?.(id)
+    }
+    // Fallback Safari : 1.5s apres le mount, l'user a deja commence a taper
+    const id = setTimeout(schedulePrewarm, 1500)
+    return () => clearTimeout(id)
   }, [])
 
   const checkModeration = useCallback(async () => {
