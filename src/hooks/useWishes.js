@@ -262,14 +262,12 @@ export function useWishes() {
   // Étape 1 : le Maker indique avoir réalisé le vœu (en attente de confirmation Wisher)
   // → envoie également une notification push au Wisher pour l'alerter qu'il a
   //   une action à faire (confirmer la réalisation dans la conversation).
+  // IMPORTANT : on passe par une RPC SECURITY DEFINER car la RLS wishes_update_own
+  // n'autorise que le Wisher a UPDATE — le Maker n'a pas le droit. La RPC verifie
+  // que l'appelant est bien Maker dans une conversation sur ce voeu et fait le
+  // UPDATE en interne.
   async function markRealizedByMaker(wishId, conversationId = null) {
-    const { error } = await supabase
-      .from('wishes')
-      .update({
-        marked_realized_at: new Date().toISOString(),
-        marked_realized_by: user.id,
-      })
-      .eq('id', wishId)
+    const { error } = await supabase.rpc('mark_wish_realized_by_maker', { p_wish_id: wishId })
     if (error) throw error
 
     // Notification push au Wisher (best-effort, ne bloque pas si ça rate)
