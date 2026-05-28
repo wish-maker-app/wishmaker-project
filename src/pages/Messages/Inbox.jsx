@@ -8,6 +8,7 @@ import useAuthStore from '../../store/authStore'
 import { useMessages } from '../../hooks/useMessages'
 import { supabase } from '../../lib/supabase'
 import CategoryFallback from '../../components/ui/CategoryFallback'
+import BottomSheet from '../../components/ui/BottomSheet'
 
 const SWIPE_REVEAL = 80  // px que le bouton occupe quand révélé
 const SWIPE_THRESHOLD = 50  // px minimum à draguer pour snap ouvert
@@ -175,48 +176,32 @@ function ConversationItem({ conv, onClick, onDelete }) {
 
 function ConfirmDeleteModal({ open, convName, onClose, onConfirm, loading }) {
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop"
-          />
-          <motion.div
-            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
-          >
-            <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
-            <div className="text-center mb-4">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: '#FEE2E2' }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="3,6 5,6 21,6"/>
-                  <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-                  <path d="M10 11v6M14 11v6"/>
-                </svg>
-              </div>
-              <h2 className="text-lg font-bold text-[#1A1A2E]">Supprimer la conversation</h2>
-              <p className="text-sm text-[#8A8A9A] mt-1 max-w-[280px] mx-auto">
-                Toute la conversation {convName ? `avec ${convName}` : ''} et ses messages seront supprimés définitivement. Cette action est irréversible.
-              </p>
-            </div>
-            <button
-              onClick={onConfirm}
-              disabled={loading}
-              className="w-full h-[52px] rounded-full text-white font-bold text-[15px] mb-2 disabled:opacity-50"
-              style={{ background: '#EF4444' }}
-            >
-              {loading ? 'Suppression…' : 'Supprimer définitivement'}
-            </button>
-            <button onClick={onClose} className="w-full text-sm text-[#8A8A9A] py-2">
-              Annuler
-            </button>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    <BottomSheet open={open} onClose={onClose}>
+      <div className="text-center mb-4">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: '#FEE2E2' }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3,6 5,6 21,6"/>
+            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6"/>
+          </svg>
+        </div>
+        <h2 className="text-lg font-bold text-[#1A1A2E]">Supprimer la conversation</h2>
+        <p className="text-sm text-[#8A8A9A] mt-1 max-w-[280px] mx-auto">
+          Toute la conversation {convName ? `avec ${convName}` : ''} et ses messages seront supprimés définitivement. Cette action est irréversible.
+        </p>
+      </div>
+      <button
+        onClick={onConfirm}
+        disabled={loading}
+        className="w-full h-[52px] rounded-full text-white font-bold text-[15px] mb-2 disabled:opacity-50"
+        style={{ background: '#EF4444' }}
+      >
+        {loading ? 'Suppression…' : 'Supprimer définitivement'}
+      </button>
+      <button onClick={onClose} className="w-full text-sm text-[#8A8A9A] py-2">
+        Annuler
+      </button>
+    </BottomSheet>
   )
 }
 
