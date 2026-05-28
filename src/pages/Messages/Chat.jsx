@@ -9,24 +9,15 @@ import { useWishes } from '../../hooks/useWishes'
 import { checkContent } from '../../lib/moderation'
 import { supabase } from '../../lib/supabase'
 import CategoryFallback from '../../components/ui/CategoryFallback'
+import BottomSheet from '../../components/ui/BottomSheet'
 
 function RatingModal({ open, onClose, onSubmit, interlocuteurName, loading }) {
   const [note, setNote] = useState(0)
   const [hovered, setHovered] = useState(0)
   const [commentaire, setCommentaire] = useState('')
 
-  if (!open) return null
-
   return (
-    <>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop" />
-      <motion.div
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
-      >
-        <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+    <BottomSheet open={open} onClose={onClose}>
         <div className="text-center mb-5">
           <span className="text-4xl mb-2 block">⭐</span>
           <h2 className="text-lg font-bold text-[#1A1A2E] mb-1">Notez {interlocuteurName}</h2>
@@ -79,8 +70,7 @@ function RatingModal({ open, onClose, onSubmit, interlocuteurName, loading }) {
         <button onClick={onClose} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">
           Plus tard
         </button>
-      </motion.div>
-    </>
+    </BottomSheet>
   )
 }
 
@@ -764,95 +754,63 @@ export default function Chat() {
       </form>
 
       {/* Modal confirmation "Marquer comme réalisé" */}
-      <AnimatePresence>
-        {showConfirmRealise && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowConfirmRealise(false)}
-              className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop" />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
-            >
-              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
-              <div className="text-center mb-5">
-                <span className="text-4xl mb-2 block">✅</span>
-                <h2 className="text-lg font-bold text-[#1A1A2E] mb-1">Confirmer la réalisation</h2>
-                <p className="text-sm text-[#8A8A9A]">
-                  Confirmez-vous que <span className="font-semibold text-[#5B6BF5]">{interlocuteurName}</span> a bien réalisé votre vœu ?
-                </p>
-              </div>
-              <button
-                onClick={handleMarkRealized}
-                className="w-full h-12 rounded-full text-white font-bold text-sm"
-                style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}
-              >
-                Oui, le vœu est réalisé !
-              </button>
-              <button onClick={() => setShowConfirmRealise(false)}
-                className="w-full mt-3 text-sm text-[#8A8A9A] text-center">
-                Annuler
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <BottomSheet open={showConfirmRealise} onClose={() => setShowConfirmRealise(false)}>
+        <div className="text-center mb-5">
+          <span className="text-4xl mb-2 block">✅</span>
+          <h2 className="text-lg font-bold text-[#1A1A2E] mb-1">Confirmer la réalisation</h2>
+          <p className="text-sm text-[#8A8A9A]">
+            Confirmez-vous que <span className="font-semibold text-[#5B6BF5]">{interlocuteurName}</span> a bien réalisé votre vœu ?
+          </p>
+        </div>
+        <button
+          onClick={handleMarkRealized}
+          className="w-full h-12 rounded-full text-white font-bold text-sm"
+          style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)' }}
+        >
+          Oui, le vœu est réalisé !
+        </button>
+        <button onClick={() => setShowConfirmRealise(false)}
+          className="w-full mt-3 text-sm text-[#8A8A9A] text-center">
+          Annuler
+        </button>
+      </BottomSheet>
 
       {/* Modal notation */}
-      <AnimatePresence>
-        <RatingModal
-          open={showRating}
-          onClose={() => setShowRating(false)}
-          onSubmit={handleSubmitRating}
-          interlocuteurName={interlocuteurName}
-          loading={ratingLoading}
-        />
-      </AnimatePresence>
+      <RatingModal
+        open={showRating}
+        onClose={() => setShowRating(false)}
+        onSubmit={handleSubmitRating}
+        interlocuteurName={interlocuteurName}
+        loading={ratingLoading}
+      />
 
       {/* Modal confirmation suppression conversation */}
-      <AnimatePresence>
-        {showDeleteConv && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowDeleteConv(false)}
-              className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop"
-            />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
-            >
-              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
-              <div className="text-center mb-4">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: '#FEE2E2' }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="3,6 5,6 21,6"/>
-                    <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-                    <path d="M10 11v6M14 11v6"/>
-                  </svg>
-                </div>
-                <h2 className="text-lg font-bold text-[#1A1A2E]">Supprimer la conversation</h2>
-                <p className="text-sm text-[#8A8A9A] mt-1 max-w-[280px] mx-auto">
-                  Toute la conversation avec {interlocuteurName} et ses messages seront supprimés définitivement. Cette action est irréversible.
-                </p>
-              </div>
-              <button
-                onClick={handleDeleteConv}
-                disabled={deletingConv}
-                className="w-full h-[52px] rounded-full text-white font-bold text-[15px] mb-2 disabled:opacity-50"
-                style={{ background: '#EF4444' }}
-              >
-                {deletingConv ? 'Suppression…' : 'Supprimer définitivement'}
-              </button>
-              <button onClick={() => setShowDeleteConv(false)} className="w-full text-sm text-[#8A8A9A] py-2">
-                Annuler
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <BottomSheet open={showDeleteConv} onClose={() => setShowDeleteConv(false)}>
+        <div className="text-center mb-4">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: '#FEE2E2' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3,6 5,6 21,6"/>
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+            </svg>
+          </div>
+          <h2 className="text-lg font-bold text-[#1A1A2E]">Supprimer la conversation</h2>
+          <p className="text-sm text-[#8A8A9A] mt-1 max-w-[280px] mx-auto">
+            Toute la conversation avec {interlocuteurName} et ses messages seront supprimés définitivement. Cette action est irréversible.
+          </p>
+        </div>
+        <button
+          onClick={handleDeleteConv}
+          disabled={deletingConv}
+          className="w-full h-[52px] rounded-full text-white font-bold text-[15px] mb-2 disabled:opacity-50"
+          style={{ background: '#EF4444' }}
+        >
+          {deletingConv ? 'Suppression…' : 'Supprimer définitivement'}
+        </button>
+        <button onClick={() => setShowDeleteConv(false)} className="w-full text-sm text-[#8A8A9A] py-2">
+          Annuler
+        </button>
+      </BottomSheet>
 
     </div>
   )

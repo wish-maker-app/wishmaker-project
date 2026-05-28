@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
+import BottomSheet from '../../../components/ui/BottomSheet'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import useWishFormStore from '../../../store/wishFormStore'
@@ -465,22 +466,9 @@ export default function Recap() {
       </div>
 
       {/* Modal paiement urgent (option urgent — applique au bon procédé OU argent) */}
-      <AnimatePresence>
-        {showUrgentModal && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowUrgentModal(false)}
-              className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop"
-            />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
-            >
-              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+      <BottomSheet open={showUrgentModal} onClose={() => setShowUrgentModal(false)}>
               <div className="text-center mb-4">
-                <span className="text-4xl mb-2 block">{'\u26A1'}</span>
+                <span className="text-4xl mb-2 block">\u26A1</span>
                 <h2 className="text-lg font-bold text-[#1A1A2E]">{t('wisher.create.recap.modal_urgent_titre')}</h2>
                 <p className="text-sm text-[#8A8A9A] mt-1">{t('wisher.create.recap.modal_urgent_sub')}</p>
               </div>
@@ -512,10 +500,7 @@ export default function Recap() {
               >
                 {t('wisher.create.recap.modal_urgent_skip')}
               </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      </BottomSheet>
     </div>
   )
 }

@@ -17,6 +17,7 @@ import { useMessages } from '../../hooks/useMessages'
 import { formatLocation, fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
 import FavoriteButton from '../../components/ui/FavoriteButton'
 import CategoryFallback from '../../components/ui/CategoryFallback'
+import BottomSheet from '../../components/ui/BottomSheet'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -126,8 +127,6 @@ function ReportModal({ open, onClose, type, reasons, onSubmit }) {
   const [otherText, setOtherText] = useState('')
   const [sending, setSending] = useState(false)
 
-  if (!open) return null
-
   async function handleSubmit() {
     const raison = selectedReason === 'Autre' ? otherText : selectedReason
     if (!raison.trim()) return
@@ -138,15 +137,7 @@ function ReportModal({ open, onClose, type, reasons, onSubmit }) {
   }
 
   return (
-    <>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose} className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop" />
-      <motion.div
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 max-h-[80vh] overflow-y-auto bottom-sheet"
-      >
-        <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
+    <BottomSheet open={open} onClose={onClose} maxHeight="80vh">
         <h2 className="text-lg font-bold text-[#1A1A2E] mb-4">
           🚩 Signaler ce {type === 'voeu' ? 'vœu' : 'profil'}
         </h2>
@@ -185,8 +176,7 @@ function ReportModal({ open, onClose, type, reasons, onSubmit }) {
         >
           {sending ? 'Envoi...' : 'Envoyer le signalement'}
         </button>
-      </motion.div>
-    </>
+    </BottomSheet>
   )
 }
 
@@ -627,18 +617,7 @@ export default function WishDetail() {
       </div>
 
       {/* Bottom sheet — Proposer de réaliser */}
-      <AnimatePresence>
-        {showProposal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowProposal(false)} className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop" />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
-            >
-              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-5" />
-
+      <BottomSheet open={showProposal} onClose={() => setShowProposal(false)}>
               {/* Récap du voeu */}
               <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#F7F8FC] mb-5">
                 {wish.images?.[0]?.url ? (
@@ -713,38 +692,22 @@ export default function WishDetail() {
                 {sendingProposal ? 'Envoi...' : 'Envoyer ma proposition'}
               </button>
               <button onClick={() => setShowProposal(false)} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">Annuler</button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      </BottomSheet>
 
       {/* Modal suppression */}
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowDeleteConfirm(false)} className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop" />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
-            >
-              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
-              <h2 className="text-lg font-bold text-[#1A1A2E] mb-2">Supprimer ce vœu ?</h2>
-              <p className="text-sm text-[#8A8A9A] mb-5">Cette action est irréversible. Le vœu et toutes ses données seront supprimés définitivement.</p>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="w-full h-12 rounded-full text-white font-bold text-sm disabled:opacity-50"
-                style={{ background: '#EF4444' }}
-              >
-                {deleting ? 'Suppression...' : 'Supprimer'}
-              </button>
-              <button onClick={() => setShowDeleteConfirm(false)} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">Annuler</button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <BottomSheet open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)}>
+        <h2 className="text-lg font-bold text-[#1A1A2E] mb-2">Supprimer ce vœu ?</h2>
+        <p className="text-sm text-[#8A8A9A] mb-5">Cette action est irréversible. Le vœu et toutes ses données seront supprimés définitivement.</p>
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="w-full h-12 rounded-full text-white font-bold text-sm disabled:opacity-50"
+          style={{ background: '#EF4444' }}
+        >
+          {deleting ? 'Suppression...' : 'Supprimer'}
+        </button>
+        <button onClick={() => setShowDeleteConfirm(false)} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">Annuler</button>
+      </BottomSheet>
 
       {/* Modals signalement */}
       <AnimatePresence>

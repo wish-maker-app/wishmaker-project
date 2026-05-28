@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import BottomSheet from '../../components/ui/BottomSheet'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -55,31 +56,21 @@ function expirationInfo(expiresAt, t) {
 }
 
 function ConfirmModal({ open, onClose, title, description, price, buttonLabel, onConfirm, loading }) {
-  if (!open) return null
   return (
-    <>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose} className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop" />
-      <motion.div
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
+    <BottomSheet open={open} onClose={onClose}>
+      <h2 className="text-lg font-bold text-[#1A1A2E] mb-2">{title}</h2>
+      <p className="text-sm text-[#8A8A9A] mb-1">{description}</p>
+      <p className="text-base font-bold text-[#1A1A2E] mb-5">{price}</p>
+      <button
+        onClick={onConfirm}
+        disabled={loading}
+        className="w-full h-12 rounded-full text-white font-bold text-sm"
+        style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
       >
-        <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
-        <h2 className="text-lg font-bold text-[#1A1A2E] mb-2">{title}</h2>
-        <p className="text-sm text-[#8A8A9A] mb-1">{description}</p>
-        <p className="text-base font-bold text-[#1A1A2E] mb-5">{price}</p>
-        <button
-          onClick={onConfirm}
-          disabled={loading}
-          className="w-full h-12 rounded-full text-white font-bold text-sm"
-          style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
-        >
-          {loading ? 'Traitement...' : buttonLabel}
-        </button>
-        <button onClick={onClose} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">Annuler</button>
-      </motion.div>
-    </>
+        {loading ? 'Traitement...' : buttonLabel}
+      </button>
+      <button onClick={onClose} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">Annuler</button>
+    </BottomSheet>
   )
 }
 
@@ -825,42 +816,30 @@ export default function WisherHome() {
       />
 
       {/* Modal paiement Stripe (Urgent 0.99€ / Prolongation 0.99€) */}
-      <AnimatePresence>
+      <BottomSheet open={!!paymentModal} onClose={handlePaymentCancel} maxHeight="90vh">
         {paymentModal && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={handlePaymentCancel}
-              className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop"
+            <div className="text-center mb-5">
+              <span className="text-3xl mb-2 block">
+                {paymentModal.type === 'urgent_boost' ? '⚡' : '⏱️'}
+              </span>
+              <h2 className="text-lg font-bold text-[#1A1A2E]">{paymentModal.label}</h2>
+              <p className="text-sm text-[#8A8A9A] mt-1">
+                {paymentModal.type === 'urgent_boost'
+                  ? 'Votre vœu sera mis en avant pendant 24h'
+                  : 'Votre vœu sera prolongé de 48h supplémentaires'}
+              </p>
+            </div>
+            <PaymentForm
+              type={paymentModal.type}
+              wish_id={paymentModal.wish_id}
+              onSuccess={handlePaymentSuccess}
+              onCancel={handlePaymentCancel}
+              submitLabel={paymentModal.type === 'urgent_boost' ? 'Payer 1,99€' : 'Payer 0,99€'}
             />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 max-h-[90vh] overflow-y-auto bottom-sheet"
-            >
-              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
-              <div className="text-center mb-5">
-                <span className="text-3xl mb-2 block">
-                  {paymentModal.type === 'urgent_boost' ? '⚡' : '⏱️'}
-                </span>
-                <h2 className="text-lg font-bold text-[#1A1A2E]">{paymentModal.label}</h2>
-                <p className="text-sm text-[#8A8A9A] mt-1">
-                  {paymentModal.type === 'urgent_boost'
-                    ? 'Votre vœu sera mis en avant pendant 24h'
-                    : 'Votre vœu sera prolongé de 48h supplémentaires'}
-                </p>
-              </div>
-              <PaymentForm
-                type={paymentModal.type}
-                wish_id={paymentModal.wish_id}
-                onSuccess={handlePaymentSuccess}
-                onCancel={handlePaymentCancel}
-                submitLabel={paymentModal.type === 'urgent_boost' ? 'Payer 1,99€' : 'Payer 0,99€'}
-              />
-            </motion.div>
           </>
         )}
-      </AnimatePresence>
+      </BottomSheet>
 
       <BottomTabBar />
     </div>

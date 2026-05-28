@@ -17,6 +17,7 @@ import { fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
 import FavoriteButton from '../../components/ui/FavoriteButton'
 import { useFavorites } from '../../hooks/useFavorites'
 import CategoryFallback from '../../components/ui/CategoryFallback'
+import BottomSheet from '../../components/ui/BottomSheet'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import { useUserTagSubscriptions } from '../../hooks/useTags'
 import { getCached, setCached } from '../../lib/wishesCache'
@@ -984,49 +985,39 @@ export default function MakerHome() {
       </div>
 
       {/* Modal message après acceptation swipe */}
-      <AnimatePresence>
+      <BottomSheet open={!!acceptedWish} onClose={handleCancelAccept}>
         {acceptedWish && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={handleCancelAccept}
-              className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop" />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[28px] z-[901] px-5 pb-8 pt-4 bottom-sheet"
+            <h2 className="text-lg font-bold text-[#1A1A2E] mb-1">Vous souhaitez réaliser ce vœu !</h2>
+            <p className="text-sm text-[#8A8A9A] mb-4">
+              Envoyez un message à <span className="font-semibold text-[#5B6BF5]">
+                {acceptedWish.wisher?.pseudo || acceptedWish.wisher?.prenom}
+              </span> pour vous présenter.
+            </p>
+            <p className="text-xs font-semibold text-[#1A1A2E] mb-2">{acceptedWish.titre}</p>
+            <textarea
+              value={acceptMessage}
+              onChange={(e) => setAcceptMessage(e.target.value)}
+              placeholder={t('maker.home.msg_placeholder')}
+              rows={4}
+              className="w-full bg-[#F7F8FC] rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] outline-none resize-none mb-4"
+            />
+            <button
+              onClick={handleSendAcceptMessage}
+              className="w-full h-12 rounded-full text-white font-bold text-sm"
+              style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
             >
-              <div className="w-10 h-1 rounded-full bg-[#E0E0E0] mx-auto mb-4" />
-              <h2 className="text-lg font-bold text-[#1A1A2E] mb-1">Vous souhaitez réaliser ce vœu !</h2>
-              <p className="text-sm text-[#8A8A9A] mb-4">
-                Envoyez un message à <span className="font-semibold text-[#5B6BF5]">
-                  {acceptedWish.wisher?.pseudo || acceptedWish.wisher?.prenom}
-                </span> pour vous présenter.
-              </p>
-              <p className="text-xs font-semibold text-[#1A1A2E] mb-2">{acceptedWish.titre}</p>
-              <textarea
-                value={acceptMessage}
-                onChange={(e) => setAcceptMessage(e.target.value)}
-                placeholder={t('maker.home.msg_placeholder')}
-                rows={4}
-                className="w-full bg-[#F7F8FC] rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] outline-none resize-none mb-4"
-              />
-              <button
-                onClick={handleSendAcceptMessage}
-                className="w-full h-12 rounded-full text-white font-bold text-sm"
-                style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
-              >
-                {acceptMessage.trim() ? 'Envoyer le message' : 'Envoyer un message'}
-              </button>
-              <button
-                onClick={handleCancelAccept}
-                className="w-full mt-3 h-10 rounded-full border border-[#E0E0E0] text-sm text-[#8A8A9A] font-semibold"
-              >
-                Annuler
-              </button>
-            </motion.div>
+              {acceptMessage.trim() ? 'Envoyer le message' : 'Envoyer un message'}
+            </button>
+            <button
+              onClick={handleCancelAccept}
+              className="w-full mt-3 h-10 rounded-full border border-[#E0E0E0] text-sm text-[#8A8A9A] font-semibold"
+            >
+              Annuler
+            </button>
           </>
         )}
-      </AnimatePresence>
+      </BottomSheet>
 
       <BottomTabBar />
     </div>
