@@ -510,7 +510,19 @@ export default function MakerHome() {
 
   const [loadError, setLoadError] = useState(null)
 
-  const refetchWishes = useCallback(() => {
+  // Dedup anti "deuxième vague" : evite les fetchs en double declenches quasi
+  // simultanement (fetch au mount + bump authTick de useAuth + focus/visibility
+  // + rafales realtime). inFlightRef = une requete est en cours ; lastFetchTsRef
+  // = horodatage du dernier fetch. On skip si une requete tourne deja, ou si la
+  // derniere date de moins de 1.5s (sauf force=true). Sûr car la query attend
+  // deja getSession() en interne → la 1re requete a toujours une session valide.
+  const inFlightRef = useRef(false)
+  const lastFetchTsRef = useRef(0)
+
+  const refetchWishes = useCallback((force = false) => {
+    if (inFlightRef.current) return
+    if (!force && Date.now() - lastFetchTsRef.current < 1500) return
+    inFlightRef.current = true
     getAvailableWishes()
       .then((w) => {
         setWishes(w)
@@ -533,6 +545,10 @@ export default function MakerHome() {
           toast('Données peut-être désynchronisées', { icon: '⚠️' })
         }
       })
+      .finally(() => {
+        inFlightRef.current = false
+        lastFetchTsRef.current = Date.now()
+      })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -540,21 +556,15 @@ export default function MakerHome() {
     refetchWishes()
   }, [authTick, refetchWishes])
 
-  // Refetch quand l'user revient sur l'onglet (focus / visibilité)
+  // Refetch quand l'app repasse au premier plan. visibilitychange suffit
+  // ('focus' faisait doublon → 2 fetchs au retour d'onglet). Le dedup de
+  // refetchWishes absorbe de toute façon les triggers concurrents.
   useEffect(() => {
-    function onFocus() {
-      // Refetch silencieux : on garde les données affichées pendant l'update
-      refetchWishes()
-    }
     function onVisibility() {
       if (document.visibilityState === 'visible') refetchWishes()
     }
-    window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onVisibility)
-    return () => {
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onVisibility)
-    }
+    return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [refetchWishes])
 
   // Realtime : nouveau wish publié / modifié / supprimé → refetch silencieux

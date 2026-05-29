@@ -342,7 +342,15 @@ export default function WisherHome() {
 
   const [, setTick] = useState(0)
 
-  const refetchWishes = useCallback(() => {
+  // Dedup anti "deuxième vague" : voir Maker/Home pour le détail. Absorbe le
+  // fetch au mount + le bump authTick + focus/visibility + rafales realtime.
+  const inFlightRef = useRef(false)
+  const lastFetchTsRef = useRef(0)
+
+  const refetchWishes = useCallback((force = false) => {
+    if (inFlightRef.current) return
+    if (!force && Date.now() - lastFetchTsRef.current < 1500) return
+    inFlightRef.current = true
     getMyWishes()
       .then((w) => {
         setWishes(w)
@@ -360,6 +368,10 @@ export default function WisherHome() {
         // Pas de toast si on a déjà un cache (UX silencieuse)
         if (!getCached('my_wishes')) toast.error('Erreur de chargement')
       })
+      .finally(() => {
+        inFlightRef.current = false
+        lastFetchTsRef.current = Date.now()
+      })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -371,18 +383,13 @@ export default function WisherHome() {
     }
   }, [authTick, refetchWishes])
 
-  // Refetch quand l'user revient sur l'onglet (focus / visibilité)
+  // Refetch au retour au premier plan (visibilitychange seul ; 'focus' faisait doublon).
   useEffect(() => {
-    function onFocus() { refetchWishes() }
     function onVisibility() {
       if (document.visibilityState === 'visible') refetchWishes()
     }
-    window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onVisibility)
-    return () => {
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onVisibility)
-    }
+    return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [refetchWishes])
 
   // Realtime : changements sur ses wishes (statut, expiration, urgent…) → refetch silencieux
@@ -400,13 +407,8 @@ export default function WisherHome() {
     return () => { supabase.removeChannel(channel) }
   }, [user?.id, refetchWishes])
 
-  // Polling fallback toutes les 30s
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') refetchWishes()
-    }, 30000)
-    return () => clearInterval(interval)
-  }, [refetchWishes])
+  // Polling 30s supprimé (comme sur Maker/Home) : le Realtime + le refetch
+  // on-visibility suffisent ; ça evitait un re-render lourd toutes les 30s.
 
   // Rafraîchir le compte à rebours toutes les minutes
   useEffect(() => {

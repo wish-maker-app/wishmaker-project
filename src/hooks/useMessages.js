@@ -11,10 +11,20 @@ export function useMessages(conversationId = null) {
   const [loading, setLoading] = useState(false)
   const channelRef = useRef(null)
   const mountedRef = useRef(true)
+  // Dedup loadConversations : l'Inbox declenche cette query via plusieurs
+  // sources qui se chevauchent (authTick, realtime x3, focus/visibility).
+  // inFlight = requete en cours ; lastTs = dernier chargement. On skip si une
+  // requete tourne deja ou si la derniere date de < 1.5s (sauf force=true).
+  const convInFlightRef = useRef(false)
+  const lastConvTsRef = useRef(0)
 
   // Charge les conversations de l'utilisateur
-  async function loadConversations() {
+  async function loadConversations(opts = {}) {
     if (!user) return
+    const { force = false } = opts
+    if (convInFlightRef.current) return
+    if (!force && Date.now() - lastConvTsRef.current < 1500) return
+    convInFlightRef.current = true
     // On ne déclenche un loading "blocking" que s'il n'y a rien en cache.
     // Sinon le user voit ses conversations cachées et le refetch se fait silencieux.
     const hasCache = !!getCached('conversations')
@@ -46,6 +56,8 @@ export function useMessages(conversationId = null) {
       }
     } finally {
       setLoading(false)
+      convInFlightRef.current = false
+      lastConvTsRef.current = Date.now()
     }
   }
 

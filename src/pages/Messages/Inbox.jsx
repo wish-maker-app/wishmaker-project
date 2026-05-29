@@ -275,31 +275,19 @@ export default function Inbox() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
-  // Polling fallback toutes les 30s (au cas où Realtime drop)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        loadConversations().catch(() => {})
-      }
-    }, 30000)
-    return () => clearInterval(interval)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Polling 30s supprimé : le Realtime + le refetch on-visibility suffisent.
+  // loadConversations est désormais dédupliqué dans useMessages (in-flight +
+  // fenêtre 1.5s), donc les triggers concurrents ne provoquent plus de rafale.
 
-  // Refetch quand l'user revient sur l'onglet (focus / visibility)
+  // Refetch au retour au premier plan (visibilitychange seul ; 'focus' faisait doublon)
   useEffect(() => {
-    function onFocus() {
-      loadConversations().catch((err) => console.error('[Inbox refocus]', err))
-    }
     function onVisibility() {
-      if (document.visibilityState === 'visible') onFocus()
+      if (document.visibilityState === 'visible') {
+        loadConversations().catch((err) => console.error('[Inbox refocus]', err))
+      }
     }
-    window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onVisibility)
-    return () => {
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onVisibility)
-    }
+    return () => document.removeEventListener('visibilitychange', onVisibility)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
