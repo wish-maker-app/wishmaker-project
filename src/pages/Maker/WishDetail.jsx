@@ -221,9 +221,16 @@ export default function WishDetail() {
   const [loadStatus, setLoadStatus] = useState('loading') // 'loading' | 'ok' | 'error' | 'not-found'
 
   useEffect(() => {
-    setLoadStatus('loading')
+    // Garde anti-reponse-perimee : si authTick bump (retour d'arriere-plan)
+    // re-declenche l'effet alors que la 1re requete est encore en vol, on
+    // ignore le resultat (succes OU rejet) de l'ancienne pour ne pas ecraser
+    // l'etat de la nouvelle. Sinon : 1re requete bloquee -> rejette a 8s APRES
+    // que la 2e a reussi -> ecran d'erreur clignote sur un voeu pourtant charge.
+    let stale = false
+    setLoadStatus((s) => (s === 'ok' && wish ? s : 'loading'))
     getWishById(id)
       .then((w) => {
+        if (stale) return
         if (!w) {
           setLoadStatus('not-found')
           return
@@ -232,6 +239,7 @@ export default function WishDetail() {
         setLoadStatus('ok')
       })
       .catch((err) => {
+        if (stale) return
         console.error('[WishDetail]', err)
         // Code Supabase PGRST116 = "ressource introuvable" via .single()
         if (err?.code === 'PGRST116' || err?.message?.includes('not found')) {
@@ -240,9 +248,11 @@ export default function WishDetail() {
           setLoadStatus('error')
         }
       })
+    return () => { stale = true }
   }, [id, authTick])
-  // authTick : re-fetch quand on revient d'arriere-plan (visibilitychange dans
-  // useAuth bump authTick) → debloque les promises "fantomes" pausees.
+  // authTick : re-fetch quand on revient d'arriere-plan (window focus OU
+  // visibilitychange bumpent authTick dans useAuth) → debloque les requetes
+  // "fantomes" pausees pendant que la fenetre etait en arriere-plan.
 
   // ---- Fallbacks : pas de spinner infini ----
   if (loadStatus === 'loading' && !wish) {

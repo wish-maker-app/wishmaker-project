@@ -59,14 +59,23 @@ export function useAuth() {
       }
     })()
 
-    // ─── Gestion visibilitychange ───
-    // Quand l'app revient d'arriere-plan (utilisateur revient sur l'onglet/PWA
-    // apres avoir bascule sur une autre app), le navigateur a pu suspendre des
-    // requetes en cours qui ne se resolvent jamais (promise "fantome"). Le token
-    // peut aussi etre expire silencieusement. On force un refresh + un bump
-    // authTick pour que les pages re-fetchent leur data avec un token valide.
-    async function handleVisibilityChange() {
-      if (document.visibilityState !== 'visible') return
+    // ─── Réveil de l'app (retour d'arrière-plan) ───
+    // Deux évènements DISTINCTS à couvrir :
+    //  - 'visibilitychange' (visible) : changement d'onglet, minimisation, ou
+    //    réveil PWA mobile.
+    //  - window 'focus' : sur DESKTOP, quand on bascule vers une AUTRE APP
+    //    (ex: éditeur de code) en laissant la fenêtre Chrome visible, le
+    //    navigateur ne déclenche PAS visibilitychange (la page reste "visible")
+    //    mais déclenche bien blur/focus. Sans ce handler, l'app ne se
+    //    re-synchronise jamais au retour d'app → connexion réseau morte →
+    //    la requête suivante (ex: ouvrir un vœu) hang.
+    // On reconnecte la session + Realtime et on bump authTick (les pages
+    // refetchent, et leur dedup absorbe un éventuel double déclenchement).
+    let lastResumeTs = 0
+    async function handleResume() {
+      // Anti double-run : focus + visibilitychange peuvent tomber ensemble.
+      if (Date.now() - lastResumeTs < 1000) return
+      lastResumeTs = Date.now()
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) return
@@ -79,14 +88,19 @@ export function useAuth() {
             try { supabase.realtime.setAuth(refreshed.session.access_token) } catch {}
           }
         }
-        // Bump systematique → force les pages a re-fetcher leur data,
-        // ce qui debloque les queries fantomes pausees pendant le suspend.
+        // Re-propage le JWT a Realtime (le socket a pu droper en arriere-plan)
+        try { supabase.realtime.setAuth(session.access_token) } catch {}
+        // Bump → les pages re-fetchent (et debloquent une eventuelle query morte)
         bumpAuthTick()
       } catch (err) {
-        console.warn('[useAuth] visibility refresh failed:', err?.message)
+        console.warn('[useAuth] resume refresh failed:', err?.message)
       }
     }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
+    function onVisibility() {
+      if (document.visibilityState === 'visible') handleResume()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('focus', handleResume)
 
     // Écoute les changements de session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -113,7 +127,8 @@ export function useAuth() {
 
     return () => {
       subscription.unsubscribe()
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('focus', handleResume)
     }
   }, [])
 
