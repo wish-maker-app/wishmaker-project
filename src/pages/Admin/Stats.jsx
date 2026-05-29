@@ -2,15 +2,15 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import useAuthStore from '../../store/authStore'
+import { getCached, setCached } from '../../lib/wishesCache'
 
 /**
  * Page Admin Stats — KPIs metier essentiels pour Christophe / Bastien.
  *
- * Phase 1 (vue d'ensemble) : 4 KPI cards + 2 mini-charts SVG (inscriptions
- * / voeux par jour sur 30j) + top mots-cles + top villes.
- *
- * Toutes les queries sont faites cote client (Supabase JS). L'user doit
- * etre is_admin pour acceder a la route — c'est aussi protege cote RLS.
+ * Tout est calcule cote serveur en UNE requete via la RPC get_admin_stats()
+ * (au lieu de 10 requetes client qui rapatriaient des tables entieres).
+ * Le resultat est mis en cache (cache memoire partage) -> reouverture instant,
+ * refresh silencieux en fond facon SWR.
  *
  * Phase 2 (plus tard) : analytics web via Plausible / events PostHog.
  */
@@ -18,11 +18,36 @@ export default function AdminStats() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const profile = useAuthStore((s) => s.profile)
-  const [loading, setLoading] = useState(true)
-  const [data, setData] = useState(null)
+  // Hydrate depuis le cache -> affichage instant a la reouverture
+  const [data, setData] = useState(() => getCached('admin_stats')?.value || null)
+  const [loading, setLoading] = useState(() => !getCached('admin_stats'))
 
-  // Garde admin cote client (la RLS BDD est la vraie barriere)
-  if (!user || !profile?.is_admin) {
+  const isAdmin = !!(user && profile?.is_admin)
+
+  // useEffect AVANT tout return conditionnel (regles des hooks). On ne charge
+  // que si admin.
+  useEffect(() => {
+    if (isAdmin) loadStats()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin])
+
+  async function loadStats() {
+    if (!getCached('admin_stats')) setLoading(true)
+    try {
+      // Tout est calcule cote serveur en une seule requete (RPC get_admin_stats).
+      const { data: stats, error } = await supabase.rpc('get_admin_stats')
+      if (error) throw error
+      setData(stats)
+      setCached('admin_stats', stats)
+    } catch (err) {
+      console.error('[admin/stats] error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Garde admin cote client (la RLS BDD + la RPC sont la vraie barriere)
+  if (!isAdmin) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4 px-6">
         <p className="text-lg font-bold text-[#EF4444]">Accès refusé</p>
@@ -33,85 +58,6 @@ export default function AdminStats() {
         </button>
       </div>
     )
-  }
-
-  useEffect(() => { loadStats() }, [])
-
-  async function loadStats() {
-    setLoading(true)
-    try {
-      // ─── KPIs totaux + delta 7j ───
-      const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-      const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-
-      const [
-        usersTotal, usersWeek,
-        wishesTotal, wishesWeek,
-        convsTotal,
-        txTotal,
-        users30d, wishes30d,
-        topTags, topCities,
-      ] = await Promise.all([
-        supabase.from('users').select('id', { count: 'exact', head: true }),
-        supabase.from('users').select('id', { count: 'exact', head: true }).gte('created_at', since7d),
-        supabase.from('wishes').select('id', { count: 'exact', head: true }),
-        supabase.from('wishes').select('id', { count: 'exact', head: true }).gte('created_at', since7d),
-        supabase.from('conversations').select('id', { count: 'exact', head: true }),
-        supabase.from('transactions').select('id, amount, status').eq('status', 'succeeded'),
-        supabase.from('users').select('created_at').gte('created_at', since30d),
-        supabase.from('wishes').select('created_at').gte('created_at', since30d),
-        // Top 10 tags via wish_tag_links → tags
-        supabase.from('wish_tag_links').select('tag_id, tags(label)'),
-        supabase.from('users').select('ville').not('ville', 'is', null),
-      ])
-
-      // Compteurs transactions (somme en centimes)
-      const txSucceeded = txTotal.data || []
-      const txCount = txSucceeded.length
-      const txSum = txSucceeded.reduce((acc, t) => acc + (t.amount || 0), 0)
-
-      // Series temporelles 30j (bucket par jour)
-      const usersSeries = bucketByDay(users30d.data || [], 30)
-      const wishesSeries = bucketByDay(wishes30d.data || [], 30)
-
-      // Top tags
-      const tagCounts = {}
-      ;(topTags.data || []).forEach(link => {
-        const label = link.tags?.label
-        if (!label) return
-        tagCounts[label] = (tagCounts[label] || 0) + 1
-      })
-      const topTagsArr = Object.entries(tagCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-
-      // Top villes
-      const cityCounts = {}
-      ;(topCities.data || []).forEach(u => {
-        if (!u.ville) return
-        cityCounts[u.ville] = (cityCounts[u.ville] || 0) + 1
-      })
-      const topCitiesArr = Object.entries(cityCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-
-      setData({
-        kpis: {
-          users: { total: usersTotal.count || 0, week: usersWeek.count || 0 },
-          wishes: { total: wishesTotal.count || 0, week: wishesWeek.count || 0 },
-          conversations: { total: convsTotal.count || 0 },
-          transactions: { count: txCount, sum: txSum },
-        },
-        usersSeries,
-        wishesSeries,
-        topTags: topTagsArr,
-        topCities: topCitiesArr,
-      })
-    } catch (err) {
-      console.error('[admin/stats] error:', err)
-    } finally {
-      setLoading(false)
-    }
   }
 
   if (loading) {
@@ -345,30 +291,4 @@ function ChartCard({ title, series, color }) {
       </div>
     </div>
   )
-}
-
-// ──────────────────────────────────────────────
-// Helpers
-// ──────────────────────────────────────────────
-
-/**
- * Regroupe les lignes (timestamps) par jour sur les N derniers jours.
- * Retourne un tableau de { date: 'YYYY-MM-DD', value: count } trie chronologique.
- */
-function bucketByDay(rows, days) {
-  const buckets = {}
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  // Initialise tous les jours a 0 pour avoir une serie continue
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today)
-    d.setDate(d.getDate() - i)
-    const key = d.toISOString().slice(0, 10)
-    buckets[key] = 0
-  }
-  rows.forEach(r => {
-    const key = (r.created_at || '').slice(0, 10)
-    if (key in buckets) buckets[key]++
-  })
-  return Object.entries(buckets).map(([date, value]) => ({ date, value }))
 }
