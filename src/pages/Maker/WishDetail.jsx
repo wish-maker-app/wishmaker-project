@@ -233,6 +233,8 @@ export default function WishDetail() {
       getWishById(id)
         .then((w) => {
           if (stale) return
+          // Succes → on libere le verrou d'auto-reload (connexion saine).
+          try { sessionStorage.removeItem('wd_auto_reload_ts') } catch {}
           if (!w) { setLoadStatus('not-found'); return }
           setWish(w)
           setLoadStatus('ok')
@@ -244,11 +246,27 @@ export default function WishDetail() {
             setLoadStatus('not-found')
             return
           }
-          // Timeout / reseau (typique au retour d'arriere-plan : connexion
-          // morte) → auto-retry jusqu'a 2 fois. La connexion se retablit
-          // souvent au 2e/3e essai (et useAuth focus a relance session+realtime).
           console.warn(`[WishDetail] echec chargement (essai ${attempts + 1})`, err?.message)
-          if (attempts < 2) {
+
+          // QUERY_TIMEOUT = la connexion HTTP/2 est morte (typique au retour
+          // d'arriere-plan desktop). Chrome reutilise la connexion morte donc
+          // les retries echouent aussi → le SEUL remede fiable est de recharger
+          // la page (= nouvelles connexions). Auto-reload, garde anti-boucle :
+          // 1 reload max / 30s (si la 2e tentative post-reload retimeout, c'est
+          // un vrai souci serveur → on tombe sur l'ecran d'erreur, pas de boucle).
+          if (err?.message === 'QUERY_TIMEOUT') {
+            let last = 0
+            try { last = Number(sessionStorage.getItem('wd_auto_reload_ts') || 0) } catch {}
+            if (Date.now() - last > 30000) {
+              try { sessionStorage.setItem('wd_auto_reload_ts', String(Date.now())) } catch {}
+              window.location.reload()
+              return
+            }
+          }
+
+          // Sinon (vraie erreur reseau, ou reload deja tente il y a < 30s) :
+          // un retry rapide, puis ecran d'erreur avec bouton Reessayer.
+          if (attempts < 1) {
             attempts++
             setTimeout(() => { if (!stale) tryLoad() }, 500)
           } else {
