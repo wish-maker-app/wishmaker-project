@@ -83,11 +83,15 @@ export function useWishes() {
     setLoading(true)
     try {
       await supabase.auth.getSession()
+      // On retourne TOUS les statuts (sauf pending_payment qui sont des drafts
+      // non publiés). Sinon impossible de calculer les compteurs "Réalisés" /
+      // "Actifs" sur la page profil — la consommation en aval (UserWishes.jsx)
+      // se charge du tri/filtre selon ce qu'elle veut afficher.
       const { data, error } = await withTimeout(supabase
         .from('wishes')
         .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
         .eq('wisher_id', userId)
-        .eq('statut', 'en_attente')
+        .neq('statut', 'pending_payment')
         .order('created_at', { ascending: false }))
       if (error) throw error
       const list = (data || []).map(normalizeWish)
