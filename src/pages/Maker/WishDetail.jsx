@@ -221,33 +221,43 @@ export default function WishDetail() {
   const [loadStatus, setLoadStatus] = useState('loading') // 'loading' | 'ok' | 'error' | 'not-found'
 
   useEffect(() => {
-    // Garde anti-reponse-perimee : si authTick bump (retour d'arriere-plan)
-    // re-declenche l'effet alors que la 1re requete est encore en vol, on
-    // ignore le resultat (succes OU rejet) de l'ancienne pour ne pas ecraser
-    // l'etat de la nouvelle. Sinon : 1re requete bloquee -> rejette a 8s APRES
-    // que la 2e a reussi -> ecran d'erreur clignote sur un voeu pourtant charge.
+    // stale : garde anti-reponse-perimee. Si authTick bump (retour d'arriere-
+    // plan) re-declenche l'effet alors qu'une requete est encore en vol, on
+    // ignore le resultat de l'ancienne pour ne pas ecraser l'etat de la nouvelle.
     let stale = false
+    let attempts = 0
+    // Ne re-affiche pas le spinner si le voeu est deja charge (refresh silencieux).
     setLoadStatus((s) => (s === 'ok' && wish ? s : 'loading'))
-    getWishById(id)
-      .then((w) => {
-        if (stale) return
-        if (!w) {
-          setLoadStatus('not-found')
-          return
-        }
-        setWish(w)
-        setLoadStatus('ok')
-      })
-      .catch((err) => {
-        if (stale) return
-        console.error('[WishDetail]', err)
-        // Code Supabase PGRST116 = "ressource introuvable" via .single()
-        if (err?.code === 'PGRST116' || err?.message?.includes('not found')) {
-          setLoadStatus('not-found')
-        } else {
-          setLoadStatus('error')
-        }
-      })
+
+    const tryLoad = () => {
+      getWishById(id)
+        .then((w) => {
+          if (stale) return
+          if (!w) { setLoadStatus('not-found'); return }
+          setWish(w)
+          setLoadStatus('ok')
+        })
+        .catch((err) => {
+          if (stale) return
+          // Vrai "introuvable" → pas de retry
+          if (err?.code === 'PGRST116' || err?.message?.includes('not found')) {
+            setLoadStatus('not-found')
+            return
+          }
+          // Timeout / reseau (typique au retour d'arriere-plan : connexion
+          // morte) → auto-retry jusqu'a 2 fois. La connexion se retablit
+          // souvent au 2e/3e essai (et useAuth focus a relance session+realtime).
+          console.warn(`[WishDetail] echec chargement (essai ${attempts + 1})`, err?.message)
+          if (attempts < 2) {
+            attempts++
+            setTimeout(() => { if (!stale) tryLoad() }, 500)
+          } else {
+            setLoadStatus('error')
+          }
+        })
+    }
+    tryLoad()
+
     return () => { stale = true }
   }, [id, authTick])
   // authTick : re-fetch quand on revient d'arriere-plan (window focus OU

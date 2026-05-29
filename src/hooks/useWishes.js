@@ -81,13 +81,23 @@ export function useWishes() {
   async function getWishById(id) {
     setLoading(true)
     try {
-      // Timeout + retry geres globalement dans lib/supabase.js (resilientFetch).
-      // Toutes les queries supabase beneficient du meme pattern automatiquement.
-      const { data, error } = await supabase
+      // Timeout DUR au niveau de la requete (Promise.race), EN PLUS du
+      // resilientFetch global. Raison : au retour d'arriere-plan (desktop :
+      // bascule d'app), supabase-js peut rester bloque AVANT meme le fetch()
+      // — dans la resolution interne de session/token (getSession/lock/refresh
+      // deferred). resilientFetch ne couvre que fetch(), donc ce blocage-la
+      // donnerait un spinner infini. Le race garantit que la promesse se
+      // resout/rejette toujours en < 4s, quelle que soit la cause. L'appelant
+      // (WishDetail) gere le retry automatique.
+      const query = supabase
         .from('wishes')
         .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
         .eq('id', id)
         .single()
+      const { data, error } = await Promise.race([
+        query,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('QUERY_TIMEOUT')), 4000)),
+      ])
       if (error) throw error
       return normalizeWish(data)
     } finally {
