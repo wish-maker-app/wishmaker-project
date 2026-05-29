@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import useAuthStore from '../store/authStore'
+import { getCached, setCached } from '../lib/wishesCache'
 
 function normalizeWish(wish) {
   if (!wish) return null
@@ -12,6 +13,19 @@ function normalizeWish(wish) {
     wisher: wish.wisher || undefined,
     category_slug: wish.category?.slug || null,
   }
+}
+
+// Cache par-voeu (cle `wish_<id>`) alimente par TOUS les fetchs de liste +
+// getWishById. Permet a la page detail (WishDetail) d'afficher le voeu
+// INSTANTANEMENT quand on clique depuis un feed (cache-first), sans spinner
+// ni dependance au reseau. Le refetch se fait ensuite en fond.
+function cacheWish(w) {
+  if (w?.id) setCached('wish_' + w.id, w)
+  return w
+}
+// Helper exporte pour l'hydratation initiale cote composant.
+export function getCachedWish(id) {
+  return id ? (getCached('wish_' + id)?.value || null) : null
 }
 
 export function useWishes() {
@@ -35,7 +49,9 @@ export function useWishes() {
       if (statut) query = query.eq('statut', statut)
       const { data, error } = await query
       if (error) throw error
-      return (data || []).map(normalizeWish)
+      const list = (data || []).map(normalizeWish)
+      list.forEach(cacheWish)
+      return list
     } finally {
       setLoading(false)
     }
@@ -55,7 +71,9 @@ export function useWishes() {
         .gte('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
       if (error) throw error
-      return (data || []).map(normalizeWish)
+      const list = (data || []).map(normalizeWish)
+      list.forEach(cacheWish)
+      return list
     } finally {
       setLoading(false)
     }
@@ -72,7 +90,9 @@ export function useWishes() {
         .eq('statut', 'en_attente')
         .order('created_at', { ascending: false })
       if (error) throw error
-      return (data || []).map(normalizeWish)
+      const list = (data || []).map(normalizeWish)
+      list.forEach(cacheWish)
+      return list
     } finally {
       setLoading(false)
     }
@@ -99,7 +119,7 @@ export function useWishes() {
         new Promise((_, reject) => setTimeout(() => reject(new Error('QUERY_TIMEOUT')), 4000)),
       ])
       if (error) throw error
-      return normalizeWish(data)
+      return cacheWish(normalizeWish(data))
     } finally {
       setLoading(false)
     }

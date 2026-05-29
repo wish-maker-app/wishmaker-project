@@ -12,7 +12,7 @@ import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
-import { useWishes } from '../../hooks/useWishes'
+import { useWishes, getCachedWish } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
 import { formatLocation, fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
 import FavoriteButton from '../../components/ui/FavoriteButton'
@@ -199,7 +199,9 @@ export default function WishDetail() {
   const authTick = useAuthStore((s) => s.authTick)
   const { getWishById, deleteWish, loading } = useWishes()
   const { createConversation, sendMessage } = useMessages()
-  const [wish, setWish] = useState(null)
+  // Cache-first : si on a deja vu ce voeu (clic depuis un feed), on l'affiche
+  // INSTANTANEMENT depuis le cache, sans spinner ni dependance reseau.
+  const [wish, setWish] = useState(() => getCachedWish(id))
   const [showMenu, setShowMenu] = useState(false)
   const [showReportWish, setShowReportWish] = useState(false)
   const [showReportProfile, setShowReportProfile] = useState(false)
@@ -218,42 +220,47 @@ export default function WishDetail() {
   const imgScale = useTransform(scrollY, [0, HERO_H], [1, 1.12])
   const imgOpacity = useTransform(scrollY, [0, HERO_H * 0.6], [1, 0.6])
 
-  const [loadStatus, setLoadStatus] = useState('loading') // 'loading' | 'ok' | 'error' | 'not-found'
+  // Si le voeu est deja en cache → statut 'ok' direct (zero spinner).
+  const [loadStatus, setLoadStatus] = useState(() => (getCachedWish(id) ? 'ok' : 'loading'))
 
   useEffect(() => {
-    // stale : garde anti-reponse-perimee. Si authTick bump (retour d'arriere-
-    // plan) re-declenche l'effet alors qu'une requete est encore en vol, on
-    // ignore le resultat de l'ancienne pour ne pas ecraser l'etat de la nouvelle.
     let stale = false
     let attempts = 0
-    // Ne re-affiche pas le spinner si le voeu est deja charge (refresh silencieux).
-    setLoadStatus((s) => (s === 'ok' && wish ? s : 'loading'))
+    // hasCache : on a deja le voeu affiche (depuis le cache du feed). Dans ce
+    // cas le refetch est SILENCIEUX (aucun spinner, aucun ecran d'erreur, aucun
+    // reload) — exactement le pattern Instagram : contenu instantane, reseau en
+    // fond. Le fallback "bloquant" (spinner/reload) ne sert que sans cache
+    // (ouverture par URL directe / notif push).
+    const hasCache = !!getCachedWish(id)
+    if (!hasCache) setLoadStatus('loading')
 
     const tryLoad = () => {
       getWishById(id)
         .then((w) => {
           if (stale) return
-          // Succes → on libere le verrou d'auto-reload (connexion saine).
           try { sessionStorage.removeItem('wd_auto_reload_ts') } catch {}
-          if (!w) { setLoadStatus('not-found'); return }
+          if (!w) { if (!hasCache) setLoadStatus('not-found'); return }
           setWish(w)
           setLoadStatus('ok')
         })
         .catch((err) => {
           if (stale) return
-          // Vrai "introuvable" → pas de retry
           if (err?.code === 'PGRST116' || err?.message?.includes('not found')) {
-            setLoadStatus('not-found')
+            if (!hasCache) setLoadStatus('not-found')
             return
           }
-          console.warn(`[WishDetail] echec chargement (essai ${attempts + 1})`, err?.message)
+          // On a deja du contenu en cache → echec SILENCIEUX, on garde l'affichage.
+          // (connexion morte = on ne derange pas l'user, le prochain refresh reprendra)
+          if (hasCache) {
+            console.warn('[WishDetail] refresh en fond echoue, cache conserve:', err?.message)
+            return
+          }
 
-          // QUERY_TIMEOUT = la connexion HTTP/2 est morte (typique au retour
-          // d'arriere-plan desktop). Chrome reutilise la connexion morte donc
-          // les retries echouent aussi → le SEUL remede fiable est de recharger
-          // la page (= nouvelles connexions). Auto-reload, garde anti-boucle :
-          // 1 reload max / 30s (si la 2e tentative post-reload retimeout, c'est
-          // un vrai souci serveur → on tombe sur l'ecran d'erreur, pas de boucle).
+          console.warn(`[WishDetail] echec chargement (essai ${attempts + 1})`, err?.message)
+          // Pas de cache + QUERY_TIMEOUT = connexion HTTP/2 morte (retour
+          // d'arriere-plan). Chrome reutilise la connexion morte → le seul
+          // remede fiable est de recharger (nouvelles connexions). Garde
+          // anti-boucle : 1 reload max / 30s.
           if (err?.message === 'QUERY_TIMEOUT') {
             let last = 0
             try { last = Number(sessionStorage.getItem('wd_auto_reload_ts') || 0) } catch {}
@@ -263,9 +270,7 @@ export default function WishDetail() {
               return
             }
           }
-
-          // Sinon (vraie erreur reseau, ou reload deja tente il y a < 30s) :
-          // un retry rapide, puis ecran d'erreur avec bouton Reessayer.
+          // Sinon : 1 retry rapide puis ecran d'erreur avec bouton Reessayer.
           if (attempts < 1) {
             attempts++
             setTimeout(() => { if (!stale) tryLoad() }, 500)
