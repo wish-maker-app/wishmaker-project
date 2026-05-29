@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, withTimeout } from '../lib/supabase'
 import useAuthStore from '../store/authStore'
 import { getCached, setCached } from '../lib/wishesCache'
 
@@ -47,7 +47,7 @@ export function useWishes() {
         .neq('statut', 'pending_payment')
         .order('created_at', { ascending: false })
       if (statut) query = query.eq('statut', statut)
-      const { data, error } = await query
+      const { data, error } = await withTimeout(query)
       if (error) throw error
       const list = (data || []).map(normalizeWish)
       list.forEach(cacheWish)
@@ -64,12 +64,12 @@ export function useWishes() {
       // peut envoyer la requête en anonyme (JWT pas encore attaché depuis
       // localStorage) → RLS filtre → 0 résultats → "Aucun vœu trouvé" trompeur.
       await supabase.auth.getSession()
-      const { data, error } = await supabase
+      const { data, error } = await withTimeout(supabase
         .from('wishes')
         .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
         .eq('statut', 'en_attente')
         .gte('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }))
       if (error) throw error
       const list = (data || []).map(normalizeWish)
       list.forEach(cacheWish)
@@ -83,12 +83,12 @@ export function useWishes() {
     setLoading(true)
     try {
       await supabase.auth.getSession()
-      const { data, error } = await supabase
+      const { data, error } = await withTimeout(supabase
         .from('wishes')
         .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
         .eq('wisher_id', userId)
         .eq('statut', 'en_attente')
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }))
       if (error) throw error
       const list = (data || []).map(normalizeWish)
       list.forEach(cacheWish)
@@ -109,15 +109,11 @@ export function useWishes() {
       // donnerait un spinner infini. Le race garantit que la promesse se
       // resout/rejette toujours en < 4s, quelle que soit la cause. L'appelant
       // (WishDetail) gere le retry automatique.
-      const query = supabase
+      const { data, error } = await withTimeout(supabase
         .from('wishes')
         .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
         .eq('id', id)
-        .single()
-      const { data, error } = await Promise.race([
-        query,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('QUERY_TIMEOUT')), 4000)),
-      ])
+        .single())
       if (error) throw error
       return cacheWish(normalizeWish(data))
     } finally {

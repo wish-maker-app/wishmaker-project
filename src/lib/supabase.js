@@ -87,3 +87,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     fetch: resilientFetch,
   },
 })
+
+// ─────────────────────────────────────────────────────────────────────────
+// withTimeout : garantit qu'une requete supabase se resout/rejette TOUJOURS,
+// meme si supabase-js hang AVANT le fetch (resolution interne session/lock),
+// cas que resilientFetch ne couvre pas. Sans ca, au retour d'arriere-plan
+// (connexion HTTP/2 morte), un chargement de liste/conversation reste en
+// spinner infini ("t'as rien"). A wrapper autour de chaque query critique :
+//   const { data, error } = await withTimeout(supabase.from(...).select(...))
+export function withTimeout(promise, ms = 4000, label = 'QUERY_TIMEOUT') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(label)), ms)),
+  ])
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, withTimeout } from '../lib/supabase'
 import useAuthStore from '../store/authStore'
 import { getCached, setCached } from '../lib/wishesCache'
 
@@ -32,7 +32,7 @@ export function useMessages(conversationId = null) {
     try {
       // Force la résolution de la session (sinon RLS filtre tout en anonyme au mount)
       await supabase.auth.getSession()
-      const { data, error } = await supabase
+      const { data, error } = await withTimeout(supabase
         .from('conversations')
         .select(`
           *,
@@ -42,7 +42,7 @@ export function useMessages(conversationId = null) {
           messages(contenu, created_at, is_read, sender_id)
         `)
         .or(`wisher_id.eq.${user.id},maker_id.eq.${user.id}`)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }))
       if (error) throw error
       const list = data || []
       setConversations(list)
@@ -71,11 +71,11 @@ export function useMessages(conversationId = null) {
     if (!cached) setLoading(true)
     try {
       await supabase.auth.getSession()
-      const { data, error } = await supabase
+      const { data, error } = await withTimeout(supabase
         .from('messages')
         .select(`*, sender:users!sender_id(id, prenom, nom, avatar_url)`)
         .eq('conversation_id', convId)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: true }))
       if (error) throw error
       const list = data || []
       setMessages(list)
@@ -112,6 +112,11 @@ export function useMessages(conversationId = null) {
           }
         )
         .subscribe()
+    } catch (err) {
+      // Timeout / reseau (ex: connexion morte au retour d'arriere-plan) :
+      // on garde les messages en cache deja affiches, pas d'ecran vide ni de
+      // rejection non geree. Le prochain authTick (reveil) relancera.
+      console.warn('[useMessages] loadMessages echec, cache conserve:', err?.message)
     } finally {
       setLoading(false)
     }
