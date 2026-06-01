@@ -535,14 +535,17 @@ export default function MakerHome() {
         setLoadError(null)
       })
       .catch((err) => {
-        console.error('[MakerHome] getAvailableWishes:', err)
-        // Si on a déjà des wishes en cache → on les garde + toast non bloquant
-        // Si rien en cache → on affiche l'écran d'erreur
+        // Si on a déjà du cache affiché → échec SILENCIEUX (philosophie
+        // cache-first : on ne dérange pas l'user pour un refresh en fond qui
+        // timeout, typique au réveil/connexion lente). Le contenu reste à
+        // l'écran, le prochain refetch/realtime resynchronisera. PAS de toast.
+        // Écran d'erreur uniquement si on n'a RIEN à montrer.
         if (!getCached('available_wishes')) {
+          console.error('[MakerHome] getAvailableWishes:', err)
           setLoadError(err?.message || 'Erreur de chargement')
           toast.error('Erreur de chargement des vœux')
         } else {
-          toast('Données peut-être désynchronisées', { icon: '⚠️' })
+          console.warn('[MakerHome] refresh en fond échoué, cache conservé:', err?.message)
         }
       })
       .finally(() => {
