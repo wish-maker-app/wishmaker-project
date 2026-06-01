@@ -18,6 +18,7 @@ import FavoriteButton from '../../components/ui/FavoriteButton'
 import { useFavorites } from '../../hooks/useFavorites'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
+import PullToRefresh from '../../components/ui/PullToRefresh'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import { useUserTagSubscriptions } from '../../hooks/useTags'
 import { getCached, setCached } from '../../lib/wishesCache'
@@ -523,7 +524,8 @@ export default function MakerHome() {
     if (inFlightRef.current) return
     if (!force && Date.now() - lastFetchTsRef.current < 1500) return
     inFlightRef.current = true
-    getAvailableWishes()
+    // return : le pull-to-refresh (et tout appelant) peut await la fin du fetch.
+    return getAvailableWishes()
       .then((w) => {
         setWishes(w)
         // Évite d'écraser un cache existant avec une liste vide (cas race
@@ -869,7 +871,11 @@ export default function MakerHome() {
             </AnimatePresence>
           </>
         ) : view === 'liste' ? (
-          <div className="h-full px-4 pt-2 pb-24 overflow-y-auto bg-[#F7F8FC]">
+          <PullToRefresh
+            className="h-full bg-[#F7F8FC]"
+            contentClassName="px-4 pt-2 pb-24"
+            onRefresh={() => refetchWishes(true)}
+          >
             {/* Section sponsorisés */}
             {sponsored.length > 0 && (
               <div className="mb-5">
@@ -952,7 +958,7 @@ export default function MakerHome() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </PullToRefresh>
         ) : view === 'swipe' ? (
           <div className="h-full flex flex-col items-center justify-center px-6 pt-2 pb-28 bg-[#F7F8FC]">
             {swipeWishes.length > 0 ? (

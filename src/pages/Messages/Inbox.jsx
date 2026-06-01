@@ -9,6 +9,7 @@ import { useMessages } from '../../hooks/useMessages'
 import { supabase } from '../../lib/supabase'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
+import PullToRefresh from '../../components/ui/PullToRefresh'
 
 const SWIPE_REVEAL = 80  // px que le bouton occupe quand révélé
 const SWIPE_THRESHOLD = 50  // px minimum à draguer pour snap ouvert
@@ -387,7 +388,11 @@ export default function Inbox() {
       </div>
 
       {/* Liste des conversations */}
-      <div className="flex-1 pb-28 overflow-y-auto">
+      <PullToRefresh
+        className="flex-1"
+        contentClassName="pb-28"
+        onRefresh={() => loadConversations({ force: true })}
+      >
         <AnimatePresence initial={false}>
           {filtered.length > 0 ? (
             filtered.map((conv) => (
@@ -413,7 +418,7 @@ export default function Inbox() {
             </div>
           )}
         </AnimatePresence>
-      </div>
+      </PullToRefresh>
 
       <ConfirmDeleteModal
         open={!!toDelete}
