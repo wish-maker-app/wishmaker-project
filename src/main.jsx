@@ -24,7 +24,9 @@ import { Toaster } from 'react-hot-toast'
 import router from './router'
 import './lib/i18n'
 import './index.css'
-import 'leaflet/dist/leaflet.css'
+// Note : 'leaflet/dist/leaflet.css' n'est PAS importé ici (chemin critique) —
+// chaque page carte (lazy) l'importe déjà localement, donc le style n'arrive
+// que quand une carte est réellement affichée.
 import { registerServiceWorker } from './lib/pushNotifications'
 import useConfigStore from './store/configStore'
 
@@ -54,8 +56,18 @@ if ('serviceWorker' in navigator) {
   })
 }
 
-// Charger la config (durées vœux/urgent, rétention) depuis Supabase
-useConfigStore.getState().loadConfig()
+// Charger la config (durées vœux/urgent, rétention) depuis Supabase.
+// Différé après le 1er rendu : cette config ne sert qu'à l'intérieur de l'app
+// (durées de vœux…), pas à la landing. La sortir du chemin critique évite une
+// requête Supabase concurrente pendant le premier chargement.
+{
+  const _loadConfig = () => useConfigStore.getState().loadConfig()
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(_loadConfig, { timeout: 3000 })
+  } else {
+    setTimeout(_loadConfig, 1)
+  }
+}
 
 
 class ErrorBoundary extends React.Component {

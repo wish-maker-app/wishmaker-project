@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Police : preconnect + link dans le <head> (au lieu d'un @import bloquant
+         dans le CSS bundlé). La connexion aux serveurs Google démarre tout de
+         suite, en parallèle du reste, et display=swap montre le texte sans
+         attendre la police → premier affichage bien plus rapide. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <!-- "default" : iOS rend le status bar opaque et place le contenu en
          dessous automatiquement. Pas besoin de safe-area-inset-top en haut.

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { requestPushPermission } from '../lib/pushNotifications'
+import useAuthStore from '../store/authStore'
 import Landing from './Public/Landing'
 
 /**
@@ -25,7 +26,20 @@ export default function RouteResolver() {
   //  - null : on attend de savoir (verifie la session)
   //  - 'landing' : on rend la Landing publique directement (visiteur anonyme)
   //  - 'redirect' : navigate() a deja ete appelle, on attend le re-render
-  const [renderState, setRenderState] = useState(null)
+  //
+  // ⚡ Optimisation 1er chargement : si AUCUN user n'est persisté (cas normal
+  // d'un visiteur anonyme sur wishmaker.fr), on rend la Landing IMMÉDIATEMENT
+  // sans attendre supabase.auth.getSession() (qui ajoutait un spinner + un
+  // aller-retour avant l'affichage). La vérif session tourne quand même en fond
+  // ci-dessous : si une session est trouvée, on redirige. Si un user EST
+  // persisté, on garde le spinner (résolution probable = redirection /maker).
+  const [renderState, setRenderState] = useState(() => {
+    try {
+      return useAuthStore.getState().user ? null : 'landing'
+    } catch {
+      return 'landing'
+    }
+  })
   const pendingUserId = useRef(null)
 
   useEffect(() => {
