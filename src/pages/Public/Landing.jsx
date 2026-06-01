@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import lampeSvg from '../../assets/lampe.svg'
@@ -15,6 +16,48 @@ import genieSvg from '../../assets/genie.svg'
  */
 export default function Landing() {
   const navigate = useNavigate()
+  const installRef = useRef(null)
+  const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [installed, setInstalled] = useState(false)
+  const [showAndroidTuto, setShowAndroidTuto] = useState(false)
+
+  // Capture l'event d'installation Android (PWA) dès le chargement — sinon le
+  // bouton "Installer" Android n'aurait aucun prompt à déclencher au clic.
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setDeferredPrompt(e) }
+    const onInstalled = () => { setInstalled(true); setDeferredPrompt(null) }
+    window.addEventListener('beforeinstallprompt', handler)
+    window.addEventListener('appinstalled', onInstalled)
+    // Déjà installée (lancée en mode standalone) ?
+    const standalone =
+      window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone
+    if (standalone) setInstalled(true)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler)
+      window.removeEventListener('appinstalled', onInstalled)
+    }
+  }, [])
+
+  function scrollToInstall() {
+    installRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  async function handleAndroidInstall() {
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      try { await deferredPrompt.userChoice } catch { /* ignore */ }
+      setDeferredPrompt(null)
+    } else {
+      // Pas de prompt dispo (déjà refusé, ou navigateur non compatible) → tuto
+      setShowAndroidTuto(true)
+    }
+  }
+
+  // Détection des contextes où l'installation iOS est impossible (webview in-app
+  // ou Chrome iOS) → on invite à ouvrir la page dans Safari.
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
+  const isInAppWebview = /FBAN|FBAV|Instagram|Line|LinkedIn|Twitter/i.test(ua)
+  const isChromeIOS = /CriOS/i.test(ua)
 
   return (
     // fixed inset-0 : on s'echappe du shell mobile 430px applique par #root
@@ -81,30 +124,32 @@ export default function Landing() {
               </span>
             </h1>
 
-            <div className="max-w-[560px] mx-auto mb-8 flex flex-col gap-4">
+            <div className="max-w-[560px] mx-auto mb-8 flex flex-col gap-3">
               <p className="text-[15.5px] sm:text-[17px] leading-[1.6] text-[#3A3A4E]">
-                Wish Maker connecte celles et ceux qui ont un besoin avec les Makers,
-                vos génies locaux (particuliers ou professionnels) qui peuvent l'exaucer.
-                Une envie, une urgence, un dépannage… faites un vœu, la solution se trouve autour de vous.
+                Un besoin, une envie, un dépannage ? Faites un vœu, un Maker près de chez vous l'exauce.
               </p>
-              <p className="text-[15.5px] sm:text-[17px] leading-[1.6] text-[#3A3A4E]">
-                Du temps libre, un talent, des objets utiles… exaucez les vœux de Wishers et empochez des récompenses.
+              <p className="text-[13.5px] sm:text-[14px] leading-[1.6] text-[#8A8A9A]">
+                Vous êtes Maker ? Exaucez les vœux autour de vous et gagnez des récompenses.
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
-                onClick={() => navigate('/auth')}
-                className="w-full sm:w-auto h-12 px-7 rounded-full text-white font-semibold text-[14.5px] transition-transform active:scale-[0.98]"
+                onClick={scrollToInstall}
+                className="w-full sm:w-auto h-12 px-7 rounded-full text-white font-semibold text-[14.5px] transition-transform active:scale-[0.98] flex items-center justify-center gap-2"
                 style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', boxShadow: '0 8px 24px rgba(91,107,245,0.3)' }}
               >
-                Créer un compte gratuitement
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 3v12M7 10l5 5 5-5" />
+                  <path d="M5 21h14" />
+                </svg>
+                Télécharger l'application
               </button>
               <button
-                onClick={() => navigate('/auth/login')}
+                onClick={() => navigate('/auth')}
                 className="w-full sm:w-auto h-12 px-7 rounded-full text-[#1A1A2E] font-semibold text-[14.5px] border border-[#E0E0E0] hover:border-[#5B6BF5] hover:text-[#5B6BF5] transition-colors"
               >
-                Se connecter
+                Créer un compte gratuitement
               </button>
             </div>
 
@@ -113,6 +158,88 @@ export default function Landing() {
             </p>
           </motion.div>
         </Section>
+
+        {/* ━━━ Installation ━━━ */}
+        <section ref={installRef} id="install" className="py-16 sm:py-20 border-t border-[#EEEEF2]">
+          <div className="max-w-[1100px] mx-auto px-5 sm:px-8">
+            <SectionHeader
+              eyebrow="Installation"
+              title="Installez l'application"
+              subtitle="Wish Maker s'installe directement depuis votre navigateur, sans passer par un store."
+            />
+
+            {installed ? (
+              <div className="max-w-[520px] mx-auto rounded-3xl border border-[#A7F3D0] bg-[#ECFDF5] p-6 flex items-center justify-center gap-3">
+                <span className="w-8 h-8 rounded-full bg-[#22C55E] flex items-center justify-center flex-shrink-0">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+                <p className="text-[15px] font-semibold text-[#065F46]">Application déjà installée</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-4 max-w-[860px] mx-auto">
+
+                {/* ── Bloc Android ── */}
+                <div className="rounded-3xl border border-[#EEEEF2] bg-white p-6 sm:p-8 flex flex-col items-center text-center">
+                  <span className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: '#E9F9F0' }}>
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="#3DDC84" aria-hidden="true">
+                      <path d="M6 18c0 .55.45 1 1 1h1v3.5a1.5 1.5 0 0 0 3 0V19h2v3.5a1.5 1.5 0 0 0 3 0V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8A1.5 1.5 0 0 0 2 9.5v7a1.5 1.5 0 0 0 3 0v-7A1.5 1.5 0 0 0 3.5 8zm17 0a1.5 1.5 0 0 0-1.5 1.5v7a1.5 1.5 0 0 0 3 0v-7A1.5 1.5 0 0 0 20.5 8zM15.53 2.16l1.3-1.3a.5.5 0 0 0-.7-.7l-1.48 1.48A5.96 5.96 0 0 0 12 1c-.96 0-1.86.22-2.66.62L7.86.14a.5.5 0 1 0-.7.7l1.3 1.3A5.99 5.99 0 0 0 6 7h12c0-2.02-1-3.8-2.47-4.84zM10 5.2a.7.7 0 1 1 0-1.4.7.7 0 0 1 0 1.4zm4 0a.7.7 0 1 1 0-1.4.7.7 0 0 1 0 1.4z"/>
+                    </svg>
+                  </span>
+                  <p className="text-[16px] font-bold text-[#1A1A2E] mb-1">Installer sur Android</p>
+                  <p className="text-[13.5px] text-[#3A3A4E] leading-[1.55] mb-5">Installation directe depuis Chrome, en un seul tap.</p>
+                  <button
+                    onClick={handleAndroidInstall}
+                    className="w-full h-12 px-6 rounded-full text-white font-semibold text-[14.5px] transition-transform active:scale-[0.98]"
+                    style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)', boxShadow: '0 8px 24px rgba(91,107,245,0.3)' }}
+                  >
+                    Installer l'application
+                  </button>
+                  {showAndroidTuto && (
+                    <div className="mt-4 w-full rounded-2xl bg-[#F7F8FC] border border-[#EEEEF2] p-4 text-left">
+                      <p className="text-[13px] text-[#3A3A4E] leading-[1.55]">
+                        Si rien ne se passe : ouvrez le menu <strong className="font-semibold text-[#1A1A2E]">⋮</strong> de Chrome,
+                        puis <strong className="font-semibold text-[#1A1A2E]">« Ajouter à l'écran d'accueil »</strong>.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Bloc Apple ── */}
+                <div className="rounded-3xl border border-[#EEEEF2] bg-white p-6 sm:p-8 flex flex-col items-center text-center">
+                  <span className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: '#F2F2F4' }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="#1A1A2E" aria-hidden="true">
+                      <path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.01-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.89-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.78 1.3 10.32.86 1.24 1.88 2.63 3.22 2.58 1.29-.05 1.78-.83 3.34-.83 1.56 0 2 .83 3.37.81 1.39-.03 2.27-1.26 3.12-2.51.98-1.44 1.39-2.83 1.41-2.9-.03-.01-2.71-1.04-2.74-4.13zM14.6 4.7c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44z"/>
+                    </svg>
+                  </span>
+                  <p className="text-[16px] font-bold text-[#1A1A2E] mb-1">Installer sur iPhone</p>
+                  <p className="text-[13.5px] text-[#3A3A4E] leading-[1.55] mb-5">Depuis Safari, en trois étapes.</p>
+
+                  {isInAppWebview || isChromeIOS ? (
+                    <div className="w-full rounded-2xl bg-[#FFF7ED] border border-[#FED7AA] p-4 text-left flex items-start gap-2.5">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EA580C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                      <p className="text-[13px] text-[#9A3412] leading-[1.5]">
+                        Ouvrez cette page dans <strong className="font-semibold">Safari</strong> pour pouvoir installer l'application.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="w-full flex flex-col gap-2.5">
+                      <AppleStep n="1" icon={
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6BF5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M6 12v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-6"/></svg>
+                      }>Touchez l'icône <strong className="font-semibold text-[#1A1A2E]">Partager</strong> en bas de Safari</AppleStep>
+                      <AppleStep n="2" icon={
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6BF5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+                      }>Choisissez <strong className="font-semibold text-[#1A1A2E]">« Sur l'écran d'accueil »</strong></AppleStep>
+                      <AppleStep n="3" icon={
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6BF5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      }>Touchez <strong className="font-semibold text-[#1A1A2E]">« Ajouter »</strong></AppleStep>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            )}
+          </div>
+        </section>
 
         {/* ━━━ Comment ça marche ━━━ */}
         <Section className="py-16 sm:py-20 border-t border-[#EEEEF2]">
@@ -409,6 +536,19 @@ function Step({ n, title, children }) {
         <p className="text-[14.5px] font-bold tracking-[-0.01em] text-[#1A1A2E] mb-0.5">{title}</p>
         <p className="text-[13.5px] text-[#3A3A4E] leading-[1.55]">{children}</p>
       </div>
+    </div>
+  )
+}
+
+// Étape d'installation iOS : numéro + petite icône + texte (section #install)
+function AppleStep({ n, icon, children }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-[#F7F8FC] border border-[#EEEEF2] px-4 py-3 text-left">
+      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white flex items-center justify-center text-[12px] font-bold text-[#5B6BF5]">
+        {n}
+      </span>
+      <span className="flex-shrink-0">{icon}</span>
+      <span className="text-[13px] text-[#3A3A4E] leading-[1.45]">{children}</span>
     </div>
   )
 }
