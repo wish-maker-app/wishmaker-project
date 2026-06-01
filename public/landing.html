@@ -4,10 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-  <!-- Redirection des utilisateurs déjà connectés vers l'app, AVANT tout rendu
-       (évite de montrer la vitrine à quelqu'un qui a déjà une session). -->
+  <!-- Aiguillage AVANT tout rendu (évite tout flash). -->
   <script>
     (function () {
+      // 1) Retour OAuth (Apple/Google) ou lien de confirmation/recovery : le
+      //    provider redirige vers la racine "/" (redirectTo configuré), mais
+      //    cette page statique n'a pas le client Supabase pour traiter le token.
+      //    On TRANSFÈRE vers l'app (/auth) en conservant le hash/la query → la
+      //    SPA (detectSessionInUrl) établit la session normalement. Évite de
+      //    toucher au redirectTo / à l'allowlist Supabase / à la config Apple.
+      try {
+        if (
+          location.hash.indexOf('access_token') !== -1 ||
+          location.hash.indexOf('error') !== -1 ||
+          /[?&]code=/.test(location.search)
+        ) {
+          location.replace('/auth' + location.search + location.hash);
+          return;
+        }
+      } catch (e) { /* noop */ }
+
+      // 2) Utilisateur déjà connecté → on l'envoie direct dans l'app (pas de
+      //    vitrine pour quelqu'un qui a déjà une session valide).
       try {
         var key = Object.keys(localStorage).find(function (k) {
           return /^sb-.*-auth-token$/.test(k);
