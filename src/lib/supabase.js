@@ -95,7 +95,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // (connexion HTTP/2 morte), un chargement de liste/conversation reste en
 // spinner infini ("t'as rien"). A wrapper autour de chaque query critique :
 //   const { data, error } = await withTimeout(supabase.from(...).select(...))
-export function withTimeout(promise, ms = 4000, label = 'QUERY_TIMEOUT') {
+// Timeout par défaut : 12s. 4s était trop court → des queries légitimes
+// (liste vœux avec 4 jointures sur réseau 4G/lent) étaient abortées et
+// affichaient "Erreur de chargement". 12s laisse de la marge pour les
+// requêtes normales tout en gardant un filet de sécurité contre les
+// connexions HTTP zombies (cas rare au retour d'arrière-plan mobile).
+export function withTimeout(promise, ms = 12000, label = 'QUERY_TIMEOUT') {
   return Promise.race([
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error(label)), ms)),
