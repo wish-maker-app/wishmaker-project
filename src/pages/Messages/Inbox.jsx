@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabase'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
 import PullToRefresh from '../../components/ui/PullToRefresh'
+import { getCached } from '../../lib/wishesCache'
 
 const SWIPE_REVEAL = 80  // px que le bouton occupe quand révélé
 const SWIPE_THRESHOLD = 50  // px minimum à draguer pour snap ouvert
@@ -236,12 +237,22 @@ export default function Inbox() {
   const [search, setSearch] = useState('')
   const [toDelete, setToDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  // booting : 1er chargement sans cache → spinner au lieu d'une fausse "boîte vide".
+  const [booting, setBooting] = useState(() => !getCached('conversations'))
   const userId = useAuthStore((s) => s.user?.id)
   const authTick = useAuthStore((s) => s.authTick)
   const { loadConversations, conversations, loading, deleteConversation } = useMessages()
 
   useEffect(() => {
-    loadConversations().catch((err) => console.error('[Inbox]', err))
+    loadConversations()
+      .then(() => setBooting(false))
+      .catch((err) => {
+        // NO_SESSION (session pas prête au cold start) → on reste en "chargement"
+        // (spinner) ; le bump authTick relancera dès que la session est validée.
+        // Toute autre erreur → on sort du spinner (cache conservé si présent).
+        if (err?.message !== 'NO_SESSION') setBooting(false)
+        console.warn('[Inbox] loadConversations:', err?.message)
+      })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authTick])
 
@@ -409,6 +420,10 @@ export default function Inbox() {
                 />
               </motion.div>
             ))
+          ) : booting ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-8 h-8 rounded-full border-4 border-[#5B6BF5] border-t-transparent animate-spin" />
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none">

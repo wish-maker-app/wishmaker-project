@@ -121,3 +121,55 @@ export async function ensureSession() {
     /* best-effort : on continue, la query utilisera le JWT déjà en place */
   }
 }
+
+// ensureFreshSession : comme ensureSession, mais RETOURNE la session valide
+// (ou null) au lieu de "best-effort". À utiliser pour GARDER les requêtes de
+// liste protégées par RLS (rôle `authenticated`). Rappel du piège : la policy
+// `wishes_select_all` / `conversations_select_*` est réservée au rôle
+// `authenticated`. Si supabase-js envoie la requête en ANONYME (session pas
+// encore restaurée du localStorage au cold start, token expiré, ou réveil), la
+// policy ne s'applique pas → 0 ligne renvoyée SANS erreur → faux "Aucun vœu" +
+// cache pollué avec []. L'appelant doit donc lever NO_SESSION plutôt que de
+// lancer la requête quand cette fonction renvoie null.
+//
+// - Retry interne court : au cold start, getSession() peut renvoyer null avant
+//   la fin de la restauration de session (d'autant que le Web Lock est bypassé).
+// - Refresh borné si le token est expiré / expire dans <60s. Si le token est
+//   DÉJÀ expiré et que le refresh échoue (offline), on renvoie null (et non un
+//   token mort qui repartirait en anonyme).
+export async function ensureFreshSession() {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let session = null
+    try {
+      const res = await withTimeout(supabase.auth.getSession(), 2500, 'SESSION_TIMEOUT')
+      session = res?.data?.session || null
+    } catch {
+      /* timeout : on retente */
+    }
+
+    if (session) {
+      const expMs = session.expires_at ? session.expires_at * 1000 : 0
+      if (expMs && expMs - Date.now() < 60000) {
+        let refreshed = null
+        try {
+          const res = await withTimeout(supabase.auth.refreshSession(), 4000, 'REFRESH_TIMEOUT')
+          refreshed = res?.data?.session || null
+        } catch {
+          /* offline / refresh KO */
+        }
+        if (refreshed) {
+          session = refreshed
+        } else if (expMs <= Date.now()) {
+          // Ancien token déjà expiré + refresh KO → pas de session valide.
+          session = null
+        }
+        // sinon : token encore valide quelques secondes → on garde `session`.
+      }
+      if (session) return session
+    }
+
+    // Pas de session (init pas finie au cold start ?) → courte pause + retry.
+    if (attempt === 0) await new Promise((r) => setTimeout(r, 400))
+  }
+  return null
+}

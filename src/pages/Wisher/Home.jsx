@@ -365,13 +365,20 @@ export default function WisherHome() {
         lastFetchTsRef.current = Date.now()
       })
       .catch((err) => {
-        setLoading(false)
-        // Échec silencieux si on a déjà du cache affiché ; sinon toast.
-        if (!getCached('my_wishes')) {
+        const noSession = err?.message === 'NO_SESSION'
+        if (getCached('my_wishes')) {
+          // Cache présent → échec silencieux, on garde l'affichage.
+          setLoading(false)
+          console.warn('[WisherHome] refresh en fond échoué, cache conservé:', err?.message)
+        } else if (noSession) {
+          // Session pas prête (cold start) → on GARDE le spinner (loading=true),
+          // le bump authTick relancera le fetch dès que la session est validée.
+          console.warn('[WisherHome] session pas prête, retry au prochain authTick')
+        } else {
+          // Vraie erreur sans cache → on sort du spinner + toast.
+          setLoading(false)
           console.error('[WisherHome] getMyWishes:', err)
           toast.error('Erreur de chargement')
-        } else {
-          console.warn('[WisherHome] refresh en fond échoué, cache conservé:', err?.message)
         }
       })
       .finally(() => {

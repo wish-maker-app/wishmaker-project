@@ -129,7 +129,7 @@ export default function Chat() {
   useEffect(() => {
     if (!isDraft) {
       loadMessages(id)
-      loadConversations().then(() => {})
+      loadConversations().catch(() => {})
     } else if (draftWisherId) {
       // Mode brouillon : charger les infos du wisher
       import('../../lib/supabase').then(({ supabase }) => {

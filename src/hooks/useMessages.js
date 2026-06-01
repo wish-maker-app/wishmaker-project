@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { supabase, withTimeout, ensureSession } from '../lib/supabase'
+import { supabase, withTimeout, ensureSession, ensureFreshSession } from '../lib/supabase'
 import useAuthStore from '../store/authStore'
 import { getCached, setCached } from '../lib/wishesCache'
 
@@ -30,10 +30,14 @@ export function useMessages(conversationId = null) {
     const hasCache = !!getCached('conversations')
     if (!hasCache) setLoading(true)
     try {
-      // Session prête sans jamais hang (cf. ensureSession). NE PAS remettre un
-      // await supabase.auth.getSession() nu ici : il peut bloquer le finally et
-      // figer le garde inFlight → conversations qui ne se chargent plus jamais.
-      await ensureSession()
+      // Session valide OBLIGATOIRE : les policies conversations_select_* sont
+      // réservées au rôle authenticated. Sans session, la requête part en
+      // anonyme → 0 ligne SANS erreur → fausse "boîte vide" + cache pollué. On
+      // lève NO_SESSION (réessayable) plutôt que de requêter en anonyme. (cf.
+      // ensureFreshSession : bornée + retry cold-start, ne hang jamais → le
+      // finally tourne, le garde inFlight ne reste pas bloqué.)
+      const session = await ensureFreshSession()
+      if (!session) throw new Error('NO_SESSION')
       const { data, error } = await withTimeout(supabase
         .from('conversations')
         .select(`

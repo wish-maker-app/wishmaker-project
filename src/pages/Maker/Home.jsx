@@ -510,6 +510,9 @@ export default function MakerHome() {
   }, [])
 
   const [loadError, setLoadError] = useState(null)
+  // booting : premier chargement SANS cache → on affiche un spinner au lieu d'un
+  // faux "aucun vœu" tant que la session n'est pas prête / la 1re requête pas finie.
+  const [booting, setBooting] = useState(() => !getCached('available_wishes'))
 
   // Dedup anti "deuxième vague" : evite les fetchs en double declenches quasi
   // simultanement (fetch au mount + bump authTick de useAuth + focus/visibility
@@ -535,21 +538,30 @@ export default function MakerHome() {
           setCached('available_wishes', w)
         }
         setLoadError(null)
+        setBooting(false)
         // Cooldown 1.5s uniquement apres succes (un echec doit pouvoir retry)
         lastFetchTsRef.current = Date.now()
       })
       .catch((err) => {
+        const noSession = err?.message === 'NO_SESSION'
         // Si on a déjà du cache affiché → échec SILENCIEUX (philosophie
         // cache-first : on ne dérange pas l'user pour un refresh en fond qui
         // timeout, typique au réveil/connexion lente). Le contenu reste à
         // l'écran, le prochain refetch/realtime resynchronisera. PAS de toast.
-        // Écran d'erreur uniquement si on n'a RIEN à montrer.
-        if (!getCached('available_wishes')) {
+        if (getCached('available_wishes')) {
+          console.warn('[MakerHome] refresh en fond échoué, cache conservé:', err?.message)
+          setBooting(false)
+        } else if (noSession) {
+          // Session pas encore prête (cold start) → NI erreur NI toast : on reste
+          // en "chargement" (spinner). Le bump authTick (useAuth, dès que la
+          // session est validée) relance le fetch → la liste se peuple seule.
+          console.warn('[MakerHome] session pas prête, retry au prochain authTick')
+        } else {
+          // Vraie erreur (réseau/timeout) sans cache → écran d'erreur + retry.
           console.error('[MakerHome] getAvailableWishes:', err)
           setLoadError(err?.message || 'Erreur de chargement')
           toast.error('Erreur de chargement des vœux')
-        } else {
-          console.warn('[MakerHome] refresh en fond échoué, cache conservé:', err?.message)
+          setBooting(false)
         }
       })
       .finally(() => {
@@ -947,6 +959,13 @@ export default function MakerHome() {
                   </svg>
                   <p className="text-[#1A1A2E] font-bold text-sm">{t('maker.home.aucun_favori')}</p>
                   <p className="text-[#8A8A9A] text-xs max-w-[260px]">{t('maker.home.aucun_favori_sub', "Appuyez sur ♡ sur un vœu pour l'ajouter à vos favoris")}</p>
+                </motion.div>
+              ) : booting ? (
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="flex flex-col items-center justify-center py-20"
+                >
+                  <div className="w-8 h-8 rounded-full border-4 border-[#5B6BF5] border-t-transparent animate-spin" />
                 </motion.div>
               ) : (
                 <motion.div

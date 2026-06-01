@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase, withTimeout, ensureSession } from '../lib/supabase'
+import { supabase, withTimeout, ensureFreshSession } from '../lib/supabase'
 import useAuthStore from '../store/authStore'
 import { getCached, setCached } from '../lib/wishesCache'
 
@@ -39,7 +39,11 @@ export function useWishes() {
     if (!user) return []
     setLoading(true)
     try {
-      await ensureSession()
+      // Session valide OBLIGATOIRE : sans elle la requête partirait en anonyme
+      // → RLS (rôle authenticated) renvoie [] sans erreur → faux "aucun vœu" +
+      // cache pollué. On lève NO_SESSION (réessayable) plutôt que de requêter.
+      const session = await ensureFreshSession()
+      if (!session) throw new Error('NO_SESSION')
       let query = supabase
         .from('wishes')
         .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
@@ -60,10 +64,14 @@ export function useWishes() {
   async function getAvailableWishes() {
     setLoading(true)
     try {
-      // Force la résolution de la session avant la query : sinon supabase-js
-      // peut envoyer la requête en anonyme (JWT pas encore attaché depuis
-      // localStorage) → RLS filtre → 0 résultats → "Aucun vœu trouvé" trompeur.
-      await ensureSession()
+      // Session valide OBLIGATOIRE avant la query : sinon supabase-js envoie la
+      // requête en anonyme (JWT pas encore attaché / token expiré / réveil) →
+      // RLS (policy réservée au rôle authenticated) renvoie 0 ligne SANS erreur
+      // → faux "Aucun vœu" + cache pollué avec []. On lève NO_SESSION
+      // (réessayable, ne touche ni l'affichage ni le cache) plutôt que de
+      // lancer une requête anonyme vouée à revenir vide.
+      const session = await ensureFreshSession()
+      if (!session) throw new Error('NO_SESSION')
       const { data, error } = await withTimeout(supabase
         .from('wishes')
         .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
@@ -82,7 +90,8 @@ export function useWishes() {
   async function getWishesByUser(userId) {
     setLoading(true)
     try {
-      await ensureSession()
+      const session = await ensureFreshSession()
+      if (!session) throw new Error('NO_SESSION')
       // On retourne TOUS les statuts (sauf pending_payment qui sont des drafts
       // non publiés). Sinon impossible de calculer les compteurs "Réalisés" /
       // "Actifs" sur la page profil — la consommation en aval (UserWishes.jsx)
