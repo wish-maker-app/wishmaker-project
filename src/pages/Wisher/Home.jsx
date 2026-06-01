@@ -361,16 +361,21 @@ export default function WisherHome() {
           setCached('my_wishes', w)
         }
         setLoading(false)
+        // Cooldown 1.5s uniquement apres succes (un echec doit pouvoir retry)
+        lastFetchTsRef.current = Date.now()
       })
       .catch((err) => {
-        console.error('[WisherHome] getMyWishes:', err)
         setLoading(false)
-        // Pas de toast si on a déjà un cache (UX silencieuse)
-        if (!getCached('my_wishes')) toast.error('Erreur de chargement')
+        // Échec silencieux si on a déjà du cache affiché ; sinon toast.
+        if (!getCached('my_wishes')) {
+          console.error('[WisherHome] getMyWishes:', err)
+          toast.error('Erreur de chargement')
+        } else {
+          console.warn('[WisherHome] refresh en fond échoué, cache conservé:', err?.message)
+        }
       })
       .finally(() => {
         inFlightRef.current = false
-        lastFetchTsRef.current = Date.now()
       })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

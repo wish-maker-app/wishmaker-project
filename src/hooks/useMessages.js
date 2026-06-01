@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { supabase, withTimeout } from '../lib/supabase'
+import { supabase, withTimeout, ensureSession } from '../lib/supabase'
 import useAuthStore from '../store/authStore'
 import { getCached, setCached } from '../lib/wishesCache'
 
@@ -30,8 +30,10 @@ export function useMessages(conversationId = null) {
     const hasCache = !!getCached('conversations')
     if (!hasCache) setLoading(true)
     try {
-      // Force la résolution de la session (sinon RLS filtre tout en anonyme au mount)
-      await supabase.auth.getSession()
+      // Session prête sans jamais hang (cf. ensureSession). NE PAS remettre un
+      // await supabase.auth.getSession() nu ici : il peut bloquer le finally et
+      // figer le garde inFlight → conversations qui ne se chargent plus jamais.
+      await ensureSession()
       const { data, error } = await withTimeout(supabase
         .from('conversations')
         .select(`
@@ -54,10 +56,12 @@ export function useMessages(conversationId = null) {
       if (list.length > 0 || !existingCache || existingCache.length === 0) {
         setCached('conversations', list)
       }
+      // Cooldown 1.5s declenche UNIQUEMENT apres un succes (sinon un echec
+      // bloquerait les retries pendant 1.5s).
+      lastConvTsRef.current = Date.now()
     } finally {
       setLoading(false)
       convInFlightRef.current = false
-      lastConvTsRef.current = Date.now()
     }
   }
 
@@ -70,7 +74,7 @@ export function useMessages(conversationId = null) {
     if (cached) setMessages(cached)
     if (!cached) setLoading(true)
     try {
-      await supabase.auth.getSession()
+      await ensureSession()
       const { data, error } = await withTimeout(supabase
         .from('messages')
         .select(`*, sender:users!sender_id(id, prenom, nom, avatar_url)`)

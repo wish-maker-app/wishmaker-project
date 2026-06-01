@@ -533,6 +533,8 @@ export default function MakerHome() {
           setCached('available_wishes', w)
         }
         setLoadError(null)
+        // Cooldown 1.5s uniquement apres succes (un echec doit pouvoir retry)
+        lastFetchTsRef.current = Date.now()
       })
       .catch((err) => {
         // Si on a déjà du cache affiché → échec SILENCIEUX (philosophie
@@ -550,7 +552,6 @@ export default function MakerHome() {
       })
       .finally(() => {
         inFlightRef.current = false
-        lastFetchTsRef.current = Date.now()
       })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

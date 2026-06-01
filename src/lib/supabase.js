@@ -101,3 +101,18 @@ export function withTimeout(promise, ms = 4000, label = 'QUERY_TIMEOUT') {
     new Promise((_, reject) => setTimeout(() => reject(new Error(label)), ms)),
   ])
 }
+
+// ensureSession : "garantit" que la session est prête avant une query de
+// lecture, MAIS sans jamais hang. Le getSession() interne de supabase-js peut
+// se bloquer indéfiniment au réveil/connexion morte (lock/refresh deferred) ;
+// comme on l'appelle souvent dans un try AVANT la query, un hang laissait le
+// `finally` (et donc les gardes inFlight) bloqués → la page ne se rechargeait
+// JAMAIS. Ici on le borne à 2,5s et on avale l'erreur : si ça timeoute, on
+// lance quand même la query (le JWT est déjà attaché depuis localStorage).
+export async function ensureSession() {
+  try {
+    await withTimeout(supabase.auth.getSession(), 2500, 'SESSION_TIMEOUT')
+  } catch {
+    /* best-effort : on continue, la query utilisera le JWT déjà en place */
+  }
+}
