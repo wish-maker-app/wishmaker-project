@@ -954,10 +954,14 @@ export default function MakerHome() {
             </AnimatePresence>
           </div>
         ) : view === 'swipe' ? (
-          <div className="h-full flex flex-col items-center justify-center px-6 py-4 bg-[#F7F8FC]">
+          <div className="h-full flex flex-col items-center justify-center px-6 pt-2 pb-28 bg-[#F7F8FC]">
             {swipeWishes.length > 0 ? (
-              <>
-                <div className="relative w-full flex-1">
+              <div className="w-full max-w-sm flex flex-col items-center">
+                {/* Pile de cartes — hauteur bornée à la hauteur réelle de la carte
+                    (cartes en position:absolute → besoin d'une hauteur explicite).
+                    Plus de flex-1 : évite le grand vide entre carte et boutons.
+                    maxHeight 58vh = filet pour petits écrans (iPhone SE). */}
+                <div className="relative w-full" style={{ height: 380, maxHeight: '58vh' }}>
                   <AnimatePresence>
                     {swipeWishes.slice(0, 2).reverse().map((wish, i, arr) => (
                       <SwipeCard
@@ -972,21 +976,24 @@ export default function MakerHome() {
                     ))}
                   </AnimatePresence>
                 </div>
-                <div className="flex items-center gap-8 mt-4 pb-24">
+                {/* Boutons d'action — juste sous la carte (mt-6 ≈ 24px),
+                    plus collés à la navbar. Le pb-28 du parent dégage la
+                    bottom nav fixe + sa safe-area. */}
+                <div className="flex items-center gap-8 mt-6">
                   <button
                     onClick={() => { if (swipeWishes[0]) handleSwipeSkip(swipeWishes[0].id) }}
-                    className="w-16 h-16 rounded-full bg-white border-2 border-red-400 flex items-center justify-center shadow-lg"
+                    className="w-16 h-16 rounded-full bg-white border-2 border-red-400 flex items-center justify-center shadow-lg active:scale-95 transition-transform"
                   >
                     <span className="text-red-500 text-2xl font-bold">✕</span>
                   </button>
                   <button
                     onClick={() => { if (swipeWishes[0]) handleSwipeAccept(swipeWishes[0]) }}
-                    className="w-16 h-16 rounded-full bg-white border-2 border-green-400 flex items-center justify-center shadow-lg"
+                    className="w-16 h-16 rounded-full bg-white border-2 border-green-400 flex items-center justify-center shadow-lg active:scale-95 transition-transform"
                   >
                     <span className="text-green-500 text-2xl font-bold">✓</span>
                   </button>
                 </div>
-              </>
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-3">
                 <span className="text-5xl">🌟</span>
