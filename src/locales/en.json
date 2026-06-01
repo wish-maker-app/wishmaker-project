@@ -353,6 +353,7 @@
     },
     "detail": {
       "realiser": "Grant this wish",
+      "deja_realise": "Wish already granted",
       "ouvrir_map": "Open in Google Maps",
       "succes_titre": "Well done!",
       "succes_sous": "You granted {{prenom}}'s wish",

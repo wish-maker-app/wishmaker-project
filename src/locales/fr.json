@@ -353,6 +353,7 @@
     },
     "detail": {
       "realiser": "Réaliser ce vœu",
+      "deja_realise": "Vœu déjà réalisé",
       "ouvrir_map": "Ouvrir dans Google Maps",
       "succes_titre": "Bravo !",
       "succes_sous": "Vous avez réalisez le vœu de {{prenom}}",

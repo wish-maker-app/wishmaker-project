@@ -334,6 +334,10 @@ export default function WishDetail() {
   const dist = distanceKm(userLat, userLng, wish.latitude, wish.longitude)
 
   const isOwner = searchParams.get('owner') === '1' || wish.wisher_id === profile?.id
+  // Vœu déjà réalisé → plus de proposition possible (CTA masqués, badge gris).
+  // Piloté par le statut du vœu lui-même → le check vaut pour TOUS les points
+  // d'entrée (notif push, lien direct, partage, messagerie).
+  const isCompleted = wish.statut === 'realise'
 
   const heroImage = wish.images?.[0]?.url || null
 
@@ -349,6 +353,7 @@ export default function WishDetail() {
   }
 
   async function handleMessage() {
+    if (isCompleted) { toast.error('Ce vœu est déjà réalisé.'); return }
     try {
       // Vérifier si une conversation existe déjà
       const { data: existing } = await supabase
@@ -582,7 +587,7 @@ export default function WishDetail() {
               {wish.wisher.pseudo || `user_${(wish.wisher.id || '0000').slice(0, 4)}`}
             </p>
           </div>
-          {!isOwner && (
+          {!isOwner && !isCompleted && (
               <button
                 onClick={(e) => { e.stopPropagation(); handleMessage() }}
                 className="w-10 h-10 rounded-full flex items-center justify-center"
@@ -647,14 +652,23 @@ export default function WishDetail() {
           <p className="text-xs text-[#8A8A9A] font-medium mt-3">Localisation approximative · {formatLocation(wish)}</p>
         </motion.div>
 
-        {/* CTA — masqué si c'est ton propre vœu */}
-        {!isOwner && (
+        {/* CTA — badge gris si vœu déjà réalisé, sinon bouton (masqué si c'est ton propre vœu) */}
+        {isCompleted ? (
+          <motion.div custom={6} initial="hidden" animate="visible" variants={sectionVariants} className="pt-2">
+            <div className="flex items-center justify-center gap-2 h-12 rounded-full bg-[#F0F0F2] text-[#8A8A9A] font-bold text-sm">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="#8A8A9A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {t('maker.detail.deja_realise', 'Vœu déjà réalisé')}
+            </div>
+          </motion.div>
+        ) : !isOwner ? (
           <motion.div custom={6} initial="hidden" animate="visible" variants={sectionVariants} className="pt-2">
             <Button onClick={() => setShowProposal(true)}>
               {t('maker.detail.realiser')}
             </Button>
           </motion.div>
-        )}
+        ) : null}
           </motion.div>
         </div>
       </div>

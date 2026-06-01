@@ -232,6 +232,12 @@ export default function Chat() {
   async function handleSend(e) {
     e.preventDefault()
     if (!input.trim()) return
+    // Vœu déjà réalisé + conversation pas encore créée (brouillon) = on bloque
+    // la création d'une nouvelle proposition (cohérent avec la RLS backend).
+    if (isDraft && wishStatut === 'realise') {
+      toast.error('Ce vœu a déjà été réalisé.')
+      return
+    }
     const result = await checkContent(input.trim())
     if (!result.isClean) {
       setChatModerationError('Message non envoyé : contenu inapproprié.')
@@ -732,26 +738,34 @@ export default function Chat() {
         </div>
       )}
 
-      {/* Input */}
-      <form onSubmit={handleSend} className="bg-white border-t border-[#F0F0F0] px-4 py-3 flex items-center gap-3"
-        style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
-        <input
-          value={input}
-          onChange={(e) => { setInput(e.target.value); setChatModerationError('') }}
-          placeholder={t('messages.envoyer')}
-          className="flex-1 h-11 bg-[#F5F5F5] rounded-full px-4 text-sm text-[#1A1A2E] placeholder-[#B0B0B0] outline-none"
-        />
-        <button
-          type="submit"
-          className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M22 2L11 13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M22 2L15 22l-4-9-9-4L22 2z" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      </form>
+      {/* Input — ou bandeau lecture seule si nouvelle proposition sur vœu réalisé */}
+      {isDraft && wishStatut === 'realise' ? (
+        <div className="bg-white border-t border-[#F0F0F0] px-4 py-4 text-center"
+          style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))' }}>
+          <p className="text-sm font-semibold text-[#8A8A9A]">Ce vœu a déjà été réalisé.</p>
+          <p className="text-xs text-[#B0B0B0] mt-0.5">Vous ne pouvez plus envoyer de proposition.</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSend} className="bg-white border-t border-[#F0F0F0] px-4 py-3 flex items-center gap-3"
+          style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
+          <input
+            value={input}
+            onChange={(e) => { setInput(e.target.value); setChatModerationError('') }}
+            placeholder={t('messages.envoyer')}
+            className="flex-1 h-11 bg-[#F5F5F5] rounded-full px-4 text-sm text-[#1A1A2E] placeholder-[#B0B0B0] outline-none"
+          />
+          <button
+            type="submit"
+            className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M22 2L11 13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M22 2L15 22l-4-9-9-4L22 2z" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </form>
+      )}
 
       {/* Modal confirmation "Marquer comme réalisé" */}
       <BottomSheet open={showConfirmRealise} onClose={() => setShowConfirmRealise(false)}>

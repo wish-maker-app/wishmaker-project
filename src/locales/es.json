@@ -353,6 +353,7 @@
     },
     "detail": {
       "realiser": "Cumplir este deseo",
+      "deja_realise": "Deseo ya cumplido",
       "ouvrir_map": "Abrir en Google Maps",
       "succes_titre": "¡Bravo!",
       "succes_sous": "Has cumplido el deseo de {{prenom}}",
