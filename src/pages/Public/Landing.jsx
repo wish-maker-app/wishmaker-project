@@ -59,7 +59,6 @@ export default function Landing() {
   // ou Chrome iOS) → on invite à ouvrir la page dans Safari.
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
   const isInAppWebview = /FBAN|FBAV|Instagram|Line|LinkedIn|Twitter/i.test(ua)
-  const isChromeIOS = /CriOS/i.test(ua)
 
   return (
     // fixed inset-0 : on s'echappe du shell mobile 430px applique par #root
@@ -214,28 +213,31 @@ export default function Landing() {
                     </svg>
                   </span>
                   <p className="text-[16px] font-bold text-[#1A1A2E] mb-1">Installer sur iPhone</p>
-                  <p className="text-[13.5px] text-[#3A3A4E] leading-[1.55] mb-5">Depuis Safari, en trois étapes.</p>
+                  <p className="text-[13.5px] text-[#3A3A4E] leading-[1.55] mb-5">Depuis Safari ou Chrome, en trois étapes.</p>
 
-                  {isInAppWebview || isChromeIOS ? (
-                    <div className="w-full rounded-2xl bg-[#FFF7ED] border border-[#FED7AA] p-4 text-left flex items-start gap-2.5">
+                  {/* Avertissement UNIQUEMENT pour les webviews in-app (Instagram,
+                      Facebook…) où l'ajout à l'écran d'accueil est réellement
+                      impossible. Sur Chrome iOS la manip est la même que sur Safari
+                      → on garde les étapes visibles (pas de blocage). */}
+                  {isInAppWebview && (
+                    <div className="w-full mb-3 rounded-2xl bg-[#FFF7ED] border border-[#FED7AA] p-4 text-left flex items-start gap-2.5">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EA580C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
                       <p className="text-[13px] text-[#9A3412] leading-[1.5]">
-                        Ouvrez cette page dans <strong className="font-semibold">Safari</strong> pour pouvoir installer l'application.
+                        Pour installer, ouvrez d'abord cette page dans <strong className="font-semibold">Safari</strong> ou <strong className="font-semibold">Chrome</strong> (menu ⋯ → « Ouvrir dans le navigateur »).
                       </p>
                     </div>
-                  ) : (
-                    <div className="w-full flex flex-col gap-2.5">
-                      <AppleStep n="1" icon={
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6BF5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M6 12v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-6"/></svg>
-                      }>Touchez l'icône <strong className="font-semibold text-[#1A1A2E]">Partager</strong> en bas de Safari</AppleStep>
-                      <AppleStep n="2" icon={
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6BF5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
-                      }>Choisissez <strong className="font-semibold text-[#1A1A2E]">« Sur l'écran d'accueil »</strong></AppleStep>
-                      <AppleStep n="3" icon={
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6BF5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      }>Touchez <strong className="font-semibold text-[#1A1A2E]">« Ajouter »</strong></AppleStep>
-                    </div>
                   )}
+                  <div className="w-full flex flex-col gap-2.5">
+                    <AppleStep n="1" icon={
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6BF5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M6 12v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-6"/></svg>
+                    }>Touchez l'icône <strong className="font-semibold text-[#1A1A2E]">Partager</strong></AppleStep>
+                    <AppleStep n="2" icon={
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6BF5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+                    }>Choisissez <strong className="font-semibold text-[#1A1A2E]">« Sur l'écran d'accueil »</strong></AppleStep>
+                    <AppleStep n="3" icon={
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6BF5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    }>Touchez <strong className="font-semibold text-[#1A1A2E]">« Ajouter »</strong></AppleStep>
+                  </div>
                 </div>
 
               </div>
