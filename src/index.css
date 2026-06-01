@@ -32,7 +32,10 @@ html, body, #root {
 
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  background: #F0F0F0;
+  /* Blanc par défaut (mobile). Le fond gris du "shell téléphone" n'est appliqué
+     qu'en desktop (cf. media query plus bas) → évite le flash d'un cadre boxé
+     gris au tout premier paint, avant que React ne monte la page plein écran. */
+  background: #FFFFFF;
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
 }
@@ -46,11 +49,19 @@ body {
   height: 100dvh; /* dynamic viewport — s'adapte à la barre d'URL du navigateur */
   position: relative;
   background: white;
-  box-shadow: 0 0 60px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   /* Safe area top sur #root (fond blanc = invisible, contrairement à body gris) */
   padding-top: env(safe-area-inset-top, 0px);
   box-sizing: border-box;
+}
+
+/* Le "shell" façon téléphone (fond gris + ombre autour de la carte 430px) n'a
+   de sens que sur grand écran. Sur mobile (≤430px) l'ombre était invisible mais
+   provoquait un flash de cadre boxé au chargement (paint avant React). On le
+   réserve donc au desktop. */
+@media (min-width: 431px) {
+  body { background: #F0F0F0; }
+  #root { box-shadow: 0 0 60px rgba(0, 0, 0, 0.15); }
 }
 
 /* ─── PWA standalone mode (iOS safe areas) ─── */
