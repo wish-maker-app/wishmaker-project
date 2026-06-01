@@ -434,15 +434,31 @@ export default function Profile() {
                 const { data: { session } } = await supabase.auth.getSession()
                 if (!session) throw new Error('Session expirée')
                 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-                const res = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
-                  method: 'POST',
-                  headers: {
-                    Authorization: `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json',
-                    apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-                  },
-                })
-                const data = await res.json()
+                // Timeout 20s : la suppression touche plusieurs tables, mais on
+                // ne laisse JAMAIS le spinner tourner dans le vide si la connexion
+                // est morte (retour d'arrière-plan) ou la fonction trop lente.
+                const ctrl = new AbortController()
+                const to = setTimeout(() => ctrl.abort('timeout'), 20000)
+                let res
+                try {
+                  res = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
+                    method: 'POST',
+                    headers: {
+                      Authorization: `Bearer ${session.access_token}`,
+                      'Content-Type': 'application/json',
+                      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                    },
+                    signal: ctrl.signal,
+                  })
+                } catch (e) {
+                  if (e?.name === 'AbortError' || e === 'timeout') {
+                    throw new Error('Délai dépassé. Réessaie dans un instant.')
+                  }
+                  throw new Error('Connexion impossible. Vérifie ta connexion et réessaie.')
+                } finally {
+                  clearTimeout(to)
+                }
+                const data = await res.json().catch(() => ({}))
                 if (!res.ok) throw new Error(data.error || 'Erreur lors de la suppression')
                 toast.success('Compte supprimé. Au revoir.')
                 // Logout et navigate vers /auth
