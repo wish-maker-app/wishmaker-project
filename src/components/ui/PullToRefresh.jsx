@@ -31,19 +31,22 @@ const isTouchDevice =
 export default function PullToRefresh({ onRefresh, className = '', contentClassName = '', children }) {
   const scrollRef = useRef(null)
   const startY = useRef(null)
-  const draggingRef = useRef(false)
   const [pull, setPull] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
+  // isDragging pilote la transition CSS (none pendant le geste pour coller au
+  // doigt, ease au relâchement pour un retour fluide). En state (pas en ref)
+  // pour ne jamais lire une ref pendant le render.
+  const [isDragging, setIsDragging] = useState(false)
 
   function handleTouchStart(e) {
     if (!isTouchDevice || refreshing) return
     // N'arme le geste que si on est tout en haut du scroll.
     if ((scrollRef.current?.scrollTop ?? 0) <= 0) {
       startY.current = e.touches[0].clientY
-      draggingRef.current = true
+      setIsDragging(true)
     } else {
       startY.current = null
-      draggingRef.current = false
+      setIsDragging(false)
     }
   }
 
@@ -54,7 +57,7 @@ export default function PullToRefresh({ onRefresh, className = '', contentClassN
     // L'utilisateur a scrollé entre-temps → on annule l'armement.
     if ((scrollRef.current?.scrollTop ?? 0) > 0) {
       startY.current = null
-      draggingRef.current = false
+      setIsDragging(false)
       setPull(0)
       return
     }
@@ -65,7 +68,7 @@ export default function PullToRefresh({ onRefresh, className = '', contentClassN
   async function handleTouchEnd() {
     if (startY.current == null) return
     startY.current = null
-    draggingRef.current = false
+    setIsDragging(false)
     if (pull >= THRESHOLD && !refreshing) {
       setRefreshing(true)
       setPull(48) // position de repos pendant le chargement
@@ -79,7 +82,6 @@ export default function PullToRefresh({ onRefresh, className = '', contentClassN
   }
 
   const progress = Math.min(1, pull / THRESHOLD)
-  const dragging = draggingRef.current
   const indicatorY = refreshing ? 12 : pull > 0 ? Math.min(pull, MAX_PULL) - 16 : -44
   const visible = refreshing || pull > 4
 
@@ -89,7 +91,7 @@ export default function PullToRefresh({ onRefresh, className = '', contentClassN
       <motion.div
         className="absolute left-1/2 top-0 -translate-x-1/2 z-20 pointer-events-none"
         animate={{ y: indicatorY, opacity: visible ? 1 : 0 }}
-        transition={{ duration: dragging ? 0 : 0.2 }}
+        transition={{ duration: isDragging ? 0 : 0.2 }}
       >
         <div className="w-9 h-9 rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.12)] flex items-center justify-center">
           <div
@@ -114,7 +116,7 @@ export default function PullToRefresh({ onRefresh, className = '', contentClassN
         className={`h-full overflow-y-auto ${contentClassName}`}
         style={{
           transform: pull > 0 ? `translateY(${pull}px)` : undefined,
-          transition: dragging ? 'none' : 'transform 0.25s ease',
+          transition: isDragging ? 'none' : 'transform 0.25s ease',
           overscrollBehaviorY: 'contain',
         }}
       >

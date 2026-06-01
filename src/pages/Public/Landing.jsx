@@ -18,7 +18,13 @@ export default function Landing() {
   const navigate = useNavigate()
   const installRef = useRef(null)
   const [deferredPrompt, setDeferredPrompt] = useState(null)
-  const [installed, setInstalled] = useState(false)
+  // Déjà installée (lancée en mode standalone) ? Calculé à l'init (pas de
+  // setState synchrone dans l'effet → évite les renders en cascade).
+  const [installed, setInstalled] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      !!(window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone)
+  )
   const [showAndroidTuto, setShowAndroidTuto] = useState(false)
 
   // Capture l'event d'installation Android (PWA) dès le chargement — sinon le
@@ -28,10 +34,6 @@ export default function Landing() {
     const onInstalled = () => { setInstalled(true); setDeferredPrompt(null) }
     window.addEventListener('beforeinstallprompt', handler)
     window.addEventListener('appinstalled', onInstalled)
-    // Déjà installée (lancée en mode standalone) ?
-    const standalone =
-      window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone
-    if (standalone) setInstalled(true)
     return () => {
       window.removeEventListener('beforeinstallprompt', handler)
       window.removeEventListener('appinstalled', onInstalled)
