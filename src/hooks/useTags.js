@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { create } from 'zustand'
-import { supabase } from '../lib/supabase'
+import { supabase, withTimeout, ensureFreshSession } from '../lib/supabase'
 import useAuthStore from '../store/authStore'
 
 /**
@@ -21,10 +21,21 @@ const useCatalogStore = create((set, get) => ({
     set({ loading: true, error: null })
 
     try {
+      // Session valide d'abord : ces tables (categories/tags/category_tags) ont
+      // une RLS rôle `authenticated` → sans session la requête revient vide.
+      const session = await ensureFreshSession()
+      if (!session) throw new Error('NO_SESSION')
+
+      // withTimeout sur CHAQUE requête : sinon, au réveil PWA (connexion HTTP/2
+      // morte), supabase-js peut rester bloqué AVANT le fetch (résolution
+      // session interne) → Promise.all ne résout jamais → loading bloqué à true
+      // → spinner infini SANS retry à l'étape mots-clés. Le timeout force un
+      // rejet borné → on tombe dans le catch (loading repasse false, retry
+      // possible).
       const [catsRes, tagsRes, ctRes] = await Promise.all([
-        supabase.from('categories').select('*').order('sort_order'),
-        supabase.from('tags').select('*').eq('is_active', true).order('label'),
-        supabase.from('category_tags').select('*').order('sort_order'),
+        withTimeout(supabase.from('categories').select('*').order('sort_order')),
+        withTimeout(supabase.from('tags').select('*').eq('is_active', true).order('label')),
+        withTimeout(supabase.from('category_tags').select('*').order('sort_order')),
       ])
 
       if (catsRes.error) throw catsRes.error
@@ -65,12 +76,16 @@ export function useCatalog() {
   const loading = useCatalogStore((s) => s.loading)
   const error = useCatalogStore((s) => s.error)
   const reload = useCatalogStore((s) => s.reload)
+  const authTick = useAuthStore((s) => s.authTick)
 
   useEffect(() => {
-    // Si le store est en erreur ou pas encore chargé → on tente de charger
+    // Si le store est en erreur ou pas encore chargé → on tente de charger.
+    // Dépendance authTick : au réveil de l'app (focus/visibility → bump dans
+    // useAuth), si le catalogue n'a pas pu charger (ex: 1re tentative timeout
+    // en PWA), on RÉESSAIE automatiquement dès que la session est revalidée.
     const s = useCatalogStore.getState()
     if (!s.loaded && !s.loading) s.loadCatalog()
-  }, [])
+  }, [authTick])
 
   // Map catégorie → tags (avec is_suggested_primary + sort_order pour tri)
   const getTagsForCategory = useCallback(

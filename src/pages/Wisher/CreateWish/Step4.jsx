@@ -72,7 +72,7 @@ export default function Step4() {
     tag_ids: savedTagIds,
     setCategoryAndTags,
   } = useWishFormStore()
-  const { tags, categoryTags, categories, loaded } = useCatalog()
+  const { tags, categoryTags, categories, loaded, error, reload } = useCatalog()
 
   const [selectedTagIds, setSelectedTagIds] = useState(savedTagIds || [])
 
@@ -100,9 +100,24 @@ export default function Step4() {
       <StepProgress current={4} />
 
       {!loaded ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-5 h-5 rounded-full border-[2px] border-[#5B6BF5] border-t-transparent animate-spin" />
-        </div>
+        error ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
+            <span className="text-3xl">⚠️</span>
+            <p className="text-sm font-bold text-[#1A1A2E]">Impossible de charger les mots-clés</p>
+            <p className="text-xs text-[#8A8A9A]">Vérifie ta connexion et réessaie.</p>
+            <button
+              onClick={() => reload()}
+              className="mt-2 h-10 px-5 rounded-full text-white font-bold text-xs"
+              style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+            >
+              Réessayer
+            </button>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-5 h-5 rounded-full border-[2px] border-[#5B6BF5] border-t-transparent animate-spin" />
+          </div>
+        )
       ) : (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
