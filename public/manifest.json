@@ -2,7 +2,7 @@
   "name": "Wishmaker",
   "short_name": "Wishmaker",
   "description": "Fais réaliser tes vœux par des Makers",
-  "start_url": "/",
+  "start_url": "/maker",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
