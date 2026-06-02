@@ -71,6 +71,13 @@ function normalizeCompact(text) {
   return normalize(text).replace(/\s+/g, '')
 }
 
+// ---------- Allowlist (faux positifs courants des dicos externes) ----------
+// Mots français du quotidien présents À TORT dans leo-profanity / french-
+// badwords-list. On les neutralise pour ne pas bloquer des messages normaux
+// ("salle de bain", "linge sale", "crotte de chien"…). Enrichir au besoin :
+// il suffit d'ajouter un mot ici (en minuscules) pour qu'il ne soit plus bloqué.
+const SAFE_WORDS = ['sale', 'salle', 'con', 'crotte'].map(normalize)
+
 // ---------- Build du set global de mots interdits (une seule fois) ----------
 let badWordsSet = null
 let badPhrasesList = null // phrases multi-mots traitées à part
@@ -112,6 +119,10 @@ function buildBadSets() {
   for (const w of [...badWordsSet]) {
     if (w.length < 2) badWordsSet.delete(w)
   }
+
+  // Allowlist : on retire les faux positifs courants (cf. SAFE_WORDS)
+  for (const w of SAFE_WORDS) badWordsSet.delete(w)
+  badPhrasesList = badPhrasesList.filter((p) => !SAFE_WORDS.includes(p))
 }
 
 // ---------- Supabase custom words ----------
@@ -203,9 +214,13 @@ export async function checkContent(text) {
     }
   }
 
+  // Allowlist finale : on ne signale jamais un mot de la liste blanche (au cas
+  // où il viendrait d'une autre source que badWordsSet, ex: forbidden_words).
+  const allowed = violations.filter((v) => !SAFE_WORDS.includes(normalize(v.mot)))
+
   // Dédoublonne
   const unique = Array.from(
-    new Map(violations.map((v) => [v.mot + v.categorie, v])).values()
+    new Map(allowed.map((v) => [v.mot + v.categorie, v])).values()
   )
   return { isClean: unique.length === 0, violations: unique }
 }
