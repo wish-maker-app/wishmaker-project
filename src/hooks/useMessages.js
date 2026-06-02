@@ -104,6 +104,16 @@ export function useMessages(conversationId = null) {
         channelRef.current = null
       }
 
+      // ⚡ CRUCIAL : garantir que le socket Realtime a un JWT valide AVANT de
+      // souscrire. Sinon le serveur Realtime applique la RLS avec un token
+      // anonyme/périmé → tous les events sont filtrés → les messages n'arrivent
+      // jamais "en direct" (il faut recharger). C'est la cause n°1 des messages
+      // non temps-réel.
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) supabase.realtime.setAuth(session.access_token)
+      } catch { /* best-effort */ }
+
       // Souscription Realtime — guard contre les updates sur composant unmounted
       channelRef.current = supabase
         .channel(`messages:${convId}`)
@@ -113,6 +123,8 @@ export function useMessages(conversationId = null) {
           (payload) => {
             if (!mountedRef.current) return
             setMessages((prev) => {
+              // Dédup : l'envoi optimiste a pu déjà ajouter ce message.
+              if (prev.some((m) => m.id === payload.new.id)) return prev
               const next = [...prev, payload.new]
               setCached(cacheKey, next)
               return next
@@ -132,10 +144,24 @@ export function useMessages(conversationId = null) {
 
   async function sendMessage(convId, contenu) {
     if (!user || !contenu.trim()) return
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('messages')
       .insert({ conversation_id: convId, sender_id: user.id, contenu })
+      .select('*, sender:users!sender_id(id, prenom, nom, avatar_url)')
+      .single()
     if (error) throw error
+    // Affichage OPTIMISTE : on ajoute le message immédiatement, sans dépendre du
+    // Realtime (qui peut être en retard ou filtré si le JWT du socket n'est pas
+    // à jour). Dédup par id car le handler Realtime peut livrer le même message.
+    // On met aussi à jour le cache → si le Chat (re)monte juste après (flux
+    // « proposer un vœu »), il s'hydrate avec le message déjà présent.
+    if (data) {
+      setMessages((prev) => (prev.some((m) => m.id === data.id) ? prev : [...prev, data]))
+      const ck = `messages_${convId}`
+      const cached = getCached(ck)?.value || []
+      if (!cached.some((m) => m.id === data.id)) setCached(ck, [...cached, data])
+    }
+    return data
   }
 
   async function deleteConversation(convId) {

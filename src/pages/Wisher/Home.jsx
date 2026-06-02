@@ -618,9 +618,9 @@ export default function WisherHome() {
           </motion.button>
         </div>
 
-        {/* Astuce — bannière dismissible. Quand fermée, on affiche un carrousel d'exemples de vœux. */}
-        {showTip ? (
-          <div className="px-5 mb-5">
+        {/* Astuce — bannière dismissible (la croix la masque définitivement via localStorage) */}
+        {showTip && (
+          <div className="px-5 mb-4">
             <div className="rounded-2xl bg-white border border-[#F0F0F0] p-4 flex items-start gap-3 relative">
               <button onClick={() => { setShowTip(false); localStorage.setItem('wishmaker-tip-dismissed', 'true') }}
                 className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#F0F0F0] flex items-center justify-center">
@@ -639,53 +639,50 @@ export default function WisherHome() {
               </div>
             </div>
           </div>
-        ) : (
-          <div className="mb-5">
-            <p className="px-5 text-xs font-semibold text-[#8A8A9A] uppercase tracking-wide mb-2">
-              {t('wisher.home.exemples_titre')}
-            </p>
-            {/* Carrousel "aimante" facon Airbnb :
-                - snap-x + snap-mandatory + scroll-snap-stop:always → on ne peut pas
-                  s'arreter entre deux cards, le navigateur cale toujours sur la
-                  prochaine
-                - scroll-padding-inline:20px → le point de snap coincide avec le
-                  bord de la card (sinon le padding px-5 du conteneur decalerait
-                  les cards et on en verrait toujours une moitie) */}
-            <div
-              ref={examplesRef}
-              className="flex gap-3 overflow-x-auto px-5 pb-2 snap-x snap-mandatory scrollbar-hide"
-              style={{ scrollPaddingLeft: '20px', scrollPaddingRight: '20px' }}
-            >
-              {(() => {
-                // Recupere les textes traduits depuis i18n (fallback array vide)
-                const texts = t('wisher.home.exemples', { returnObjects: true })
-                const exemples = Array.isArray(texts) ? texts : []
-                return exemples.map((text, i) => {
-                  const slug = WISH_EXAMPLE_SLUGS[i] || 'autre'
-                  const Icon = CATEGORY_ICONS[slug]
-                  const theme = CATEGORY_COLORS[slug]
-                  return (
-                    <div
-                      key={i}
-                      className="flex-shrink-0 w-[260px] rounded-2xl bg-white border border-[#F0F0F0] p-3 flex items-center gap-3 snap-start"
-                      style={{ scrollSnapStop: 'always' }}
-                    >
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
-                        style={{ background: theme?.grad }}
-                      >
-                        {Icon && <Icon size={20} stroke={2.2} />}
-                      </div>
-                      <p className="text-xs text-[#1A1A2E] leading-snug line-clamp-3">
-                        « {text} »
-                      </p>
-                    </div>
-                  )
-                })
-              })()}
-            </div>
-          </div>
         )}
+
+        {/* Suggestions de vœux — TOUJOURS affichées, sous l'astuce. Carrousel
+            "aimante" façon Airbnb (snap-x mandatory + scroll-snap-stop:always →
+            on cale toujours sur la prochaine card ; scrollPadding 20px → le snap
+            coïncide avec le bord de la card malgré le px-5 du conteneur). */}
+        <div className="mb-5">
+          <p className="px-5 text-xs font-semibold text-[#8A8A9A] uppercase tracking-wide mb-2">
+            {t('wisher.home.exemples_titre')}
+          </p>
+          <div
+            ref={examplesRef}
+            className="flex gap-3 overflow-x-auto px-5 pb-2 snap-x snap-mandatory scrollbar-hide"
+            style={{ scrollPaddingLeft: '20px', scrollPaddingRight: '20px' }}
+          >
+            {(() => {
+              // Recupere les textes traduits depuis i18n (fallback array vide)
+              const texts = t('wisher.home.exemples', { returnObjects: true })
+              const exemples = Array.isArray(texts) ? texts : []
+              return exemples.map((text, i) => {
+                const slug = WISH_EXAMPLE_SLUGS[i] || 'autre'
+                const Icon = CATEGORY_ICONS[slug]
+                const theme = CATEGORY_COLORS[slug]
+                return (
+                  <div
+                    key={i}
+                    className="flex-shrink-0 w-[260px] rounded-2xl bg-white border border-[#F0F0F0] p-3 flex items-center gap-3 snap-start"
+                    style={{ scrollSnapStop: 'always' }}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
+                      style={{ background: theme?.grad }}
+                    >
+                      {Icon && <Icon size={20} stroke={2.2} />}
+                    </div>
+                    <p className="text-xs text-[#1A1A2E] leading-snug line-clamp-3">
+                      « {text} »
+                    </p>
+                  </div>
+                )
+              })
+            })()}
+          </div>
+        </div>
 
         {/* Section Mes vœux */}
         <div className="px-5">

@@ -33,11 +33,16 @@ let modelPromise = null
  *
  * Basé sur les retours de la communauté NSFW.js (précision ~93% sur le modèle mid).
  */
+// Seuils ASSOUPLIS (juin 2026) : trop de faux positifs sur des photos normales
+// (objets, scènes du quotidien) qui montaient à ~0.7 en score combiné. Le vrai
+// porn/hentai score très haut (>0.85) donc on reste protégé avec des seuils
+// individuels à 0.6, et on relève fortement le combiné qui était le principal
+// déclencheur de faux positifs.
 const THRESHOLDS = {
-  porn: 0.4,    // Bloqué si ≥ 40% (strict, aucun besoin de nu)
-  hentai: 0.4,  // Idem pour dessin porn
-  sexy: 0.85,   // Permissif (lingerie, maillot de bain OK, nu partiel bloqué)
-  combined: 0.7, // Somme des 3 scores suspects
+  porn: 0.6,    // Bloqué si ≥ 60% (le vrai contenu porn dépasse largement)
+  hentai: 0.6,  // Idem pour dessin porn
+  sexy: 0.92,   // Très permissif (lingerie, maillot, sport… OK)
+  combined: 0.95, // Somme des 3 scores suspects — ne bloque que les cas francs
 }
 
 // Logs en dev uniquement, silence en prod sauf erreur

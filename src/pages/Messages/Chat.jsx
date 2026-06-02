@@ -86,6 +86,7 @@ export default function Chat() {
   const [input, setInput] = useState('')
   const scrollRef = useRef(null)
   const userId = useAuthStore((s) => s.user?.id)
+  const authTick = useAuthStore((s) => s.authTick)
   const { messages, loadMessages, sendMessage, createConversation, loadConversations, conversations, loading, deleteConversation } = useMessages()
   const { markWishRealized, markRealizedByMaker, confirmRealization, submitRating, getUserRating } = useWishes()
   const [interlocuteur, setInterlocuteur] = useState({ prenom: 'Utilisateur', nom: '', pseudo: null, is_online: false })
@@ -145,7 +146,11 @@ export default function Chat() {
           })
       })
     }
-  }, [id])
+    // authTick : au réveil de l'app (focus/visibility → bump dans useAuth), on
+    // recharge les messages + on re-souscrit le Realtime avec un token frais →
+    // plus besoin de rafraîchir manuellement pour voir les nouveaux messages.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, authTick])
 
   useEffect(() => {
     if (isDraft) return
