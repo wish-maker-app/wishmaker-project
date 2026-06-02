@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabase, withTimeout } from './supabase'
 import leoProfanity from 'leo-profanity'
 import frenchBadwords from 'french-badwords-list/dist/array.js'
 
@@ -120,16 +120,25 @@ let cachedWords = null
 async function loadCustomWords() {
   if (cachedWords) return cachedWords
   try {
-    const { data } = await supabase.from('forbidden_words').select('mot, categorie')
+    // withTimeout : sinon, au 1er message en PWA (connexion lente/morte), cette
+    // requête peut hang → checkContent hang → l'envoi "ne fait rien" et l'user
+    // re-clique (doublons). Bornée à 4s, fail-open sur les dicos locaux.
+    const { data } = await withTimeout(
+      supabase.from('forbidden_words').select('mot, categorie'),
+      4000,
+      'MOD_WORDS_TIMEOUT'
+    )
     cachedWords = (data || []).map((w) => ({
       mot: w.mot,
       categorie: w.categorie || 'custom',
       normalized: normalize(w.mot),
     }))
+    return cachedWords
   } catch {
-    cachedWords = []
+    // On NE cache PAS l'échec (retry au prochain message) et on ne bloque pas
+    // l'envoi : leo-profanity + french-badwords couvrent déjà l'essentiel.
+    return []
   }
-  return cachedWords
 }
 
 // ---------- API publique ----------
@@ -220,4 +229,14 @@ export async function logViolation({ userId, contentType, contentPreview, violat
 
 export function clearModerationCache() {
   cachedWords = null
+}
+
+/**
+ * Pré-chauffe la modération (build des dicos locaux + chargement de la liste
+ * Supabase) pour que le PREMIER message envoyé ne subisse aucune latence.
+ * À appeler au montage d'un écran de chat. Best-effort, ne throw jamais.
+ */
+export function prewarmModeration() {
+  try { buildBadSets() } catch { /* noop */ }
+  loadCustomWords().catch(() => {})
 }

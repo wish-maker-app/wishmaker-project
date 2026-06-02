@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import useAuthStore from '../../store/authStore'
 import { useMessages } from '../../hooks/useMessages'
 import { useWishes } from '../../hooks/useWishes'
-import { checkContent } from '../../lib/moderation'
+import { checkContent, prewarmModeration } from '../../lib/moderation'
 import { supabase } from '../../lib/supabase'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
@@ -85,6 +85,9 @@ export default function Chat() {
   const draftWisherId = searchParams.get('wisherId')
   const [input, setInput] = useState('')
   const scrollRef = useRef(null)
+  // Garde anti double-envoi : empêche qu'un re-clic (pendant que le 1er envoi
+  // est en cours) ne reparte. Combiné au vidage immédiat du champ ci-dessous.
+  const sendingRef = useRef(false)
   const userId = useAuthStore((s) => s.user?.id)
   const authTick = useAuthStore((s) => s.authTick)
   const { messages, loadMessages, sendMessage, createConversation, loadConversations, conversations, loading, deleteConversation } = useMessages()
@@ -232,42 +235,54 @@ export default function Chat() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
   }, [messages])
 
+  // Pré-chauffe la modération texte dès l'ouverture du chat → le 1er message
+  // n'attend pas le chargement des dictionnaires + de la liste forbidden_words.
+  useEffect(() => { prewarmModeration() }, [])
+
   const [chatModerationError, setChatModerationError] = useState('')
 
   async function handleSend(e) {
     e.preventDefault()
-    if (!input.trim()) return
+    const text = input.trim()
+    // Garde : champ vide OU envoi déjà en cours → on ignore. Avec le vidage
+    // immédiat du champ ci-dessous, ça élimine les doublons quand l'user
+    // re-clique parce que "rien ne se passe".
+    if (!text || sendingRef.current) return
     // Vœu déjà réalisé + conversation pas encore créée (brouillon) = on bloque
     // la création d'une nouvelle proposition (cohérent avec la RLS backend).
     if (isDraft && wishStatut === 'realise') {
       toast.error('Ce vœu a déjà été réalisé.')
       return
     }
-    const result = await checkContent(input.trim())
-    if (!result.isClean) {
-      setChatModerationError('Message non envoyé : contenu inapproprié.')
-      return
-    }
+    sendingRef.current = true
+    setInput('')            // vide le champ TOUT DE SUITE → un re-clic ne renvoie rien
     setChatModerationError('')
-
-    // Mode brouillon : créer la conversation au premier message
-    let targetConvId = convId
-    if (!targetConvId && isDraft && draftWishId && draftWisherId) {
-      try {
+    try {
+      const result = await checkContent(text)
+      if (!result.isClean) {
+        setChatModerationError('Message non envoyé : contenu inapproprié.')
+        setInput((cur) => cur || text) // on restaure pour correction
+        return
+      }
+      // Mode brouillon : créer la conversation au premier message
+      let targetConvId = convId
+      if (!targetConvId && isDraft && draftWishId && draftWisherId) {
         targetConvId = await createConversation(draftWishId, draftWisherId)
         setConvId(targetConvId)
         // Remplacer l'URL sans ajouter à l'historique
         navigate(`/messages/${targetConvId}`, { replace: true })
         loadMessages(targetConvId)
         loadConversations()
-      } catch (err) {
-        toast.error('Erreur lors de la création de la conversation')
-        return
       }
+      await sendMessage(targetConvId, text)
+    } catch (err) {
+      // Échec (réseau / création conv) → on restaure le texte pour réessayer.
+      toast.error('Message non envoyé, réessaie.')
+      setInput((cur) => cur || text)
+      console.warn('[chat] send failed:', err?.message)
+    } finally {
+      sendingRef.current = false
     }
-
-    await sendMessage(targetConvId, input.trim())
-    setInput('')
   }
 
   async function handleMarkRealized() {
