@@ -17,6 +17,8 @@ import frenchBadwords from 'french-badwords-list/dist/array.js'
 const FR_CUSTOM_BADWORDS = [
   // Abbréviations insultes (pas dans le dico standard)
   'pd', 'ptn', 'ntm', 'fdp', 'ftg', 'tg', 'stfu', 'gtg', 'sftg',
+  // "ta gueule" et ses variantes (collées ou mal orthographiées)
+  'tageule', 'tagueule', 'tageulle', 'ta gueule', 'ta geule', 'ferme ta gueule',
   // Variantes courantes mal orthographiées
   'battard', 'batar', 'batarde', 'connar', 'conasse',
   // Slurs (assurance double avec la lib)
@@ -78,36 +80,33 @@ function buildBadSets() {
   badWordsSet = new Set()
   badPhrasesList = []
 
+  // Ajoute une entrée normalisée. Mot simple → set. Phrase multi-mots → liste,
+  // MAIS en rejetant les phrases "dégénérées" qui matcheraient en sous-chaîne
+  // n'importe quel texte. Ex : "S&M" se normalise en "s m" (2 lettres) et
+  // bloquait "pa-s m-al", "te-s m-ains", "dan-s m-a"… On exige donc que CHAQUE
+  // mot de la phrase fasse ≥ 2 lettres ET que la phrase compacte fasse ≥ 5.
+  const pushEntry = (n) => {
+    if (!n) return
+    if (n.includes(' ')) {
+      const words = n.split(' ')
+      if (words.some((w) => w.length < 2)) return
+      if (n.replace(/\s+/g, '').length < 5) return
+      badPhrasesList.push(n)
+    } else {
+      badWordsSet.add(n)
+    }
+  }
+
   // leo-profanity dico EN + FR
   try {
     leoProfanity.loadDictionary('en')
     const frDict = leoProfanity.getDictionary('fr')
     if (frDict?.length) leoProfanity.add(frDict)
-  } catch {}
+  } catch { /* noop */ }
 
-  const leoDict = leoProfanity.list() || []
-  for (const w of leoDict) {
-    const n = normalize(w)
-    if (!n) continue
-    if (n.includes(' ')) badPhrasesList.push(n)
-    else badWordsSet.add(n)
-  }
-
-  // french-badwords-list (2000+ mots avec variants leet)
-  for (const w of frenchBadwords) {
-    const n = normalize(w)
-    if (!n) continue
-    if (n.includes(' ')) badPhrasesList.push(n)
-    else badWordsSet.add(n)
-  }
-
-  // Custom list
-  for (const w of FR_CUSTOM_BADWORDS) {
-    const n = normalize(w)
-    if (!n) continue
-    if (n.includes(' ')) badPhrasesList.push(n)
-    else badWordsSet.add(n)
-  }
+  for (const w of (leoProfanity.list() || [])) pushEntry(normalize(w))
+  for (const w of frenchBadwords) pushEntry(normalize(w))
+  for (const w of FR_CUSTOM_BADWORDS) pushEntry(normalize(w))
 
   // Filtrer les mots trop courts (évite faux positifs sur "a", "is"...)
   for (const w of [...badWordsSet]) {
