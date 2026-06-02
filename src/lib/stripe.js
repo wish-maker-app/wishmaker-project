@@ -21,9 +21,8 @@ export function getStripe() {
  * le client_secret + le paymentIntent id à utiliser avec Stripe Elements.
  *
  * @param {object} params
- * @param {'wish_payment'|'urgent_boost'|'extension'|'pack_starter'|'pack_essential'|'pack_pro'} params.type
- * @param {number} [params.amount_cents] - requis uniquement pour wish_payment
- * @param {string} [params.wish_id]
+ * @param {'urgent_boost'|'extension'|'pack_starter'|'pack_essential'|'pack_pro'} params.type
+ * @param {string} [params.wish_id] - vœu lié (urgent / extension)
  * @param {object} [params.metadata]
  */
 export async function createPaymentIntent({ type, amount_cents, wish_id, metadata = {} }) {

@@ -472,7 +472,7 @@ export default function WisherHome() {
 
   function handleMakeUrgent() {
     if (!modal?.wish) return
-    // Ouvrir le paiement 0.99€ pour l'urgent
+    // Ouvrir le paiement 1,99€ pour l'urgent
     setPaymentModal({ type: 'urgent_boost', wish_id: modal.wish.id, label: t('wisher.home.mettre_urgent') })
     setModal(null)
   }
@@ -826,7 +826,7 @@ export default function WisherHome() {
         onSuccess={() => setShowPackModal(false)}
       />
 
-      {/* Modal paiement Stripe (Urgent 0.99€ / Prolongation 0.99€) */}
+      {/* Modal paiement Stripe (Urgent 1,99€ / Prolongation 0,99€) */}
       <BottomSheet open={!!paymentModal} onClose={handlePaymentCancel} maxHeight="90vh">
         {paymentModal && (
           <>

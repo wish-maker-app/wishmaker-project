@@ -8,9 +8,8 @@ import Button from './Button'
  * Formulaire de paiement Stripe réutilisable.
  *
  * Props :
- *  - type: 'wish_payment' | 'urgent_boost' | 'extension' | 'pack_starter' | 'pack_essential' | 'pack_pro'
- *  - amount_cents: montant TTC en centimes (pour wish_payment uniquement, les autres ont prix fixe)
- *  - wish_id: optionnel, lié à un wish
+ *  - type: 'urgent_boost' | 'extension' | 'pack_starter' | 'pack_essential' | 'pack_pro'  (prix fixes côté serveur)
+ *  - wish_id: optionnel, lié à un wish (urgent / extension)
  *  - metadata: infos supplémentaires
  *  - onSuccess(paymentIntent) : callback quand paiement autorisé/capturé
  *  - onCancel : callback si l'user ferme le modal
