@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../../lib/supabase'
+import { supabase, withTimeout, ensureSession } from '../../lib/supabase'
 import useAuthStore from '../../store/authStore'
 import { getCached, setCached } from '../../lib/wishesCache'
 
@@ -22,25 +22,28 @@ export default function AdminStats() {
   const [data, setData] = useState(() => getCached('admin_stats')?.value || null)
   const [loading, setLoading] = useState(() => !getCached('admin_stats'))
 
+  const authTick = useAuthStore((s) => s.authTick)
   const isAdmin = !!(user && profile?.is_admin)
 
   // useEffect AVANT tout return conditionnel (regles des hooks). On ne charge
-  // que si admin.
+  // que si admin. authTick → re-tente au réveil de l'app (focus/visibility).
   useEffect(() => {
     if (isAdmin) loadStats()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin])
+  }, [isAdmin, authTick])
 
   async function loadStats() {
     if (!getCached('admin_stats')) setLoading(true)
     try {
-      // Tout est calcule cote serveur en une seule requete (RPC get_admin_stats).
-      const { data: stats, error } = await supabase.rpc('get_admin_stats')
+      await ensureSession()
+      // withTimeout : sinon, au réveil PWA (connexion HTTP/2 morte), le RPC peut
+      // ne JAMAIS résoudre → le finally ne tourne pas → spinner infini.
+      const { data: stats, error } = await withTimeout(supabase.rpc('get_admin_stats'))
       if (error) throw error
       setData(stats)
       setCached('admin_stats', stats)
     } catch (err) {
-      console.error('[admin/stats] error:', err)
+      console.error('[admin/stats] error:', err?.message)
     } finally {
       setLoading(false)
     }

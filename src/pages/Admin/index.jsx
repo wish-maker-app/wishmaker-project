@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
-import { supabase } from '../../lib/supabase'
+import { supabase, withTimeout, ensureSession } from '../../lib/supabase'
 import useAuthStore from '../../store/authStore'
 
 const CATEGORIES = [
@@ -149,29 +149,42 @@ function UtilisateursTab() {
   const [users, setUsers] = useState([])
   const [stats, setStats] = useState({ temp: 0, def: 0, reports: 0 })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const authTick = useAuthStore((s) => s.authTick)
 
   async function loadData() {
-    // Users suspendus
-    const { data: suspended } = await supabase
-      .from('users')
-      .select('*')
-      .eq('is_suspended', true)
-    setUsers(suspended || [])
+    setError(false)
+    try {
+      await ensureSession()
+      // withTimeout : sans ça, une requête qui hang (réveil PWA / connexion
+      // morte) laissait setLoading(false) inatteignable → SPINNER INFINI. Le
+      // try/finally garantit désormais qu'on sort TOUJOURS du loading.
+      const { data: suspended, error: e1 } = await withTimeout(
+        supabase.from('users').select('*').eq('is_suspended', true)
+      )
+      if (e1) throw e1
+      setUsers(suspended || [])
 
-    // Stats
-    const temp = (suspended || []).filter(u => u.suspension_type === 'temporaire').length
-    const def = (suspended || []).filter(u => u.suspension_type === 'definitive').length
+      const temp = (suspended || []).filter(u => u.suspension_type === 'temporaire').length
+      const def = (suspended || []).filter(u => u.suspension_type === 'definitive').length
 
-    const { count: reportsCount } = await supabase
-      .from('reports')
-      .select('*', { count: 'exact', head: true })
-      .eq('statut', 'en_attente')
-
-    setStats({ temp, def, reports: reportsCount || 0 })
-    setLoading(false)
+      const { count: reportsCount, error: e2 } = await withTimeout(
+        supabase.from('reports').select('*', { count: 'exact', head: true }).eq('statut', 'en_attente')
+      )
+      if (e2) throw e2
+      setStats({ temp, def, reports: reportsCount || 0 })
+    } catch (err) {
+      console.error('[admin users] load error:', err?.message)
+      setError(true)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => {
+    loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authTick])
 
   async function liftSuspension(userId) {
     await supabase.from('users').update({
@@ -196,6 +209,23 @@ function UtilisateursTab() {
     return (
       <div className="flex justify-center py-12">
         <div className="w-8 h-8 rounded-full border-4 border-[#5B6BF5] border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+        <span className="text-3xl">⚠️</span>
+        <p className="text-sm font-bold text-[#1A1A2E]">Erreur de chargement</p>
+        <p className="text-xs text-[#8A8A9A]">Vérifie ta connexion et réessaie.</p>
+        <button
+          onClick={() => { setLoading(true); loadData() }}
+          className="mt-2 h-10 px-5 rounded-full text-white font-bold text-xs"
+          style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+        >
+          Réessayer
+        </button>
       </div>
     )
   }
