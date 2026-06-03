@@ -299,6 +299,24 @@ function UtilisateursTab() {
   )
 }
 
+// Avatar (anneau gradient + photo ou initiales) — style page Avis
+function ReportAvatar({ user, size = 44 }) {
+  const grad = 'linear-gradient(135deg,#5B6BF5,#9B59F5)'
+  return (
+    <div className="rounded-full flex-shrink-0 p-[2px]" style={{ width: size, height: size, background: grad }}>
+      <div className="w-full h-full rounded-full overflow-hidden bg-white">
+        {user?.avatar_url ? (
+          <img src={user.avatar_url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center font-bold text-white text-xs" style={{ background: grad }}>
+            {(user?.prenom?.[0] || '') + (user?.nom?.[0] || '') || '?'}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Onglet 3 : Signalements (file de modération) ──
 function SignalementsTab() {
   const navigate = useNavigate()
@@ -319,7 +337,7 @@ function SignalementsTab() {
         .from('reports')
         .select(`id, type, raison, created_at, reported_wish_id, reported_user_id, reported_conversation_id,
           reporter:users!reports_reporter_id_fkey(pseudo, prenom),
-          reported_user:users!reports_reported_user_id_fkey(id, pseudo, prenom, is_suspended),
+          reported_user:users!reports_reported_user_id_fkey(id, pseudo, prenom, nom, avatar_url, is_suspended),
           reported_wish:wishes!reports_reported_wish_id_fkey(id, titre)`)
         .eq('statut', 'en_attente')
         .order('created_at', { ascending: false }))
@@ -417,31 +435,42 @@ function SignalementsTab() {
   const pillBtn = 'flex-1 h-10 rounded-full text-xs font-semibold disabled:opacity-40 transition-colors active:scale-[0.98]'
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col">
       {reports.map((r) => {
         const busy = acting === r.id
         return (
-          <div key={r.id} className="bg-white border border-[#F0F0F0] rounded-[20px] p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                style={r.type === 'voeu' ? { background: '#EEF0FF', color: '#5B6BF5' }
-                  : r.type === 'conversation' ? { background: '#F2E9FF', color: '#9B59F5' }
-                  : { background: '#FFF3DC', color: '#F59E0B' }}>
-                {r.type === 'voeu' ? 'Vœu' : r.type === 'conversation' ? 'Conversation' : 'Profil'}
-              </span>
-              <span className="text-[11px] text-[#8A8A9A]">
-                {new Date(r.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-              </span>
+          <div key={r.id} className="py-4 border-b last:border-b-0 border-[#F0F0F2] flex flex-col gap-3">
+            {/* Auteur signalé : avatar + pseudo + type + date */}
+            <div className="flex items-center gap-3">
+              <ReportAvatar user={r.reported_user} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-[15px] font-semibold text-[#1A1A2E] truncate tracking-[-0.01em]">
+                    @{r.reported_user?.pseudo || r.reported_user?.prenom || '?'}
+                  </p>
+                  {r.reported_user?.is_suspended && (
+                    <span className="text-[9px] font-bold text-[#EF4444] bg-[#FEF2F2] px-2 py-0.5 rounded-full flex-shrink-0">suspendu</span>
+                  )}
+                </div>
+                <p className="text-[11.5px] text-[#8A8A9A] mt-0.5">
+                  {r.type === 'voeu' ? 'Vœu signalé' : r.type === 'conversation' ? 'Conversation signalée' : 'Profil signalé'}
+                  {' · '}{new Date(r.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                </p>
+              </div>
             </div>
 
-            <p className="text-sm text-[#1A1A2E]"><span className="font-semibold">Raison :</span> {r.raison}</p>
-
-            <p className="text-[11px] text-[#8A8A9A] leading-relaxed">
-              Signalé par @{r.reporter?.pseudo || r.reporter?.prenom || '?'}
-              {' · Cible : '}@{r.reported_user?.pseudo || r.reported_user?.prenom || '?'}
-              {r.reported_wish?.titre ? ` · « ${r.reported_wish.titre} »` : ''}
-              {r.reported_user?.is_suspended ? ' · (déjà suspendu)' : ''}
-            </p>
+            {/* Motif + qui a signalé */}
+            <div className="rounded-xl bg-[#F7F8FC] px-3.5 py-2.5">
+              <p className="text-[13.5px] text-[#1A1A2E] leading-snug">
+                <span className="text-[#8A8A9A]">Motif : </span>{r.raison}
+              </p>
+              {r.reported_wish?.titre && (
+                <p className="text-[11.5px] text-[#8A8A9A] mt-1 truncate">Vœu : « {r.reported_wish.titre} »</p>
+              )}
+              <p className="text-[11px] text-[#B0B0B0] mt-1.5">
+                Signalé par @{r.reporter?.pseudo || r.reporter?.prenom || '?'}
+              </p>
+            </div>
 
             {/* Décision sur le signalement (neutre + 1 action primaire) */}
             <div className="flex gap-2 pt-1">
@@ -516,7 +545,7 @@ export default function Admin() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const profile = useAuthStore((s) => s.profile)
-  const [tab, setTab] = useState('users')
+  const [tab, setTab] = useState('reports')
 
   // Protection admin (1re ligne côté client — la vraie sécurité est la RLS BDD)
   if (!user || !profile?.is_admin) {
@@ -546,21 +575,27 @@ export default function Admin() {
         <h1 className="text-lg font-bold text-[#1A1A2E]">Administration</h1>
       </div>
 
-      {/* Toggle Utilisateurs / Signalements (Mots interdits / Tags gérés en SQL) */}
-      <div className="px-5 pt-3">
-        <div className="flex bg-[#F5F5F7] rounded-full p-1">
-          {[['users', 'Utilisateurs'], ['reports', 'Signalements']].map(([val, label]) => (
-            <button
-              key={val}
-              onClick={() => setTab(val)}
-              className="flex-1 h-10 rounded-full text-sm font-semibold transition-all"
-              style={tab === val
-                ? { background: '#fff', color: '#5B6BF5', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }
-                : { color: '#8A8A9A' }}
-            >
-              {label}
-            </button>
-          ))}
+      {/* Onglets soulignés (épuré, comme la page Avis). Signalements en 1er. */}
+      <div className="border-b border-[#F0F0F2] flex-shrink-0">
+        <div className="flex">
+          {[['reports', 'Signalements'], ['users', 'Utilisateurs']].map(([val, label]) => {
+            const active = tab === val
+            return (
+              <button key={val} onClick={() => setTab(val)} className="relative flex-1 pb-3 pt-2">
+                <span className="text-[15px] font-bold tracking-[-0.005em]" style={{ color: active ? '#1A1A2E' : '#8A8A9A' }}>
+                  {label}
+                </span>
+                {active && (
+                  <motion.span
+                    layoutId="admin-tab-underline"
+                    className="absolute -bottom-px left-0 right-0 h-[2.5px] rounded-full"
+                    style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                  />
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
 
