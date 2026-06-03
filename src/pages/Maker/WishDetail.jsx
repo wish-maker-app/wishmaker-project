@@ -141,7 +141,7 @@ function ReportModal({ open, onClose, type, reasons, onSubmit }) {
   return (
     <BottomSheet open={open} onClose={onClose} maxHeight="80vh">
         <h2 className="text-lg font-bold text-[#1A1A2E] mb-4">
-          🚩 Signaler ce {type === 'voeu' ? 'vœu' : 'profil'}
+          Signaler ce {type === 'voeu' ? 'vœu' : 'profil'}
         </h2>
         <div className="flex flex-col gap-2 mb-4">
           {reasons.map((reason) => (
@@ -317,7 +317,6 @@ export default function WishDetail() {
   if (loadStatus === 'error') {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <span className="text-5xl mb-2">⚠️</span>
         <h2 className="text-lg font-bold text-[#1A1A2E]">Erreur de chargement</h2>
         <p className="text-sm text-[#8A8A9A] max-w-xs">Une erreur est survenue. Vérifie ta connexion et réessaie.</p>
         <button
@@ -803,7 +802,6 @@ export default function WishDetail() {
       {/* Bottom sheet — Prolonger le vœu (réactivation payante 0,99€) */}
       <BottomSheet open={showExtend} onClose={() => setShowExtend(false)}>
         <div className="text-center mb-5">
-          <span className="text-3xl mb-2 block">⏱️</span>
           <h2 className="text-lg font-bold text-[#1A1A2E]">Prolonger ce vœu</h2>
           <p className="text-sm text-[#8A8A9A] mt-1">Réactive ton vœu et lui redonne une durée de vie.</p>
         </div>

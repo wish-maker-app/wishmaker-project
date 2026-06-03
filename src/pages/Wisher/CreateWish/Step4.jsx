@@ -102,7 +102,6 @@ export default function Step4() {
       {!loaded ? (
         error ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
-            <span className="text-3xl">⚠️</span>
             <p className="text-sm font-bold text-[#1A1A2E]">Impossible de charger les mots-clés</p>
             <p className="text-xs text-[#8A8A9A]">Vérifie ta connexion et réessaie.</p>
             <button

@@ -126,7 +126,7 @@ export default function WishPackModal({ open, onClose, onSuccess }) {
               ))}
             </div>
 
-            <p className="text-center text-[11px] text-[#B0B0B0] mt-4">🔒 Paiement sécurisé — Stripe</p>
+            <p className="text-center text-[11px] text-[#B0B0B0] mt-4">Paiement sécurisé — Stripe</p>
           </>
         )}
     </BottomSheet>

@@ -390,7 +390,7 @@ export default function Profile() {
         title="Supprimer mon compte"
       >
         <div className="mb-4 p-4 rounded-2xl bg-[#FEF2F2] border border-[#FECACA]">
-          <p className="text-sm font-semibold text-[#991B1B] mb-2">⚠️ Action irréversible</p>
+          <p className="text-sm font-semibold text-[#991B1B] mb-2">Action irréversible</p>
           <p className="text-[13px] text-[#7F1D1D] leading-relaxed">
             Cette suppression efface définitivement :
           </p>

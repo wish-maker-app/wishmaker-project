@@ -19,7 +19,9 @@ function RatingModal({ open, onClose, onSubmit, interlocuteurName, loading }) {
   return (
     <BottomSheet open={open} onClose={onClose}>
         <div className="text-center mb-5">
-          <span className="text-4xl mb-2 block">⭐</span>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="#F5C542" aria-hidden="true" className="mx-auto mb-2">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
           <h2 className="text-lg font-bold text-[#1A1A2E] mb-1">Notez {interlocuteurName}</h2>
           <p className="text-sm text-[#8A8A9A]">Comment s'est passée cette expérience ?</p>
         </div>

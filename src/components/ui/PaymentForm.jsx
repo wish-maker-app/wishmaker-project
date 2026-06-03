@@ -155,7 +155,7 @@ function InnerForm({ clientSecret, amount, onSuccess, onCancel, submitLabel }) {
         </Button>
       </div>
       <p className="text-xs text-[#8A8A9A] text-center">
-        🔒 Paiement sécurisé par Stripe. Aucune carte n'est stockée chez nous.
+        Paiement sécurisé par Stripe. Aucune carte n'est stockée chez nous.
       </p>
     </form>
   )

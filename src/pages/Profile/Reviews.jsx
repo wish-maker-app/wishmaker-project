@@ -241,7 +241,6 @@ export default function Reviews() {
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 gap-3 text-center">
-            <span className="text-3xl mb-1">⚠️</span>
             <p className="text-sm font-bold text-[#1A1A2E]">{t('profile.reviews.erreur_titre')}</p>
             <p className="text-xs text-[#8A8A9A]">{error}</p>
             <button

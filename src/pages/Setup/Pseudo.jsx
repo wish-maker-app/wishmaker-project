@@ -162,13 +162,11 @@ export default function SetupPseudo() {
             {[
               {
                 key: 'particulier',
-                emoji: '👤',
                 label: 'Particulier',
                 desc: "Pour des échanges entre voisins",
               },
               {
                 key: 'pro',
-                emoji: '🏪',
                 label: 'Professionnel',
                 desc: "Tu proposes tes services (jardinier, plombier…)",
               },
@@ -184,7 +182,6 @@ export default function SetupPseudo() {
                     ? { borderColor: '#5B6BF5', background: 'linear-gradient(135deg, rgba(91,107,245,0.06), rgba(155,89,245,0.06))' }
                     : { borderColor: '#E8E8E8', background: '#fff' }}
                 >
-                  <span className="text-2xl">{t.emoji}</span>
                   <span className="text-[13px] font-bold text-[#1A1A2E]">{t.label}</span>
                   <span className="text-[11px] text-[#8A8A9A] leading-snug">{t.desc}</span>
                 </button>

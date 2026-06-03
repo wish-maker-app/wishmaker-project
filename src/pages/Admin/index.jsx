@@ -216,7 +216,6 @@ function UtilisateursTab() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
-        <span className="text-3xl">⚠️</span>
         <p className="text-sm font-bold text-[#1A1A2E]">Erreur de chargement</p>
         <p className="text-xs text-[#8A8A9A]">Vérifie ta connexion et réessaie.</p>
         <button

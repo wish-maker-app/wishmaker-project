@@ -226,7 +226,6 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete, onConfirmRealization
       {isActive && exp && !exp.expired && !wish.is_extended && exp.color === '#EF4444' && (
         <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl flex items-center gap-2"
           style={{ background: '#FFF7ED', border: '1px solid #FFEDD5' }}>
-          <span className="text-sm">⚠️</span>
           <span className="text-xs font-semibold text-[#EA580C]">{t('wisher.home.expire_bientot')}</span>
         </div>
       )}
@@ -823,9 +822,6 @@ export default function WisherHome() {
         {paymentModal && (
           <>
             <div className="text-center mb-5">
-              <span className="text-3xl mb-2 block">
-                {paymentModal.type === 'urgent_boost' ? '⚡' : '⏱️'}
-              </span>
               <h2 className="text-lg font-bold text-[#1A1A2E]">{paymentModal.label}</h2>
               <p className="text-sm text-[#8A8A9A] mt-1">
                 {paymentModal.type === 'urgent_boost'

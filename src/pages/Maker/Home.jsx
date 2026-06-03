@@ -938,7 +938,6 @@ export default function MakerHome() {
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                   className="flex flex-col items-center justify-center py-16 gap-3 px-6 text-center"
                 >
-                  <span className="text-3xl mb-1">⚠️</span>
                   <p className="text-[#1A1A2E] font-bold text-sm">Erreur de chargement</p>
                   <p className="text-[#8A8A9A] text-xs">Vérifie ta connexion et réessaie</p>
                   <button
