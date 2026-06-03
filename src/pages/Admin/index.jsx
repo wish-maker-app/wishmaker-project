@@ -279,16 +279,16 @@ function UtilisateursTab() {
             <div className="flex gap-2">
               <button
                 onClick={() => liftSuspension(u.id)}
-                className="flex-1 h-10 rounded-full text-xs font-semibold border border-[#22C55E] text-[#22C55E]"
+                className="flex-1 h-10 rounded-full text-xs font-semibold bg-[#F5F5F7] text-[#1A1A2E] active:scale-[0.98] transition-transform"
               >
-                ✅ Lever
+                Lever la suspension
               </button>
               {u.suspension_type !== 'definitive' && (
                 <button
                   onClick={() => makeDefinitive(u.id)}
-                  className="flex-1 h-10 rounded-full text-xs font-semibold border border-[#EF4444] text-[#EF4444]"
+                  className="flex-1 h-10 rounded-full text-xs font-semibold bg-[#FEF2F2] text-[#EF4444] active:scale-[0.98] transition-transform"
                 >
-                  🔒 Définitive
+                  Rendre définitive
                 </button>
               )}
             </div>
@@ -389,7 +389,7 @@ function SignalementsTab() {
     return <p className="text-sm text-[#8A8A9A] text-center py-10">Aucun signalement en attente</p>
   }
 
-  const pillBtn = 'h-9 px-3.5 rounded-full text-xs font-semibold border disabled:opacity-40 transition-colors'
+  const pillBtn = 'flex-1 h-10 rounded-full text-xs font-semibold disabled:opacity-40 transition-colors active:scale-[0.98]'
 
   return (
     <div className="flex flex-col gap-3">
@@ -416,31 +416,45 @@ function SignalementsTab() {
               {r.reported_user?.is_suspended ? ' · (déjà suspendu)' : ''}
             </p>
 
-            <div className="flex flex-wrap gap-2 pt-1">
+            {/* Décision sur le signalement (neutre + 1 action primaire) */}
+            <div className="flex gap-2 pt-1">
               <button
                 disabled={busy}
                 onClick={() => {
                   if (r.type === 'voeu' && r.reported_wish_id) navigate(`/maker/wish/${r.reported_wish_id}`)
                   else if (r.reported_user_id) navigate(`/maker/user/${r.reported_user_id}`)
                 }}
-                className={`${pillBtn} border-[#E0E0E0] text-[#1A1A2E]`}
+                className={`${pillBtn} bg-[#F5F5F7] text-[#1A1A2E]`}
               >
                 Voir
               </button>
+              <button
+                disabled={busy}
+                onClick={() => setStatut(r.id, 'traite', 'Signalement traité')}
+                className={`${pillBtn} text-white`}
+                style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+              >
+                Traiter
+              </button>
+              <button
+                disabled={busy}
+                onClick={() => setStatut(r.id, 'rejete', 'Signalement rejeté')}
+                className={`${pillBtn} bg-[#F5F5F7] text-[#8A8A9A]`}
+              >
+                Rejeter
+              </button>
+            </div>
+
+            {/* Sanctions — actions destructrices, en rouge doux */}
+            <div className="flex gap-2">
+              <button disabled={busy} onClick={() => suspendUser(r)} className={`${pillBtn} bg-[#FEF2F2] text-[#EF4444]`}>
+                Suspendre l'auteur
+              </button>
               {r.type === 'voeu' && r.reported_wish_id && (
-                <button disabled={busy} onClick={() => deleteWish(r)} className={`${pillBtn} border-[#EF4444] text-[#EF4444]`}>
+                <button disabled={busy} onClick={() => deleteWish(r)} className={`${pillBtn} bg-[#FEF2F2] text-[#EF4444]`}>
                   Supprimer le vœu
                 </button>
               )}
-              <button disabled={busy} onClick={() => suspendUser(r)} className={`${pillBtn} border-[#F59E0B] text-[#F59E0B]`}>
-                Suspendre l'auteur
-              </button>
-              <button disabled={busy} onClick={() => setStatut(r.id, 'traite', 'Signalement traité')} className={`${pillBtn} border-[#22C55E] text-[#22C55E]`}>
-                Traiter
-              </button>
-              <button disabled={busy} onClick={() => setStatut(r.id, 'rejete', 'Signalement rejeté')} className={`${pillBtn} border-[#E0E0E0] text-[#8A8A9A]`}>
-                Rejeter
-              </button>
             </div>
           </div>
         )
