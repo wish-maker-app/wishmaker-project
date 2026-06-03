@@ -18,6 +18,8 @@ import { formatLocation, fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib
 import FavoriteButton from '../../components/ui/FavoriteButton'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
+import PaymentForm from '../../components/ui/PaymentForm'
+import { applyPurchase } from '../../lib/stripe'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -212,6 +214,7 @@ export default function WishDetail() {
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const [proposalMsg, setProposalMsg] = useState('')
   const [sendingProposal, setSendingProposal] = useState(false)
+  const [showExtend, setShowExtend] = useState(false)
 
   // Parallax hero (comme sur Recap)
   const scrollRef = useRef(null)
@@ -338,8 +341,26 @@ export default function WishDetail() {
   // Piloté par le statut du vœu lui-même → le check vaut pour TOUS les points
   // d'entrée (notif push, lien direct, partage, messagerie).
   const isCompleted = wish.statut === 'realise'
+  // Vœu expiré → le propriétaire peut le prolonger (réactivation payante 0,99€),
+  // tant qu'il n'a pas déjà été prolongé une fois.
+  const isExpired = wish.statut === 'expire' ||
+    (!!wish.expires_at && new Date(wish.expires_at).getTime() < Date.now())
+  const canExtend = isOwner && isExpired && !wish.is_extended
 
   const heroImage = wish.images?.[0]?.url || null
+
+  async function handleExtendSuccess(paymentIntent) {
+    try {
+      // apply-purchase vérifie le paiement côté serveur PUIS appelle extend_wish.
+      await applyPurchase(paymentIntent.id)
+      toast.success('Vœu prolongé ! 🎉')
+      setShowExtend(false)
+      const fresh = await getWishById(wish.id)
+      if (fresh) setWish(fresh)
+    } catch (err) {
+      toast.error(err.message || 'Erreur lors de la prolongation')
+    }
+  }
 
   async function handleDelete() {
     setDeleting(true)
@@ -422,6 +443,17 @@ export default function WishDetail() {
                   <div className="absolute right-0 top-12 bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] py-1 min-w-[200px] z-50 overflow-hidden">
                   {isOwner ? (
                     <>
+                      {canExtend && (
+                        <button onClick={() => { setShowMenu(false); setShowExtend(true) }}
+                          className="w-full px-4 py-3 text-left text-sm text-[#1A1A2E] active:bg-black/5 flex items-center gap-2.5 transition-colors">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/>
+                            <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          Prolonger le vœu
+                        </button>
+                      )}
+                      {canExtend && <div className="mx-3 h-px bg-black/5" />}
                       {(wish.statut === 'en_attente' || wish.statut === 'en_cours') &&(
                         <button onClick={() => { setShowMenu(false); navigate(`/wisher/edit/${wish.id}`) }}
                           className="w-full px-4 py-3 text-left text-sm text-[#1A1A2E] active:bg-black/5 flex items-center gap-2.5 transition-colors">
@@ -652,7 +684,8 @@ export default function WishDetail() {
           <p className="text-xs text-[#8A8A9A] font-medium mt-3">Localisation approximative · {formatLocation(wish)}</p>
         </motion.div>
 
-        {/* CTA — badge gris si vœu déjà réalisé, sinon bouton (masqué si c'est ton propre vœu) */}
+        {/* CTA — selon l'état : réalisé (badge) / expiré+proprio (Prolonger) /
+            expiré (badge) / réaliser (Maker). Rien si c'est ton vœu encore actif. */}
         {isCompleted ? (
           <motion.div custom={6} initial="hidden" animate="visible" variants={sectionVariants} className="pt-2">
             <div className="flex items-center justify-center gap-2 h-12 rounded-full bg-[#F0F0F2] text-[#8A8A9A] font-bold text-sm">
@@ -660,6 +693,22 @@ export default function WishDetail() {
                 <path d="M20 6L9 17l-5-5" stroke="#8A8A9A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               {t('maker.detail.deja_realise', 'Vœu déjà réalisé')}
+            </div>
+          </motion.div>
+        ) : canExtend ? (
+          <motion.div custom={6} initial="hidden" animate="visible" variants={sectionVariants} className="pt-2">
+            <Button onClick={() => setShowExtend(true)}>
+              Prolonger le vœu
+            </Button>
+          </motion.div>
+        ) : isExpired ? (
+          <motion.div custom={6} initial="hidden" animate="visible" variants={sectionVariants} className="pt-2">
+            <div className="flex items-center justify-center gap-2 h-12 rounded-full bg-[#F0F0F2] text-[#8A8A9A] font-bold text-sm">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="#8A8A9A" strokeWidth="2"/>
+                <path d="M12 7v5l3 2" stroke="#8A8A9A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Vœu expiré
             </div>
           </motion.div>
         ) : !isOwner ? (
@@ -749,6 +798,22 @@ export default function WishDetail() {
                 {sendingProposal ? 'Envoi...' : 'Envoyer ma proposition'}
               </button>
               <button onClick={() => setShowProposal(false)} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">Annuler</button>
+      </BottomSheet>
+
+      {/* Bottom sheet — Prolonger le vœu (réactivation payante 0,99€) */}
+      <BottomSheet open={showExtend} onClose={() => setShowExtend(false)}>
+        <div className="text-center mb-5">
+          <span className="text-3xl mb-2 block">⏱️</span>
+          <h2 className="text-lg font-bold text-[#1A1A2E]">Prolonger ce vœu</h2>
+          <p className="text-sm text-[#8A8A9A] mt-1">Réactive ton vœu et lui redonne une durée de vie.</p>
+        </div>
+        <PaymentForm
+          type="extension"
+          wish_id={wish.id}
+          onSuccess={handleExtendSuccess}
+          onCancel={() => setShowExtend(false)}
+          submitLabel="Payer 0,99€"
+        />
       </BottomSheet>
 
       {/* Modal suppression */}

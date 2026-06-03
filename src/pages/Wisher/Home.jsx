@@ -221,21 +221,13 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete, onConfirmRealization
         </div>
       </div>
 
-      {/* Bannière expiration proche (<6h) */}
+      {/* Bannière expiration proche (<6h) — simple avertissement. Le bouton
+          "Prolonger" du bandeau a été retiré (doublon avec le CTA en bas). */}
       {isActive && exp && !exp.expired && !wish.is_extended && exp.color === '#EF4444' && (
-        <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl flex items-center justify-between"
+        <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl flex items-center gap-2"
           style={{ background: '#FFF7ED', border: '1px solid #FFEDD5' }}>
-          <div className="flex items-center gap-2">
-            <span className="text-sm">⚠️</span>
-            <span className="text-xs font-semibold text-[#EA580C]">{t('wisher.home.expire_bientot')}</span>
-          </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); onExtend(wish) }}
-            className="text-[11px] font-bold text-white px-3 py-1 rounded-full"
-            style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}
-          >
-            {t('wisher.home.prolonger')}
-          </button>
+          <span className="text-sm">⚠️</span>
+          <span className="text-xs font-semibold text-[#EA580C]">{t('wisher.home.expire_bientot')}</span>
         </div>
       )}
 
