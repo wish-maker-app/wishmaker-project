@@ -432,8 +432,6 @@ function SignalementsTab() {
     return <p className="text-sm text-[#8A8A9A] text-center py-10">Aucun signalement en attente</p>
   }
 
-  const pillBtn = 'flex-1 h-10 rounded-full text-xs font-semibold disabled:opacity-40 transition-colors active:scale-[0.98]'
-
   return (
     <div className="flex flex-col">
       {reports.map((r) => {
@@ -459,8 +457,8 @@ function SignalementsTab() {
               </div>
             </div>
 
-            {/* Motif + qui a signalé */}
-            <div className="rounded-xl bg-[#F7F8FC] px-3.5 py-2.5">
+            {/* Motif + qui a signalé (texte simple, façon page Avis) */}
+            <div>
               <p className="text-[13.5px] text-[#1A1A2E] leading-snug">
                 <span className="text-[#8A8A9A]">Motif : </span>{r.raison}
               </p>
@@ -472,8 +470,27 @@ function SignalementsTab() {
               </p>
             </div>
 
-            {/* Décision sur le signalement (neutre + 1 action primaire) */}
+            {/* Décision : valider (signalement fondé) ou rejeter */}
             <div className="flex gap-2 pt-1">
+              <button
+                disabled={busy}
+                onClick={() => setStatut(r.id, 'traite', 'Signalement validé')}
+                className="flex-1 h-10 rounded-full text-xs font-bold text-white disabled:opacity-40 active:scale-[0.98] transition-transform"
+                style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+              >
+                Valider le signalement
+              </button>
+              <button
+                disabled={busy}
+                onClick={() => setStatut(r.id, 'rejete', 'Signalement rejeté')}
+                className="flex-1 h-10 rounded-full text-xs font-semibold bg-[#F5F5F7] text-[#8A8A9A] disabled:opacity-40 active:scale-[0.98] transition-transform"
+              >
+                Rejeter
+              </button>
+            </div>
+
+            {/* Actions secondaires (liens) : inspecter + sanctions */}
+            <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 px-1">
               <button
                 disabled={busy}
                 onClick={() => {
@@ -481,36 +498,17 @@ function SignalementsTab() {
                   else if (r.type === 'conversation') viewConversation(r)
                   else if (r.reported_user_id) navigate(`/maker/user/${r.reported_user_id}`)
                 }}
-                className={`${pillBtn} bg-[#F5F5F7] text-[#1A1A2E]`}
+                className="text-xs font-semibold text-[#5B6BF5] disabled:opacity-40"
               >
                 {r.type === 'conversation'
-                  ? (openConv === r.id ? 'Masquer' : "Voir l'échange")
+                  ? (openConv === r.id ? "Masquer l'échange" : "Voir l'échange")
                   : r.type === 'voeu' ? 'Voir le vœu' : 'Voir le profil'}
               </button>
-              <button
-                disabled={busy}
-                onClick={() => setStatut(r.id, 'traite', 'Signalement traité')}
-                className={`${pillBtn} text-white`}
-                style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
-              >
-                Traiter
-              </button>
-              <button
-                disabled={busy}
-                onClick={() => setStatut(r.id, 'rejete', 'Signalement rejeté')}
-                className={`${pillBtn} bg-[#F5F5F7] text-[#8A8A9A]`}
-              >
-                Rejeter
-              </button>
-            </div>
-
-            {/* Sanctions — actions destructrices, en rouge doux */}
-            <div className="flex gap-2">
-              <button disabled={busy} onClick={() => suspendUser(r)} className={`${pillBtn} bg-[#FEF2F2] text-[#EF4444]`}>
+              <button disabled={busy} onClick={() => suspendUser(r)} className="text-xs font-semibold text-[#EF4444] disabled:opacity-40">
                 Suspendre l'auteur
               </button>
               {r.type === 'voeu' && r.reported_wish_id && (
-                <button disabled={busy} onClick={() => deleteWish(r)} className={`${pillBtn} bg-[#FEF2F2] text-[#EF4444]`}>
+                <button disabled={busy} onClick={() => deleteWish(r)} className="text-xs font-semibold text-[#EF4444] disabled:opacity-40">
                   Supprimer le vœu
                 </button>
               )}
@@ -561,9 +559,9 @@ export default function Admin() {
   }
 
   return (
-    <div className="h-screen bg-[#F5F5F7] flex flex-col">
+    <div className="h-screen bg-white flex flex-col">
       {/* Header */}
-      <div className="bg-white px-5 pt-4 pb-3 flex items-center gap-3 border-b border-[#F0F0F0]">
+      <div className="bg-white px-5 pt-4 pb-3 flex items-center gap-3 border-b border-[#F0F0F2]">
         <button
           onClick={() => {
             if (window.history.length > 1) navigate(-1)
