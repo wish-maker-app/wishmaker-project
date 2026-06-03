@@ -11,6 +11,14 @@ const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY')!
 const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')!
 const VAPID_EMAIL = Deno.env.get('VAPID_EMAIL') || 'contact@wishmaker.app'
 
+// CORS — indispensable pour les appels depuis le navigateur (ex. « Avertir »
+// dans l'admin). Sans réponse au preflight OPTIONS, le navigateur bloque le POST.
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
 // ── Crypto helpers pour Web Push ──
 
 function base64urlToUint8Array(str: string): Uint8Array {
@@ -238,12 +246,15 @@ function decodeJwtClaims(authHeader: string | null): { role: string; sub: string
 }
 
 function jsonResponse(obj: unknown, status = 200) {
-  return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } })
+  return new Response(JSON.stringify(obj), { status, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } })
 }
 
 // ── Main handler ──
 
 serve(async (req) => {
+  // Preflight CORS du navigateur
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS })
+
   try {
     const body = await req.json()
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -270,7 +281,7 @@ serve(async (req) => {
         .eq('id', message.conversation_id)
         .single()
 
-      if (!conv) return new Response(JSON.stringify({ error: 'Conversation not found' }), { status: 404 })
+      if (!conv) return jsonResponse({ error: 'Conversation not found' }, 404)
 
       // Notifier l'autre personne (pas l'expéditeur)
       targetUserId = message.sender_id === conv.wisher_id ? conv.maker_id : conv.wisher_id
@@ -331,9 +342,7 @@ serve(async (req) => {
       .eq('user_id', targetUserId)
 
     if (!subscriptions || subscriptions.length === 0) {
-      return new Response(JSON.stringify({ sent: 0, message: 'No subscriptions' }), {
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return jsonResponse({ sent: 0, message: 'No subscriptions' })
     }
 
     const payload = JSON.stringify({ title, body: notifBody, url, tag: 'message' })
@@ -370,13 +379,8 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ sent }), {
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return jsonResponse({ sent })
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return jsonResponse({ error: err.message }, 400)
   }
 })
