@@ -10,6 +10,7 @@ import { checkContent, prewarmModeration } from '../../lib/moderation'
 import { supabase } from '../../lib/supabase'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
+import ReportSheet from '../../components/ui/ReportSheet'
 
 function RatingModal({ open, onClose, onSubmit, interlocuteurName, loading }) {
   const [note, setNote] = useState(0)
@@ -113,7 +114,7 @@ export default function Chat() {
   const [actionLoading, setActionLoading] = useState(false)
   const [convId, setConvId] = useState(isDraft ? null : id)
   const [showMenu, setShowMenu] = useState(false)
-  const [reportLoading, setReportLoading] = useState(false)
+  const [showReport, setShowReport] = useState(false)
   const [showDeleteConv, setShowDeleteConv] = useState(false)
   const [deletingConv, setDeletingConv] = useState(false)
 
@@ -130,6 +131,29 @@ export default function Chat() {
     toast.success('Conversation supprimée')
     setShowDeleteConv(false)
     navigate(`/messages?tab=${fromTab}`, { replace: true })
+  }
+
+  // Signalement de la conversation (= l'interlocuteur, pour son comportement /
+  // ses messages). Type 'conversation' + lien vers la conversation → l'admin
+  // pourra lire l'échange pour trancher.
+  const CONV_REPORT_REASONS = ['Tentative d\'arnaque', 'Messages insultants', 'Spam / publicité', 'Contenu inapproprié', 'Autre']
+  async function submitReport(raison) {
+    const interlocuteurId = isWisher ? convData?.maker_id : convData?.wisher_id
+    if (!interlocuteurId || !userId) { toast.error('Impossible de signaler ici.'); return }
+    const { error } = await supabase.from('reports').insert({
+      reporter_id: userId,
+      reported_user_id: interlocuteurId,
+      reported_conversation_id: convData?.id || convId || null,
+      type: 'conversation',
+      raison,
+    })
+    if (error) {
+      toast.error("Impossible d'envoyer le signalement.")
+      console.error('[chat report] error:', error)
+      return
+    }
+    setShowReport(false)
+    toast.success('Signalement envoyé, merci !')
   }
 
   useEffect(() => {
@@ -468,27 +492,8 @@ export default function Chat() {
                   <div className="h-px bg-[#F0F0F0]" />
 
                   <button
-                    disabled={reportLoading}
-                    onClick={async () => {
-                      const interlocuteurId = isWisher ? convData?.maker_id : convData?.wisher_id
-                      if (!interlocuteurId || !userId) return
-                      setReportLoading(true)
-                      const { error } = await supabase.from('reports').insert({
-                        reporter_id: userId,
-                        reported_user_id: interlocuteurId,
-                        type: 'profil',
-                        raison: 'Signalé depuis la conversation',
-                      })
-                      setReportLoading(false)
-                      setShowMenu(false)
-                      if (error) {
-                        toast.error("Impossible d'envoyer le signalement.")
-                        console.error('[chat report] error:', error)
-                      } else {
-                        toast.success('Signalement envoyé, merci !')
-                      }
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 active:bg-[#FEF2F2] transition-colors text-left disabled:opacity-50"
+                    onClick={() => { setShowMenu(false); setShowReport(true) }}
+                    className="w-full flex items-center gap-3 px-4 py-3 active:bg-[#FEF2F2] transition-colors text-left"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
                       <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
@@ -818,6 +823,15 @@ export default function Chat() {
         onSubmit={handleSubmitRating}
         interlocuteurName={interlocuteurName}
         loading={ratingLoading}
+      />
+
+      {/* Feuille de signalement de la conversation (motif) */}
+      <ReportSheet
+        open={showReport}
+        onClose={() => setShowReport(false)}
+        title="Signaler la conversation"
+        reasons={CONV_REPORT_REASONS}
+        onSubmit={submitReport}
       />
 
       {/* Modal confirmation suppression conversation */}

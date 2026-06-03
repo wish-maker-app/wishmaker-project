@@ -307,6 +307,9 @@ function SignalementsTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [acting, setActing] = useState(null) // id du signalement en cours d'action
+  const [openConv, setOpenConv] = useState(null) // id du report dont on affiche l'échange
+  const [convMsgs, setConvMsgs] = useState([])
+  const [convLoading, setConvLoading] = useState(false)
 
   async function loadReports() {
     setError(false)
@@ -314,7 +317,7 @@ function SignalementsTab() {
       await ensureSession()
       const { data, error: e } = await withTimeout(supabase
         .from('reports')
-        .select(`id, type, raison, created_at, reported_wish_id, reported_user_id,
+        .select(`id, type, raison, created_at, reported_wish_id, reported_user_id, reported_conversation_id,
           reporter:users!reports_reporter_id_fkey(pseudo, prenom),
           reported_user:users!reports_reported_user_id_fkey(id, pseudo, prenom, is_suspended),
           reported_wish:wishes!reports_reported_wish_id_fkey(id, titre)`)
@@ -355,6 +358,28 @@ function SignalementsTab() {
     setActing(null)
     toast.success('Utilisateur suspendu 7 jours')
     setReports((prev) => prev.filter((x) => x.id !== r.id))
+  }
+
+  // Affiche l'échange d'un signalement de conversation (policy admins_read_all_messages)
+  async function viewConversation(r) {
+    if (openConv === r.id) { setOpenConv(null); return }
+    setOpenConv(r.id)
+    setConvMsgs([])
+    if (!r.reported_conversation_id) return
+    setConvLoading(true)
+    try {
+      const { data } = await withTimeout(supabase
+        .from('messages')
+        .select('id, contenu, sender_id, created_at')
+        .eq('conversation_id', r.reported_conversation_id)
+        .order('created_at', { ascending: true })
+        .limit(60))
+      setConvMsgs(data || [])
+    } catch {
+      toast.error('Impossible de charger la conversation')
+    } finally {
+      setConvLoading(false)
+    }
   }
 
   async function deleteWish(r) {
@@ -399,8 +424,10 @@ function SignalementsTab() {
           <div key={r.id} className="bg-white border border-[#F0F0F0] rounded-[20px] p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                style={r.type === 'voeu' ? { background: '#EEF0FF', color: '#5B6BF5' } : { background: '#FFF3DC', color: '#F59E0B' }}>
-                {r.type === 'voeu' ? 'Vœu' : 'Profil'}
+                style={r.type === 'voeu' ? { background: '#EEF0FF', color: '#5B6BF5' }
+                  : r.type === 'conversation' ? { background: '#F2E9FF', color: '#9B59F5' }
+                  : { background: '#FFF3DC', color: '#F59E0B' }}>
+                {r.type === 'voeu' ? 'Vœu' : r.type === 'conversation' ? 'Conversation' : 'Profil'}
               </span>
               <span className="text-[11px] text-[#8A8A9A]">
                 {new Date(r.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
@@ -422,11 +449,14 @@ function SignalementsTab() {
                 disabled={busy}
                 onClick={() => {
                   if (r.type === 'voeu' && r.reported_wish_id) navigate(`/maker/wish/${r.reported_wish_id}`)
+                  else if (r.type === 'conversation') viewConversation(r)
                   else if (r.reported_user_id) navigate(`/maker/user/${r.reported_user_id}`)
                 }}
                 className={`${pillBtn} bg-[#F5F5F7] text-[#1A1A2E]`}
               >
-                Voir
+                {r.type === 'conversation'
+                  ? (openConv === r.id ? 'Masquer' : "Voir l'échange")
+                  : r.type === 'voeu' ? 'Voir le vœu' : 'Voir le profil'}
               </button>
               <button
                 disabled={busy}
@@ -456,6 +486,24 @@ function SignalementsTab() {
                 </button>
               )}
             </div>
+
+            {/* Échange (signalement de conversation) — messages de l'auteur signalé à gauche */}
+            {openConv === r.id && (
+              <div className="rounded-2xl bg-[#F7F8FC] border border-[#EEEEF2] p-3 max-h-64 overflow-y-auto flex flex-col gap-1.5">
+                {convLoading ? (
+                  <div className="flex justify-center py-4">
+                    <div className="w-5 h-5 rounded-full border-2 border-[#5B6BF5] border-t-transparent animate-spin" />
+                  </div>
+                ) : convMsgs.length === 0 ? (
+                  <p className="text-xs text-[#8A8A9A] text-center py-2">Aucun message dans cette conversation.</p>
+                ) : convMsgs.map((m) => (
+                  <div key={m.id}
+                    className={`max-w-[82%] px-3 py-2 rounded-2xl text-[13px] leading-snug ${m.sender_id === r.reported_user_id ? 'self-start bg-white border border-[#EEEEF2] text-[#1A1A2E]' : 'self-end bg-[#EEF0FF] text-[#1A1A2E]'}`}>
+                    {m.contenu}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )
       })}
