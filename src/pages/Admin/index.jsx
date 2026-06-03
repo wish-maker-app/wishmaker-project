@@ -6,6 +6,7 @@ import { supabase, withTimeout, ensureSession } from '../../lib/supabase'
 import useAuthStore from '../../store/authStore'
 import Header from '../../components/layout/Header'
 import ConfirmSheet from '../../components/ui/ConfirmSheet'
+import SanctionSheet from '../../components/ui/SanctionSheet'
 
 const CATEGORIES = [
   { value: 'all', label: 'Tous' },
@@ -358,6 +359,7 @@ function SignalementsTab() {
   const [openConv, setOpenConv] = useState(null) // id du report dont on affiche l'échange
   const [convMsgs, setConvMsgs] = useState([])
   const [convLoading, setConvLoading] = useState(false)
+  const [sanctionFor, setSanctionFor] = useState(null) // signalement dont on choisit la sanction (étape 2)
 
   async function loadReports() {
     setError(false)
@@ -394,6 +396,49 @@ function SignalementsTab() {
     if (e) { toast.error(e.message); return }
     toast.success(msg)
     setReports((prev) => prev.filter((r) => r.id !== reportId))
+  }
+
+  // Étape 2 : applique la sanction choisie puis classe le signalement « traité ».
+  // En cas d'échec on throw → la feuille reste ouverte pour réessayer.
+  const SANCTION_TOAST = {
+    none: 'Signalement validé',
+    warn: 'Avertissement envoyé',
+    suspend7: 'Auteur suspendu 7 jours',
+    suspendDef: 'Auteur suspendu définitivement',
+    deleteWish: 'Vœu supprimé',
+  }
+  async function applySanction(r, kind) {
+    if (!r) return
+    try {
+      if (kind === 'warn') {
+        const { error } = await supabase.functions.invoke('send-push-notification', {
+          body: {
+            user_id: r.reported_user_id,
+            title: 'Avertissement — Wish Maker',
+            body: 'Votre contenu a été signalé. Merci de respecter les règles de la communauté.',
+            url: '/',
+          },
+        })
+        if (error) throw error
+      } else if (kind === 'suspend7') {
+        const { error } = await supabase.rpc('admin_suspend_user', { p_user_id: r.reported_user_id, p_type: 'temporaire', p_days: 7 })
+        if (error) throw error
+      } else if (kind === 'suspendDef') {
+        const { error } = await supabase.rpc('admin_suspend_user', { p_user_id: r.reported_user_id, p_type: 'definitive' })
+        if (error) throw error
+      } else if (kind === 'deleteWish') {
+        const { error } = await supabase.rpc('admin_delete_wish', { p_wish_id: r.reported_wish_id })
+        if (error) throw error
+      }
+      const { error: e2 } = await supabase.from('reports').update({ statut: 'traite' }).eq('id', r.id)
+      if (e2) throw e2
+      toast.success(SANCTION_TOAST[kind] || 'Signalement traité')
+      setReports((prev) => prev.filter((x) => x.id !== r.id))
+      setSanctionFor(null)
+    } catch (e) {
+      toast.error(e?.message || 'Action impossible')
+      throw e
+    }
   }
 
   // Affiche l'échange d'un signalement de conversation (policy admins_read_all_messages)
@@ -480,7 +525,7 @@ function SignalementsTab() {
             <div className="flex gap-2 pt-1">
               <button
                 disabled={busy}
-                onClick={() => setStatut(r.id, 'traite', 'Signalement validé')}
+                onClick={() => setSanctionFor(r)}
                 className="flex-1 h-10 rounded-full text-xs font-bold text-white disabled:opacity-40 active:scale-[0.98] transition-transform"
                 style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
               >
@@ -495,8 +540,8 @@ function SignalementsTab() {
               </button>
             </div>
 
-            {/* Action secondaire : inspecter le contenu signalé (pas de sanction
-                ici pour l'instant — l'admin classe seulement : Valider / Rejeter) */}
+            {/* Action secondaire : inspecter le contenu signalé. Les sanctions
+                se choisissent après « Valider le signalement » (SanctionSheet). */}
             <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 px-1">
               <button
                 disabled={busy}
@@ -533,6 +578,13 @@ function SignalementsTab() {
           </div>
         )
       })}
+
+      <SanctionSheet
+        open={!!sanctionFor}
+        onClose={() => setSanctionFor(null)}
+        report={sanctionFor}
+        onApply={(kind) => applySanction(sanctionFor, kind)}
+      />
     </div>
   )
 }
