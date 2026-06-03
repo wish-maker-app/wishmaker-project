@@ -187,20 +187,17 @@ function UtilisateursTab() {
   }, [authTick])
 
   async function liftSuspension(userId) {
-    await supabase.from('users').update({
-      is_suspended: false,
-      suspended_until: null,
-      suspension_type: null,
-    }).eq('id', userId)
+    // RPC admin (la RLS users est verrouillée au propriétaire → update direct
+    // échouait silencieusement). La fonction vérifie is_admin côté serveur.
+    const { error } = await supabase.rpc('admin_lift_suspension', { p_user_id: userId })
+    if (error) { toast.error(error.message); return }
     toast.success('Suspension levée')
     loadData()
   }
 
   async function makeDefinitive(userId) {
-    await supabase.from('users').update({
-      suspension_type: 'definitive',
-      suspended_until: null,
-    }).eq('id', userId)
+    const { error } = await supabase.rpc('admin_make_suspension_definitive', { p_user_id: userId })
+    if (error) { toast.error(error.message); return }
     toast.success('Suspension rendue définitive')
     loadData()
   }
@@ -302,6 +299,156 @@ function UtilisateursTab() {
   )
 }
 
+// ── Onglet 3 : Signalements (file de modération) ──
+function SignalementsTab() {
+  const navigate = useNavigate()
+  const authTick = useAuthStore((s) => s.authTick)
+  const [reports, setReports] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [acting, setActing] = useState(null) // id du signalement en cours d'action
+
+  async function loadReports() {
+    setError(false)
+    try {
+      await ensureSession()
+      const { data, error: e } = await withTimeout(supabase
+        .from('reports')
+        .select(`id, type, raison, created_at, reported_wish_id, reported_user_id,
+          reporter:users!reports_reporter_id_fkey(pseudo, prenom),
+          reported_user:users!reports_reported_user_id_fkey(id, pseudo, prenom, is_suspended),
+          reported_wish:wishes!reports_reported_wish_id_fkey(id, titre)`)
+        .eq('statut', 'en_attente')
+        .order('created_at', { ascending: false }))
+      if (e) throw e
+      setReports(data || [])
+    } catch (err) {
+      console.error('[admin reports] load error:', err?.message)
+      setError(true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadReports()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authTick])
+
+  // Marque un signalement traité / rejeté (la policy reports_update_admin autorise l'admin)
+  async function setStatut(reportId, statut, msg) {
+    setActing(reportId)
+    const { error: e } = await supabase.from('reports').update({ statut }).eq('id', reportId)
+    setActing(null)
+    if (e) { toast.error(e.message); return }
+    toast.success(msg)
+    setReports((prev) => prev.filter((r) => r.id !== reportId))
+  }
+
+  async function suspendUser(r) {
+    if (!r.reported_user_id) { toast.error('Aucun utilisateur cible'); return }
+    if (!window.confirm(`Suspendre @${r.reported_user?.pseudo || 'cet utilisateur'} 7 jours ?`)) return
+    setActing(r.id)
+    const { error: e } = await supabase.rpc('admin_suspend_user', { p_user_id: r.reported_user_id, p_type: 'temporaire', p_days: 7 })
+    if (e) { setActing(null); toast.error(e.message); return }
+    await supabase.from('reports').update({ statut: 'traite' }).eq('id', r.id)
+    setActing(null)
+    toast.success('Utilisateur suspendu 7 jours')
+    setReports((prev) => prev.filter((x) => x.id !== r.id))
+  }
+
+  async function deleteWish(r) {
+    if (!r.reported_wish_id) { toast.error('Aucun vœu cible'); return }
+    if (!window.confirm(`Supprimer définitivement le vœu « ${r.reported_wish?.titre || ''} » ?`)) return
+    setActing(r.id)
+    const { error: e } = await supabase.rpc('admin_delete_wish', { p_wish_id: r.reported_wish_id })
+    if (e) { setActing(null); toast.error(e.message); return }
+    await supabase.from('reports').update({ statut: 'traite' }).eq('id', r.id)
+    setActing(null)
+    toast.success('Vœu supprimé')
+    setReports((prev) => prev.filter((x) => x.id !== r.id))
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="w-8 h-8 rounded-full border-4 border-[#5B6BF5] border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+        <p className="text-sm font-bold text-[#1A1A2E]">Erreur de chargement</p>
+        <button onClick={() => { setLoading(true); loadReports() }} className="mt-1 h-10 px-5 rounded-full text-white font-bold text-xs" style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>Réessayer</button>
+      </div>
+    )
+  }
+
+  if (reports.length === 0) {
+    return <p className="text-sm text-[#8A8A9A] text-center py-10">Aucun signalement en attente</p>
+  }
+
+  const pillBtn = 'h-9 px-3.5 rounded-full text-xs font-semibold border disabled:opacity-40 transition-colors'
+
+  return (
+    <div className="flex flex-col gap-3">
+      {reports.map((r) => {
+        const busy = acting === r.id
+        return (
+          <div key={r.id} className="bg-white border border-[#F0F0F0] rounded-[20px] p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                style={r.type === 'voeu' ? { background: '#EEF0FF', color: '#5B6BF5' } : { background: '#FFF3DC', color: '#F59E0B' }}>
+                {r.type === 'voeu' ? 'Vœu' : 'Profil'}
+              </span>
+              <span className="text-[11px] text-[#8A8A9A]">
+                {new Date(r.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+
+            <p className="text-sm text-[#1A1A2E]"><span className="font-semibold">Raison :</span> {r.raison}</p>
+
+            <p className="text-[11px] text-[#8A8A9A] leading-relaxed">
+              Signalé par @{r.reporter?.pseudo || r.reporter?.prenom || '?'}
+              {' · Cible : '}@{r.reported_user?.pseudo || r.reported_user?.prenom || '?'}
+              {r.reported_wish?.titre ? ` · « ${r.reported_wish.titre} »` : ''}
+              {r.reported_user?.is_suspended ? ' · (déjà suspendu)' : ''}
+            </p>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button
+                disabled={busy}
+                onClick={() => {
+                  if (r.type === 'voeu' && r.reported_wish_id) navigate(`/maker/wish/${r.reported_wish_id}`)
+                  else if (r.reported_user_id) navigate(`/maker/user/${r.reported_user_id}`)
+                }}
+                className={`${pillBtn} border-[#E0E0E0] text-[#1A1A2E]`}
+              >
+                Voir
+              </button>
+              {r.type === 'voeu' && r.reported_wish_id && (
+                <button disabled={busy} onClick={() => deleteWish(r)} className={`${pillBtn} border-[#EF4444] text-[#EF4444]`}>
+                  Supprimer le vœu
+                </button>
+              )}
+              <button disabled={busy} onClick={() => suspendUser(r)} className={`${pillBtn} border-[#F59E0B] text-[#F59E0B]`}>
+                Suspendre l'auteur
+              </button>
+              <button disabled={busy} onClick={() => setStatut(r.id, 'traite', 'Signalement traité')} className={`${pillBtn} border-[#22C55E] text-[#22C55E]`}>
+                Traiter
+              </button>
+              <button disabled={busy} onClick={() => setStatut(r.id, 'rejete', 'Signalement rejeté')} className={`${pillBtn} border-[#E0E0E0] text-[#8A8A9A]`}>
+                Rejeter
+              </button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Page Admin ──
 export default function Admin() {
   const navigate = useNavigate()
@@ -337,14 +484,27 @@ export default function Admin() {
         <h1 className="text-lg font-bold text-[#1A1A2E]">Administration</h1>
       </div>
 
-      {/* Toggle — onglets "Mots interdits" et "Tags" masqués volontairement.
-          Les data restent en DB et continuent de fonctionner ; l'admin client
-          gère uniquement les utilisateurs. Pour modifier mots/tags : passer
-          par l'équipe dev (SQL direct ou migration). */}
+      {/* Toggle Utilisateurs / Signalements (Mots interdits / Tags gérés en SQL) */}
+      <div className="px-5 pt-3">
+        <div className="flex bg-[#F5F5F7] rounded-full p-1">
+          {[['users', 'Utilisateurs'], ['reports', 'Signalements']].map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setTab(val)}
+              className="flex-1 h-10 rounded-full text-sm font-semibold transition-all"
+              style={tab === val
+                ? { background: '#fff', color: '#5B6BF5', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }
+                : { color: '#8A8A9A' }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Contenu */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 pb-10 pt-4">
-        <UtilisateursTab />
+      <div className="flex-1 overflow-y-auto px-5 py-4 pb-10">
+        {tab === 'reports' ? <SignalementsTab /> : <UtilisateursTab />}
       </div>
     </div>
   )
