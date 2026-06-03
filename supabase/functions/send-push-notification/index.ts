@@ -214,12 +214,42 @@ async function encryptPayload(
   return { encrypted: body, salt, localPublicKey: localPublicKeyRaw }
 }
 
+// ── Autorisation ──
+// verify_jwt=true : le gateway Supabase a déjà vérifié la SIGNATURE du JWT
+// présent dans l'en-tête Authorization. On peut donc décoder ses claims en
+// confiance pour savoir QUI appelle (rôle + user id), sans re-vérifier la sig.
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function decodeJwtClaims(authHeader: string | null): { role: string; sub: string | null } {
+  try {
+    if (!authHeader) return { role: 'anon', sub: null }
+    const token = authHeader.replace(/^Bearer\s+/i, '')
+    const part = token.split('.')[1]
+    if (!part) return { role: 'anon', sub: null }
+    let b64 = part.replace(/-/g, '+').replace(/_/g, '/')
+    const pad = b64.length % 4
+    if (pad) b64 += '='.repeat(4 - pad)
+    const claims = JSON.parse(atob(b64))
+    return { role: claims.role || 'anon', sub: claims.sub || null }
+  } catch {
+    return { role: 'anon', sub: null }
+  }
+}
+
+function jsonResponse(obj: unknown, status = 200) {
+  return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } })
+}
+
 // ── Main handler ──
 
 serve(async (req) => {
   try {
     const body = await req.json()
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+    // Qui appelle ? (service_role = serveur/cron/webhook, authenticated = user connecté)
+    const { role: callerRole, sub: callerId } = decodeJwtClaims(req.headers.get('Authorization'))
 
     let targetUserId: string
     let title: string
@@ -228,6 +258,10 @@ serve(async (req) => {
 
     // Appelé par webhook Supabase (INSERT sur messages)
     if (body.type === 'INSERT' && body.table === 'messages') {
+      // Seul le trigger DB (clé service_role) peut déclencher cette branche —
+      // sinon un utilisateur pourrait usurper une notif « nouveau message ».
+      if (callerRole !== 'service_role') return jsonResponse({ error: 'Forbidden' }, 403)
+
       const message = body.record
       // Trouver la conversation pour savoir qui notifier
       const { data: conv } = await supabase
@@ -249,6 +283,45 @@ serve(async (req) => {
       title = body.title || 'Wish Maker'
       notifBody = body.body || 'Nouvelle notification'
       url = body.url || '/'
+
+      // ── Contrôle d'accès de l'appel manuel ──
+      // Empêche n'importe quel utilisateur connecté d'envoyer une push
+      // arbitraire à n'importe qui (spam / phishing). Sont autorisés :
+      //   • service_role  → serveur / cron (ex. notify-expiring-wishes)
+      //   • admin         → fonctionnalité « Avertir l'auteur » du back-office
+      //   • un user lié au destinataire par une conversation (Maker → Wisher,
+      //     ex. markRealizedByMaker) — il peut déjà lui parler de toute façon.
+      if (callerRole !== 'service_role') {
+        if (callerRole !== 'authenticated' || !callerId || !UUID_RE.test(callerId)) {
+          return jsonResponse({ error: 'Forbidden' }, 403)
+        }
+        if (!targetUserId || !UUID_RE.test(String(targetUserId))) {
+          return jsonResponse({ error: 'Invalid target' }, 400)
+        }
+
+        // Admin ?
+        const { data: caller } = await supabase
+          .from('users')
+          .select('is_admin')
+          .eq('id', callerId)
+          .maybeSingle()
+        let allowed = !!caller?.is_admin
+
+        // Sinon : partage-t-il une conversation avec le destinataire ?
+        if (!allowed) {
+          const { data: convs } = await supabase
+            .from('conversations')
+            .select('maker_id, wisher_id')
+            .or(`maker_id.eq.${callerId},wisher_id.eq.${callerId}`)
+          allowed = (convs || []).some(
+            (c) =>
+              (c.maker_id === callerId && c.wisher_id === targetUserId) ||
+              (c.wisher_id === callerId && c.maker_id === targetUserId)
+          )
+        }
+
+        if (!allowed) return jsonResponse({ error: 'Forbidden' }, 403)
+      }
     }
 
     // Récupérer les subscriptions
