@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { supabase, withTimeout, ensureSession } from '../../lib/supabase'
 import useAuthStore from '../../store/authStore'
+import Header from '../../components/layout/Header'
 
 const CATEGORIES = [
   { value: 'all', label: 'Tous' },
@@ -560,18 +561,14 @@ export default function Admin() {
 
   return (
     <div className="h-screen bg-white flex flex-col">
-      {/* Header */}
-      <div className="bg-white px-5 pt-4 pb-3 flex items-center gap-3 border-b border-[#F0F0F2]">
-        <button
-          onClick={() => {
-            if (window.history.length > 1) navigate(-1)
-            else navigate('/profile')
-          }}
-          className="w-10 h-10 rounded-full bg-[#F5F5F7] flex items-center justify-center">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="#1A1A2E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </button>
-        <h1 className="text-lg font-bold text-[#1A1A2E]">Administration</h1>
-      </div>
+      {/* Header partagé (titre centré + même espacement que la page Avis) */}
+      <Header
+        title="Administration"
+        onBack={() => {
+          if (window.history.length > 1) navigate(-1)
+          else navigate('/profile')
+        }}
+      />
 
       {/* Onglets soulignés (épuré, comme la page Avis). Signalements en 1er. */}
       <div className="border-b border-[#F0F0F2] flex-shrink-0">
