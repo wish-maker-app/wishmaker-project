@@ -358,8 +358,6 @@ function SignalementsTab() {
   const [openConv, setOpenConv] = useState(null) // id du report dont on affiche l'échange
   const [convMsgs, setConvMsgs] = useState([])
   const [convLoading, setConvLoading] = useState(false)
-  const [confirm, setConfirm] = useState(null) // { title, message, confirmLabel, destructive, run }
-  const [confirmBusy, setConfirmBusy] = useState(false)
 
   async function loadReports() {
     setError(false)
@@ -398,17 +396,6 @@ function SignalementsTab() {
     setReports((prev) => prev.filter((r) => r.id !== reportId))
   }
 
-  async function suspendUser(r) {
-    if (!r.reported_user_id) { toast.error('Aucun utilisateur cible'); return }
-    setActing(r.id)
-    const { error: e } = await supabase.rpc('admin_suspend_user', { p_user_id: r.reported_user_id, p_type: 'temporaire', p_days: 7 })
-    if (e) { setActing(null); toast.error(e.message); return }
-    await supabase.from('reports').update({ statut: 'traite' }).eq('id', r.id)
-    setActing(null)
-    toast.success('Utilisateur suspendu 7 jours')
-    setReports((prev) => prev.filter((x) => x.id !== r.id))
-  }
-
   // Affiche l'échange d'un signalement de conversation (policy admins_read_all_messages)
   async function viewConversation(r) {
     if (openConv === r.id) { setOpenConv(null); return }
@@ -429,17 +416,6 @@ function SignalementsTab() {
     } finally {
       setConvLoading(false)
     }
-  }
-
-  async function deleteWish(r) {
-    if (!r.reported_wish_id) { toast.error('Aucun vœu cible'); return }
-    setActing(r.id)
-    const { error: e } = await supabase.rpc('admin_delete_wish', { p_wish_id: r.reported_wish_id })
-    if (e) { setActing(null); toast.error(e.message); return }
-    await supabase.from('reports').update({ statut: 'traite' }).eq('id', r.id)
-    setActing(null)
-    toast.success('Vœu supprimé')
-    setReports((prev) => prev.filter((x) => x.id !== r.id))
   }
 
   if (loading) {
@@ -519,7 +495,8 @@ function SignalementsTab() {
               </button>
             </div>
 
-            {/* Actions secondaires (liens) : inspecter + sanctions */}
+            {/* Action secondaire : inspecter le contenu signalé (pas de sanction
+                ici pour l'instant — l'admin classe seulement : Valider / Rejeter) */}
             <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 px-1">
               <button
                 disabled={busy}
@@ -534,34 +511,6 @@ function SignalementsTab() {
                   ? (openConv === r.id ? "Masquer l'échange" : "Voir l'échange")
                   : r.type === 'voeu' ? 'Voir le vœu' : 'Voir le profil'}
               </button>
-              <button
-                disabled={busy}
-                onClick={() => setConfirm({
-                  title: `Suspendre @${r.reported_user?.pseudo || 'cet utilisateur'} ?`,
-                  message: "L'auteur sera suspendu 7 jours et le signalement marqué comme traité.",
-                  confirmLabel: 'Suspendre 7 jours',
-                  destructive: true,
-                  run: () => suspendUser(r),
-                })}
-                className="text-xs font-semibold text-[#EF4444] disabled:opacity-40"
-              >
-                Suspendre l'auteur
-              </button>
-              {r.type === 'voeu' && r.reported_wish_id && (
-                <button
-                  disabled={busy}
-                  onClick={() => setConfirm({
-                    title: 'Supprimer ce vœu ?',
-                    message: `« ${r.reported_wish?.titre || 'Ce vœu'} » sera supprimé définitivement. Action irréversible.`,
-                    confirmLabel: 'Supprimer le vœu',
-                    destructive: true,
-                    run: () => deleteWish(r),
-                  })}
-                  className="text-xs font-semibold text-[#EF4444] disabled:opacity-40"
-                >
-                  Supprimer le vœu
-                </button>
-              )}
             </div>
 
             {/* Échange (signalement de conversation) — messages de l'auteur signalé à gauche */}
@@ -584,20 +533,6 @@ function SignalementsTab() {
           </div>
         )
       })}
-
-      <ConfirmSheet
-        open={!!confirm}
-        onClose={() => { if (!confirmBusy) setConfirm(null) }}
-        title={confirm?.title}
-        message={confirm?.message}
-        confirmLabel={confirm?.confirmLabel}
-        destructive={confirm?.destructive}
-        loading={confirmBusy}
-        onConfirm={async () => {
-          setConfirmBusy(true)
-          try { await confirm?.run?.() } finally { setConfirmBusy(false); setConfirm(null) }
-        }}
-      />
     </div>
   )
 }
