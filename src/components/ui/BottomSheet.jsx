@@ -117,7 +117,7 @@ export default function BottomSheet({
                 className="w-full pt-3 pb-2 flex justify-center cursor-grab active:cursor-grabbing select-none"
                 style={{ touchAction: 'none' }}
               >
-                <div className="w-12 h-1.5 rounded-full bg-[#D0D0D8]" />
+                <div className="w-12 h-1 rounded-full bg-[#D0D0D8]" />
               </div>
             )}
 
