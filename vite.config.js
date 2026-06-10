@@ -7,25 +7,14 @@ export default defineConfig({
   build: {
     // Cible moderne : -15% taille bundle (vs es2015) + meilleurs perfs JS
     target: 'es2020',
-    // Découpe le bundle en chunks pour que les grosses libs (Leaflet, Stripe...)
-    // ne bloquent pas le 1er chargement et soient cachées séparément par le navigateur.
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return
-          if (id.includes('react-router-dom') || id.match(/node_modules\/(react|react-dom|scheduler)\//)) {
-            return 'react-vendor'
-          }
-          if (id.includes('framer-motion')) return 'framer'
-          if (id.includes('leaflet') || id.includes('react-leaflet')) return 'maps'
-          if (id.includes('@stripe')) return 'stripe'
-          if (id.includes('@supabase')) return 'supabase'
-          if (id.includes('leo-profanity') || id.includes('french-badwords-list')) return 'moderation-text'
-          if (id.includes('@tensorflow') || id.includes('nsfwjs')) return 'moderation-image'
-        },
-      },
-    },
-    // Avertit si un chunk dépasse 600 KB (par défaut 500)
+    // PAS de manualChunks ici : sous Vite 8 (bundler Rolldown), manualChunks
+    // entremêlait le graphe au point de rendre le chunk nsfwjs/tensorflow
+    // (~40 Mo, modèle NSFW embarqué) DÉPENDANCE STATIQUE de l'entrée →
+    // modulepreload de 20 Mo+ au premier chargement de wishmaker.fr.
+    // Le découpage automatique + les import() dynamiques du code isolent
+    // déjà correctement les grosses libs (nsfwjs, leaflet, stripe...) en
+    // chunks chargés à la demande. Ne pas réintroduire sans vérifier
+    // dist/index.html (aucun modulepreload des chunks nsfwjs/leaflet).
     chunkSizeWarningLimit: 600,
   },
 })
