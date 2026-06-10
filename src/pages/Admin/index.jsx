@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
-import { supabase, withTimeout, ensureSession } from '../../lib/supabase'
+import { supabase, withTimeout, ensureFreshSession } from '../../lib/supabase'
 import useAuthStore from '../../store/authStore'
 import Header from '../../components/layout/Header'
 import ConfirmSheet from '../../components/ui/ConfirmSheet'
@@ -157,13 +157,17 @@ function UtilisateursTab() {
   const [confirmBusy, setConfirmBusy] = useState(false)
   const authTick = useAuthStore((s) => s.authTick)
 
+  // Retourne true si chargé, false sinon (l'effet planifie alors un retry).
   async function loadData() {
     setError(false)
     try {
-      await ensureSession()
+      // Session OBLIGATOIRE (ensureFreshSession, pas le best-effort
+      // ensureSession) : au réveil PWA, la requête partait en ANONYME → la RLS
+      // renvoyait vide / la garde admin rejetait → page admin « morte ».
+      const session = await ensureFreshSession()
+      if (!session) throw new Error('NO_SESSION')
       // withTimeout : sans ça, une requête qui hang (réveil PWA / connexion
-      // morte) laissait setLoading(false) inatteignable → SPINNER INFINI. Le
-      // try/finally garantit désormais qu'on sort TOUJOURS du loading.
+      // morte) laissait setLoading(false) inatteignable → SPINNER INFINI.
       const { data: suspended, error: e1 } = await withTimeout(
         supabase.from('users').select('*').eq('is_suspended', true)
       )
@@ -178,16 +182,45 @@ function UtilisateursTab() {
       )
       if (e2) throw e2
       setStats({ temp, def, reports: reportsCount || 0 })
-    } catch (err) {
-      console.error('[admin users] load error:', err?.message)
-      setError(true)
-    } finally {
       setLoading(false)
+      return true
+    } catch (err) {
+      console.warn('[admin users] load error:', err?.message)
+      // NO_SESSION (session pas prête au réveil) → on GARDE le spinner, le
+      // retry planifié / authTick relancera. Vraie erreur → écran d'erreur.
+      if (err?.message !== 'NO_SESSION') {
+        setError(true)
+        setLoading(false)
+      }
+      return false
     }
   }
 
   useEffect(() => {
-    loadData()
+    let cancelled = false
+    let timer = null
+    let attempt = 0
+    function tryLoad() {
+      loadData().then((ok) => {
+        if (cancelled || ok) return
+        // Retry borné (2s/5s/15s, app visible uniquement) : au réveil PWA,
+        // l'échec arrive pendant que session/connexion se rétablissent.
+        if (attempt < 3) {
+          const delay = [2000, 5000, 15000][attempt]
+          attempt += 1
+          timer = setTimeout(() => {
+            timer = null
+            if (!cancelled && document.visibilityState === 'visible') tryLoad()
+          }, delay)
+        } else {
+          // Après 3 échecs : on sort du spinner sur l'écran d'erreur.
+          setError(true)
+          setLoading(false)
+        }
+      })
+    }
+    tryLoad()
+    return () => { cancelled = true; if (timer) clearTimeout(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authTick])
 
@@ -221,7 +254,12 @@ function UtilisateursTab() {
         <p className="text-sm font-bold text-[#1A1A2E]">Erreur de chargement</p>
         <p className="text-xs text-[#8A8A9A]">Vérifie ta connexion et réessaie.</p>
         <button
-          onClick={() => { setLoading(true); loadData() }}
+          onClick={() => {
+            setLoading(true)
+            // Échec du retry manuel (même NO_SESSION) → retour à l'écran
+            // d'erreur, pas de spinner infini.
+            loadData().then((ok) => { if (!ok) { setError(true); setLoading(false) } })
+          }}
           className="mt-2 h-10 px-5 rounded-full text-white font-bold text-xs"
           style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
         >
@@ -361,10 +399,13 @@ function SignalementsTab() {
   const [convLoading, setConvLoading] = useState(false)
   const [sanctionFor, setSanctionFor] = useState(null) // signalement dont on choisit la sanction (étape 2)
 
+  // Retourne true si chargé, false sinon (l'effet planifie alors un retry).
   async function loadReports() {
     setError(false)
     try {
-      await ensureSession()
+      // Session OBLIGATOIRE : en anonyme la RLS renvoyait vide au réveil PWA.
+      const session = await ensureFreshSession()
+      if (!session) throw new Error('NO_SESSION')
       const { data, error: e } = await withTimeout(supabase
         .from('reports')
         .select(`id, type, raison, created_at, reported_wish_id, reported_user_id, reported_conversation_id,
@@ -375,16 +416,42 @@ function SignalementsTab() {
         .order('created_at', { ascending: false }))
       if (e) throw e
       setReports(data || [])
-    } catch (err) {
-      console.error('[admin reports] load error:', err?.message)
-      setError(true)
-    } finally {
       setLoading(false)
+      return true
+    } catch (err) {
+      console.warn('[admin reports] load error:', err?.message)
+      // NO_SESSION → spinner conservé (retry planifié) ; vraie erreur → écran d'erreur.
+      if (err?.message !== 'NO_SESSION') {
+        setError(true)
+        setLoading(false)
+      }
+      return false
     }
   }
 
   useEffect(() => {
-    loadReports()
+    let cancelled = false
+    let timer = null
+    let attempt = 0
+    function tryLoad() {
+      loadReports().then((ok) => {
+        if (cancelled || ok) return
+        // Retry borné (2s/5s/15s, app visible uniquement) — réveil PWA.
+        if (attempt < 3) {
+          const delay = [2000, 5000, 15000][attempt]
+          attempt += 1
+          timer = setTimeout(() => {
+            timer = null
+            if (!cancelled && document.visibilityState === 'visible') tryLoad()
+          }, delay)
+        } else {
+          setError(true)
+          setLoading(false)
+        }
+      })
+    }
+    tryLoad()
+    return () => { cancelled = true; if (timer) clearTimeout(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authTick])
 
@@ -474,7 +541,14 @@ function SignalementsTab() {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
         <p className="text-sm font-bold text-[#1A1A2E]">Erreur de chargement</p>
-        <button onClick={() => { setLoading(true); loadReports() }} className="mt-1 h-10 px-5 rounded-full text-white font-bold text-xs" style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>Réessayer</button>
+        <button
+          onClick={() => {
+            setLoading(true)
+            loadReports().then((ok) => { if (!ok) { setError(true); setLoading(false) } })
+          }}
+          className="mt-1 h-10 px-5 rounded-full text-white font-bold text-xs"
+          style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+        >Réessayer</button>
       </div>
     )
   }

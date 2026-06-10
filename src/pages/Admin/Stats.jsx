@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase, withTimeout, ensureSession } from '../../lib/supabase'
+import { supabase, withTimeout, ensureFreshSession } from '../../lib/supabase'
 import useAuthStore from '../../store/authStore'
 import { getCached, setCached } from '../../lib/wishesCache'
 
@@ -26,26 +26,55 @@ export default function AdminStats() {
   const isAdmin = !!(user && profile?.is_admin)
 
   // useEffect AVANT tout return conditionnel (regles des hooks). On ne charge
-  // que si admin. authTick → re-tente au réveil de l'app (focus/visibility).
+  // que si admin. authTick → re-tente au réveil de l'app (focus/visibility),
+  // avec retries bornés (le 1er essai part souvent sur une connexion zombie).
   useEffect(() => {
-    if (isAdmin) loadStats()
+    if (!isAdmin) return
+    let cancelled = false
+    let timer = null
+    let attempt = 0
+    function tryLoad() {
+      loadStats().then((ok) => {
+        if (cancelled || ok) return
+        if (attempt < 3) {
+          const delay = [2000, 5000, 15000][attempt]
+          attempt += 1
+          timer = setTimeout(() => {
+            timer = null
+            if (!cancelled && document.visibilityState === 'visible') tryLoad()
+          }, delay)
+        } else {
+          setLoading(false) // après 3 échecs sans cache : on sort du spinner
+        }
+      })
+    }
+    tryLoad()
+    return () => { cancelled = true; if (timer) clearTimeout(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, authTick])
 
+  // Retourne true si chargé, false sinon (l'effet planifie alors un retry).
   async function loadStats() {
     if (!getCached('admin_stats')) setLoading(true)
     try {
-      await ensureSession()
+      // Session OBLIGATOIRE : en anonyme, la garde is_admin du RPC rejetait
+      // la requête au réveil PWA → page stats « morte » sans retry.
+      const session = await ensureFreshSession()
+      if (!session) throw new Error('NO_SESSION')
       // withTimeout : sinon, au réveil PWA (connexion HTTP/2 morte), le RPC peut
-      // ne JAMAIS résoudre → le finally ne tourne pas → spinner infini.
+      // ne JAMAIS résoudre → spinner infini.
       const { data: stats, error } = await withTimeout(supabase.rpc('get_admin_stats'))
       if (error) throw error
       setData(stats)
       setCached('admin_stats', stats)
-    } catch (err) {
-      console.error('[admin/stats] error:', err?.message)
-    } finally {
       setLoading(false)
+      return true
+    } catch (err) {
+      console.warn('[admin/stats] error:', err?.message)
+      // Cache présent → on garde l'affichage (refresh silencieux raté).
+      // Sans cache → on garde le spinner tant que les retries tournent.
+      if (getCached('admin_stats')) setLoading(false)
+      return false
     }
   }
 

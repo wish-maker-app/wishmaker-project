@@ -164,8 +164,27 @@ export default function Chat() {
   }
 
   useEffect(() => {
+    let cancelled = false
+    let timer = null
+    let attempt = 0
     if (!isDraft) {
-      loadMessages(id)
+      // Retry borné (2s/5s/15s, app visible uniquement) : au réveil PWA le 1er
+      // chargement part souvent sur une connexion zombie — sans replanification
+      // les messages restaient périmés jusqu'à un improbable prochain authTick.
+      function tryLoad() {
+        loadMessages(id).then((ok) => {
+          if (cancelled || ok) return
+          if (attempt < 3) {
+            const delay = [2000, 5000, 15000][attempt]
+            attempt += 1
+            timer = setTimeout(() => {
+              timer = null
+              if (!cancelled && document.visibilityState === 'visible') tryLoad()
+            }, delay)
+          }
+        })
+      }
+      tryLoad()
       loadConversations().catch(() => {})
     } else if (draftWisherId) {
       // Mode brouillon : charger les infos du wisher
@@ -185,6 +204,7 @@ export default function Chat() {
     // authTick : au réveil de l'app (focus/visibility → bump dans useAuth), on
     // recharge les messages + on re-souscrit le Realtime avec un token frais →
     // plus besoin de rafraîchir manuellement pour voir les nouveaux messages.
+    return () => { cancelled = true; if (timer) clearTimeout(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, authTick])
 

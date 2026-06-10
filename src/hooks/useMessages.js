@@ -189,11 +189,15 @@ export function useMessages(conversationId = null) {
         }
       }
       await fetchMessages(convId)
+      // true = chargé (ou fetch dédupliqué avec un fetch frais en vol) →
+      // l'appelant (Chat) sait qu'il n'a PAS besoin de replanifier.
+      return true
     } catch (err) {
       // Timeout / reseau (ex: connexion morte au retour d'arriere-plan) :
       // on garde les messages en cache deja affiches, pas d'ecran vide ni de
-      // rejection non geree. Le prochain authTick (reveil) relancera.
+      // rejection non geree. false → l'appelant peut planifier un retry.
       console.warn('[useMessages] loadMessages echec, cache conserve:', err?.message)
+      return false
     } finally {
       setLoading(false)
     }
