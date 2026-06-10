@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { supabase, withTimeout } from '../lib/supabase'
 import useAuthStore from '../store/authStore'
 
 export function useAuth() {
@@ -19,7 +19,7 @@ export function useAuth() {
     // Sinon après un refresh, le store persisté peut montrer un user logué alors
     // que la session Supabase a expiré/disparu → queries retournent vide (RLS).
     ;(async () => {
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
       if (session?.user) {
         const expiresAt = (session.expires_at || 0) * 1000
@@ -54,8 +54,27 @@ export function useAuth() {
           await fetchProfile(activeSession.user.id)
         }
       } else if (useAuthStore.getState().user) {
-        logout()
-        navigate('/auth', { replace: true })
+        // Session absente alors que le store croit l'utilisateur connecté.
+        // DEUX cas très différents :
+        //  - Échec TRANSITOIRE du refresh interne (réseau zombie au cold start
+        //    d'une PWA discardée — auth-js renvoie session null + erreur
+        //    retryable SANS effacer le storage) → on NE déconnecte PAS, on
+        //    lance la chaîne de retries du réveil ; l'utilisateur garde son
+        //    cache à l'écran et la session revient en quelques secondes.
+        //  - Vraiment plus de session (logout autre onglet, token révoqué,
+        //    storage purgé) → logout + retour à l'auth, comme avant.
+        const retryable = sessionError && (
+          sessionError.name === 'AuthRetryableFetchError' ||
+          sessionError.status === 0 ||
+          /fetch|network|timeout|failed/i.test(sessionError.message || '')
+        )
+        if (retryable) {
+          console.warn('[useAuth] session irrécupérable au mount (réseau ?), retry au lieu de logout:', sessionError?.message)
+          handleResume()
+        } else {
+          logout()
+          navigate('/auth', { replace: true })
+        }
       }
     })()
 
@@ -72,21 +91,43 @@ export function useAuth() {
     // On reconnecte la session + Realtime et on bump authTick (les pages
     // refetchent, et leur dedup absorbe un éventuel double déclenchement).
     let lastResumeTs = 0
-    async function handleResume() {
-      // Anti double-run : focus + visibilitychange peuvent tomber ensemble.
-      if (Date.now() - lastResumeTs < 1000) return
-      lastResumeTs = Date.now()
+    let resumeRetryTimer = null
+    let disposed = false // posé au cleanup : un resume en vol ne doit plus replanifier
+    // Délais des retries au réveil. Le 1er essai part presque toujours sur une
+    // connexion HTTP/2 zombie (4-8s d'abort+retry) : un échec ici était
+    // DÉFINITIF avant (one-shot) → plus aucune resynchro sans tuer l'app.
+    const RESUME_RETRY_DELAYS = [1500, 4000, 10000]
+    async function handleResume(attempt = 0) {
+      if (attempt === 0) {
+        // Anti double-run : focus + visibilitychange peuvent tomber ensemble.
+        if (Date.now() - lastResumeTs < 1000) return
+        lastResumeTs = Date.now()
+        // Un nouveau réveil annule la chaîne de retries précédente.
+        if (resumeRetryTimer) { clearTimeout(resumeRetryTimer); resumeRetryTimer = null }
+      }
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) return
+        // Borné : getSession peut hanger sur le verrou interne d'auth-js
+        // pendant qu'un refresh rame sur la connexion morte.
+        const { data: { session } } = await withTimeout(supabase.auth.getSession(), 8000, 'SESSION_TIMEOUT')
+        if (!session) {
+          // Pas de session : si le store croit qu'on est connecté, c'est un
+          // échec transitoire de restauration/refresh → on réessaie. Sinon
+          // (vraiment déconnecté, ex: page login), on ne fait rien.
+          if (useAuthStore.getState().user) throw new Error('NO_SESSION_AT_RESUME')
+          return
+        }
         let activeSession = session
         const expiresAt = (session.expires_at || 0) * 1000
         // Refresh si token expire dans < 60s
         if (expiresAt - Date.now() < 60 * 1000) {
-          const { data: refreshed } = await supabase.auth.refreshSession()
+          const { data: refreshed } = await withTimeout(supabase.auth.refreshSession(), 8000, 'REFRESH_TIMEOUT')
           if (refreshed?.session) {
             setUser(refreshed.session.user)
             activeSession = refreshed.session
+          } else if (expiresAt <= Date.now()) {
+            // Token déjà expiré ET refresh raté → toute requête partirait en
+            // anonyme. On réessaie plutôt que de bumper pour rien.
+            throw new Error('REFRESH_FAILED_AT_RESUME')
           }
         }
         // Re-propage le JWT a Realtime (le socket a pu droper en arriere-plan).
@@ -97,14 +138,26 @@ export function useAuth() {
         // Bump → les pages re-fetchent (et debloquent une eventuelle query morte)
         bumpAuthTick()
       } catch (err) {
-        console.warn('[useAuth] resume refresh failed:', err?.message)
+        console.warn(`[useAuth] resume refresh failed (essai ${attempt + 1}):`, err?.message)
+        // Retry borné, app visible uniquement : la session/connexion se
+        // rétablit en général en quelques secondes après le réveil.
+        // disposed : un resume encore en vol à l'unmount ne replanifie pas.
+        if (!disposed && attempt < RESUME_RETRY_DELAYS.length && !resumeRetryTimer) {
+          resumeRetryTimer = setTimeout(() => {
+            resumeRetryTimer = null
+            if (!disposed && document.visibilityState === 'visible') handleResume(attempt + 1)
+          }, RESUME_RETRY_DELAYS[attempt])
+        }
       }
     }
     function onVisibility() {
       if (document.visibilityState === 'visible') handleResume()
     }
+    // Wrapper : window 'focus' passe l'Event en 1er argument — il ne doit pas
+    // être interprété comme le compteur d'essais.
+    function onFocus() { handleResume() }
     document.addEventListener('visibilitychange', onVisibility)
-    window.addEventListener('focus', handleResume)
+    window.addEventListener('focus', onFocus)
 
     // Écoute les changements de session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -130,9 +183,11 @@ export function useAuth() {
     )
 
     return () => {
+      disposed = true
       subscription.unsubscribe()
       document.removeEventListener('visibilitychange', onVisibility)
-      window.removeEventListener('focus', handleResume)
+      window.removeEventListener('focus', onFocus)
+      if (resumeRetryTimer) { clearTimeout(resumeRetryTimer); resumeRetryTimer = null }
     }
   }, [])
 

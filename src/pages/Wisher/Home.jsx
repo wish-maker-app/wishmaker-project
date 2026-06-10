@@ -337,46 +337,87 @@ export default function WisherHome() {
   // Dedup anti "deuxième vague" : voir Maker/Home pour le détail. Absorbe le
   // fetch au mount + le bump authTick + focus/visibility + rafales realtime.
   const inFlightRef = useRef(false)
+  const inFlightPromiseRef = useRef(null)
   const lastFetchTsRef = useRef(0)
+  // Retry planifié après échec : au réveil PWA, l'échec arrive pendant que la
+  // connexion/session se rétablissent — sans replanification, l'écran restait
+  // vide/périmé jusqu'à un improbable événement externe (= « il faut tuer l'app »).
+  const retryTimerRef = useRef(null)
+  const retryCountRef = useRef(0)
 
-  const refetchWishes = useCallback((force = false) => {
-    if (inFlightRef.current) return
+  const refetchWishes = useCallback(function refetchFn(force = false, isRetry = false) {
+    // Déclenchement EXTERNE (mount/authTick/visibility/realtime/PTR) → budget
+    // de retries réapprovisionné. Sans ça le plafond était cumulé à vie du
+    // mount : un seul réveil offline épuisait les 3 retries pour toujours.
+    if (!isRetry) retryCountRef.current = 0
+    // Un pull-to-refresh (force) pendant un fetch en vol ATTEND ce fetch au
+    // lieu d'être un no-op silencieux (le spinner du PTR reflétait rien).
+    if (inFlightRef.current) return force ? inFlightPromiseRef.current : undefined
     if (!force && Date.now() - lastFetchTsRef.current < 1500) return
+    if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null }
     inFlightRef.current = true
-    getMyWishes()
+    const p = getMyWishes()
       .then((w) => {
+        if (unmountedRef.current) return
+        retryCountRef.current = 0
         setWishes(w)
-        // Évite d'écraser un cache existant avec une liste vide (race condition
-        // au mount : session pas encore prête → RLS renvoie []).
-        const existing = getCached('my_wishes')?.value
-        if (w.length > 0 || !existing || existing.length === 0) {
-          setCached('my_wishes', w)
-        }
+        // Cache TOUJOURS mis à jour, y compris avec [] : depuis que getMyWishes
+        // lève NO_SESSION avant toute requête anonyme, un [] est AUTHENTIQUE
+        // (l'ancienne garde anti-[] ressuscitait des vœux supprimés/expirés
+        // via la réhydratation).
+        setCached('my_wishes', w)
         setLoading(false)
         // Cooldown 1.5s uniquement apres succes (un echec doit pouvoir retry)
         lastFetchTsRef.current = Date.now()
       })
       .catch((err) => {
+        // Composant démonté → ni setState ni replanification (sinon chaîne de
+        // retries zombie après navigation).
+        if (unmountedRef.current) return
         const noSession = err?.message === 'NO_SESSION'
-        if (getCached('my_wishes')) {
-          // Cache présent → échec silencieux, on garde l'affichage.
+        const cached = getCached('my_wishes')?.value
+        if (cached) {
+          // Cache présent → échec silencieux. RÉHYDRATE l'affichage si l'état
+          // est vide (un état vidé n'était jamais re-rempli depuis le cache).
+          setWishes((prev) => (prev && prev.length > 0 ? prev : cached))
           setLoading(false)
           console.warn('[WisherHome] refresh en fond échoué, cache conservé:', err?.message)
         } else if (noSession) {
           // Session pas prête (cold start) → on GARDE le spinner (loading=true),
           // le bump authTick relancera le fetch dès que la session est validée.
-          console.warn('[WisherHome] session pas prête, retry au prochain authTick')
+          console.warn('[WisherHome] session pas prête, retry planifié')
         } else {
           // Vraie erreur sans cache → on sort du spinner + toast.
           setLoading(false)
           console.error('[WisherHome] getMyWishes:', err)
           toast.error('Erreur de chargement')
         }
+        // Retry borné (2s/5s/15s par épisode, app visible uniquement) : couvre
+        // le réveil où session et réseau se rétablissent en quelques secondes.
+        if (retryCountRef.current < 3 && !retryTimerRef.current) {
+          const delay = [2000, 5000, 15000][retryCountRef.current]
+          retryCountRef.current += 1
+          retryTimerRef.current = setTimeout(() => {
+            retryTimerRef.current = null
+            if (!unmountedRef.current && document.visibilityState === 'visible') refetchFn(true, true)
+          }, delay)
+        }
       })
       .finally(() => {
         inFlightRef.current = false
+        inFlightPromiseRef.current = null
       })
+    inFlightPromiseRef.current = p
+    return p
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Cleanup à l'unmount : timer de retry + flag (un rejet de fetch arrivant
+  // APRÈS l'unmount ne doit plus replanifier de retries zombies).
+  const unmountedRef = useRef(false)
+  useEffect(() => () => {
+    unmountedRef.current = true
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
   }, [])
 
   useEffect(() => {
@@ -480,7 +521,9 @@ export default function WisherHome() {
       setWishes(updated)
       setPaymentModal(null)
     } catch (err) {
-      toast.error(err.message || 'Erreur activation')
+      // NO_SESSION = juste le refetch de la liste qui a raté (l'achat, lui, est
+      // déjà appliqué côté serveur) → message doux, le retry resynchronisera.
+      toast.error(err?.message === 'NO_SESSION' ? 'Synchronisation en cours, la liste va se mettre à jour.' : (err.message || 'Erreur activation'))
     }
   }
 
@@ -729,7 +772,7 @@ export default function WisherHome() {
                         setWishes(updated)
                         setCached('my_wishes', updated)
                       } catch (err) {
-                        toast.error(err.message || 'Erreur')
+                        toast.error(err?.message === 'NO_SESSION' ? 'Synchronisation en cours, la liste va se mettre à jour.' : (err.message || 'Erreur'))
                       }
                     }}
                   />

@@ -36,7 +36,10 @@ export function useWishes() {
   // même en cas d'erreur. Évite les spinners infinis si une query échoue.
 
   async function getMyWishes(statut = null) {
-    if (!user) return []
+    // NO_SESSION (réessayable) plutôt que [] : un [] « succès » silencieux
+    // quand le store n'a pas encore user (réveil/cold start) affichait
+    // « 0 vœux » à la place des vœux de l'utilisateur.
+    if (!user) throw new Error('NO_SESSION')
     setLoading(true)
     try {
       // Session valide OBLIGATOIRE : sans elle la requête partirait en anonyme

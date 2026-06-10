@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import useFavoritesStore from './favoritesStore'
+import { clearWishesCache } from '../lib/wishesCache'
 
 const useAuthStore = create(
   persist(
@@ -19,6 +20,10 @@ const useAuthStore = create(
 
       logout: () => {
         useFavoritesStore.getState().clear()
+        // Purge le cache data en mémoire : sans ça, un login sur un AUTRE
+        // compte (même appareil, sans reload) pouvait réhydrater les vœux /
+        // conversations de l'ancien compte.
+        clearWishesCache()
         set({ user: null, profile: null })
       },
     }),

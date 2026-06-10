@@ -17,6 +17,7 @@ export function useMessages(conversationId = null) {
   // inFlight = requete en cours ; lastTs = dernier chargement. On skip si une
   // requete tourne deja ou si la derniere date de < 1.5s (sauf force=true).
   const convInFlightRef = useRef(false)
+  const convInFlightPromiseRef = useRef(null)
   const lastConvTsRef = useRef(0)
   // Dédup fetchMessages par conversation + garde anti-résultat-périmé quand on
   // change de conversation pendant qu'un fetch est en vol.
@@ -25,53 +26,60 @@ export function useMessages(conversationId = null) {
 
   // Charge les conversations de l'utilisateur
   async function loadConversations(opts = {}) {
-    if (!user) return
+    // NO_SESSION (réessayable) plutôt qu'un return silencieux : un « succès »
+    // sans rien charger faisait sortir l'Inbox du spinner sur une fausse
+    // « boîte vide » au cold start.
+    if (!user) throw new Error('NO_SESSION')
     const { force = false } = opts
-    if (convInFlightRef.current) return
+    // Requête déjà en vol → on la PARTAGE (l'appelant attend le vrai résultat
+    // au lieu d'un faux succès immédiat — Inbox sortait du spinner pendant
+    // qu'un fetch concurrent pouvait encore échouer).
+    if (convInFlightRef.current) return convInFlightPromiseRef.current
     if (!force && Date.now() - lastConvTsRef.current < 1500) return
     convInFlightRef.current = true
-    // On ne déclenche un loading "blocking" que s'il n'y a rien en cache.
-    // Sinon le user voit ses conversations cachées et le refetch se fait silencieux.
-    const hasCache = !!getCached('conversations')
-    if (!hasCache) setLoading(true)
-    try {
-      // Session valide OBLIGATOIRE : les policies conversations_select_* sont
-      // réservées au rôle authenticated. Sans session, la requête part en
-      // anonyme → 0 ligne SANS erreur → fausse "boîte vide" + cache pollué. On
-      // lève NO_SESSION (réessayable) plutôt que de requêter en anonyme. (cf.
-      // ensureFreshSession : bornée + retry cold-start, ne hang jamais → le
-      // finally tourne, le garde inFlight ne reste pas bloqué.)
-      const session = await ensureFreshSession()
-      if (!session) throw new Error('NO_SESSION')
-      const { data, error } = await withTimeout(supabase
-        .from('conversations')
-        .select(`
-          *,
-          wish:wishes(id, titre, statut, type_recompense, montant_recompense, prestation_type, prestation_montant, marked_realized_at, marked_realized_by, wish_images(url, is_cover), category:categories(slug)),
-          wisher:users!wisher_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
-          maker:users!maker_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
-          messages(contenu, created_at, is_read, sender_id)
-        `)
-        .or(`wisher_id.eq.${user.id},maker_id.eq.${user.id}`)
-        .order('created_at', { ascending: false }))
-      if (error) throw error
-      const list = data || []
-      setConversations(list)
-      // On NE met PAS à jour le cache si la liste est vide ET qu'on a déjà
-      // du contenu en cache : ça évite de "geler" un écran "aucune conversation"
-      // si la query retourne [] à cause d'une session pas encore prête (RLS).
-      // Si list a du contenu OU si le cache est vide, on cache normalement.
-      const existingCache = getCached('conversations')?.value
-      if (list.length > 0 || !existingCache || existingCache.length === 0) {
+    const p = (async () => {
+      // On ne déclenche un loading "blocking" que s'il n'y a rien en cache.
+      // Sinon le user voit ses conversations cachées et le refetch se fait silencieux.
+      const hasCache = !!getCached('conversations')
+      if (!hasCache) setLoading(true)
+      try {
+        // Session valide OBLIGATOIRE : les policies conversations_select_* sont
+        // réservées au rôle authenticated. Sans session, la requête part en
+        // anonyme → 0 ligne SANS erreur → fausse "boîte vide" + cache pollué. On
+        // lève NO_SESSION (réessayable) plutôt que de requêter en anonyme. (cf.
+        // ensureFreshSession : bornée + retry cold-start, ne hang jamais → le
+        // finally tourne, le garde inFlight ne reste pas bloqué.)
+        const session = await ensureFreshSession()
+        if (!session) throw new Error('NO_SESSION')
+        const { data, error } = await withTimeout(supabase
+          .from('conversations')
+          .select(`
+            *,
+            wish:wishes(id, titre, statut, type_recompense, montant_recompense, prestation_type, prestation_montant, marked_realized_at, marked_realized_by, wish_images(url, is_cover), category:categories(slug)),
+            wisher:users!wisher_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
+            maker:users!maker_id(id, prenom, nom, pseudo, avatar_url, is_online, rating, type_compte),
+            messages(contenu, created_at, is_read, sender_id)
+          `)
+          .or(`wisher_id.eq.${user.id},maker_id.eq.${user.id}`)
+          .order('created_at', { ascending: false }))
+        if (error) throw error
+        const list = data || []
+        setConversations(list)
+        // Cache TOUJOURS mis à jour, y compris avec [] : NO_SESSION est levé
+        // avant toute requête anonyme, donc un [] est AUTHENTIQUE (l'ancienne
+        // garde anti-[] pouvait ressusciter une conversation supprimée).
         setCached('conversations', list)
+        // Cooldown 1.5s declenche UNIQUEMENT apres un succes (sinon un echec
+        // bloquerait les retries pendant 1.5s).
+        lastConvTsRef.current = Date.now()
+      } finally {
+        setLoading(false)
+        convInFlightRef.current = false
+        convInFlightPromiseRef.current = null
       }
-      // Cooldown 1.5s declenche UNIQUEMENT apres un succes (sinon un echec
-      // bloquerait les retries pendant 1.5s).
-      lastConvTsRef.current = Date.now()
-    } finally {
-      setLoading(false)
-      convInFlightRef.current = false
-    }
+    })()
+    convInFlightPromiseRef.current = p
+    return p
   }
 
   // Fusion par id : on garde les messages de prev absents du snapshot (envoi

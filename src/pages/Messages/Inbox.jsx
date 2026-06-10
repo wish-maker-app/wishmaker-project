@@ -244,15 +244,33 @@ export default function Inbox() {
   const { loadConversations, conversations, loading, deleteConversation } = useMessages()
 
   useEffect(() => {
-    loadConversations()
-      .then(() => setBooting(false))
-      .catch((err) => {
-        // NO_SESSION (session pas prête au cold start) → on reste en "chargement"
-        // (spinner) ; le bump authTick relancera dès que la session est validée.
-        // Toute autre erreur → on sort du spinner (cache conservé si présent).
-        if (err?.message !== 'NO_SESSION') setBooting(false)
-        console.warn('[Inbox] loadConversations:', err?.message)
-      })
+    let cancelled = false
+    let timer = null
+    let attempt = 0
+    function tryLoad() {
+      loadConversations()
+        .then(() => { if (!cancelled) setBooting(false) })
+        .catch((err) => {
+          if (cancelled) return
+          // NO_SESSION (session pas prête au cold start) → on reste en "chargement"
+          // (spinner) ; le bump authTick relancera dès que la session est validée.
+          // Toute autre erreur → on sort du spinner (cache conservé si présent).
+          if (err?.message !== 'NO_SESSION') setBooting(false)
+          console.warn('[Inbox] loadConversations:', err?.message)
+          // Retry borné (2s/5s/15s, app visible uniquement) : au réveil PWA,
+          // l'échec arrive pendant que session/connexion se rétablissent.
+          if (attempt < 3) {
+            const delay = [2000, 5000, 15000][attempt]
+            attempt += 1
+            timer = setTimeout(() => {
+              timer = null
+              if (!cancelled && document.visibilityState === 'visible') tryLoad()
+            }, delay)
+          }
+        })
+    }
+    tryLoad()
+    return () => { cancelled = true; if (timer) clearTimeout(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authTick])
 
