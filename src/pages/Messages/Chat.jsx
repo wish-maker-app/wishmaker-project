@@ -175,14 +175,13 @@ export default function Chat() {
       function tryLoad() {
         loadMessages(id).then((ok) => {
           if (cancelled || ok) return
-          if (attempt < 3) {
-            const delay = [2000, 5000, 15000][attempt]
-            attempt += 1
-            timer = setTimeout(() => {
-              timer = null
-              if (!cancelled && document.visibilityState === 'visible') tryLoad()
-            }, delay)
-          }
+          // N'abandonne jamais tant que la page est visible : 2s/5s/15s puis 30s.
+          const delay = [2000, 5000, 15000][attempt] ?? 30000
+          attempt += 1
+          timer = setTimeout(() => {
+            timer = null
+            if (!cancelled && document.visibilityState === 'visible') tryLoad()
+          }, delay)
         })
       }
       tryLoad()

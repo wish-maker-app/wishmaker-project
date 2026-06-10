@@ -393,10 +393,12 @@ export default function WisherHome() {
           console.error('[WisherHome] getMyWishes:', err)
           toast.error('Erreur de chargement')
         }
-        // Retry borné (2s/5s/15s par épisode, app visible uniquement) : couvre
-        // le réveil où session et réseau se rétablissent en quelques secondes.
-        if (retryCountRef.current < 3 && !retryTimerRef.current) {
-          const delay = [2000, 5000, 15000][retryCountRef.current]
+        // Retry qui n'abandonne JAMAIS tant que la page est visible : 2s/5s/15s
+        // puis toutes les 30s (le backend peut avoir des trous de plusieurs
+        // minutes — un budget fini laissait un écran mort). Le compteur est
+        // remis à zéro à chaque déclenchement externe et à chaque succès.
+        if (!retryTimerRef.current) {
+          const delay = [2000, 5000, 15000][retryCountRef.current] ?? 30000
           retryCountRef.current += 1
           retryTimerRef.current = setTimeout(() => {
             retryTimerRef.current = null

@@ -257,16 +257,16 @@ export default function Inbox() {
           // Toute autre erreur → on sort du spinner (cache conservé si présent).
           if (err?.message !== 'NO_SESSION') setBooting(false)
           console.warn('[Inbox] loadConversations:', err?.message)
-          // Retry borné (2s/5s/15s, app visible uniquement) : au réveil PWA,
-          // l'échec arrive pendant que session/connexion se rétablissent.
-          if (attempt < 3) {
-            const delay = [2000, 5000, 15000][attempt]
-            attempt += 1
-            timer = setTimeout(() => {
-              timer = null
-              if (!cancelled && document.visibilityState === 'visible') tryLoad()
-            }, delay)
-          }
+          // Retry qui n'abandonne JAMAIS tant que la page est visible :
+          // 2s/5s/15s puis toutes les 30s. Le backend (instance Supabase) peut
+          // avoir des trous de plusieurs minutes — un budget fini laissait un
+          // spinner mort qu'aucun événement ne ranimait.
+          const delay = [2000, 5000, 15000][attempt] ?? 30000
+          attempt += 1
+          timer = setTimeout(() => {
+            timer = null
+            if (!cancelled && document.visibilityState === 'visible') tryLoad()
+          }, delay)
         })
     }
     tryLoad()
