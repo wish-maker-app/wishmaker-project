@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { errorMessage } from '../../../lib/uiError'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -176,7 +177,7 @@ export default function EditWish() {
       toast.success('Vœu modifié avec succès !')
       navigate('/wisher')
     } catch (err) {
-      toast.error(err.message || 'Erreur lors de la modification')
+      toast.error(errorMessage(err, 'Erreur lors de la modification'))
     }
   }
 

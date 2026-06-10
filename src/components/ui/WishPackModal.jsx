@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { errorMessage } from '../../lib/uiError'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import useAuthStore from '../../store/authStore'
@@ -30,7 +31,7 @@ export default function WishPackModal({ open, onClose, onSuccess }) {
       onSuccess?.()
       onClose?.()
     } catch (err) {
-      toast.error(err.message || 'Erreur lors de l\'activation du pack')
+      toast.error(errorMessage(err, "Erreur lors de l'activation du pack"))
     }
   }
 

@@ -12,6 +12,7 @@ import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
 import { supabase, withTimeout, ensureFreshSession } from '../../lib/supabase'
+import { errorMessage } from '../../lib/uiError'
 import { useWishes, getCachedWish } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
 import { formatLocation, fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
@@ -357,7 +358,7 @@ export default function WishDetail() {
       const fresh = await getWishById(wish.id)
       if (fresh) setWish(fresh)
     } catch (err) {
-      toast.error(err.message || 'Erreur lors de la prolongation')
+      toast.error(errorMessage(err, 'Erreur lors de la prolongation'))
     }
   }
 
@@ -368,7 +369,7 @@ export default function WishDetail() {
       toast.success('Vœu supprimé')
       navigate(-1)
     } catch (err) {
-      toast.error(err.message || 'Erreur lors de la suppression')
+      toast.error(errorMessage(err, 'Erreur lors de la suppression'))
     } finally { setDeleting(false) }
   }
 
@@ -787,7 +788,7 @@ export default function WishDetail() {
                     toast.success('Proposition envoyée !')
                     navigate(`/messages/${convId}`)
                   } catch (err) {
-                    toast.error(err.message || 'Erreur')
+                    toast.error(errorMessage(err, 'Erreur'))
                   } finally { setSendingProposal(false) }
                 }}
                 disabled={sendingProposal}

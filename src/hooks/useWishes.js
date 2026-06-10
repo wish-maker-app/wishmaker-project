@@ -35,6 +35,17 @@ export function useWishes() {
   // Pattern try/finally garanti : setLoading(false) est TOUJOURS appelé
   // même en cas d'erreur. Évite les spinners infinis si une query échoue.
 
+  // Garde commune des ÉCRITURES : session valide obligatoire. Sans elle, un
+  // UPDATE/DELETE filtré par wisher_id part en ANONYME → la RLS matche 0 ligne
+  // SANS erreur = FAUX SUCCÈS silencieux (toast « confirmé ! » mais rien en
+  // base), et un INSERT/RPC est rejeté avec une erreur technique illisible.
+  // NO_SESSION est traduit par lib/uiError.errorMessage côté UI.
+  async function requireSession() {
+    const session = await ensureFreshSession()
+    if (!session) throw new Error('NO_SESSION')
+    return session
+  }
+
   async function getMyWishes(statut = null) {
     // NO_SESSION (réessayable) plutôt que [] : un [] « succès » silencieux
     // quand le store n'a pas encore user (réveil/cold start) affichait
@@ -140,13 +151,11 @@ export function useWishes() {
   async function createWish({ titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, tag_ids, category_id, images, type_recompense, montant_recompense, prestation_type, prestation_montant, is_urgent, statut }) {
     setLoading(true)
     try {
-      let { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        const { data } = await supabase.auth.refreshSession()
-        session = data.session
-      }
-      const wisherId = session?.user?.id || user?.id
-      if (!wisherId) throw new Error('Session expirée, veuillez vous reconnecter')
+      // requireSession : remplace l'ancien getSession/refresh manuel — borné,
+      // avec retry cold-start, et garantit un wisher_id cohérent avec le JWT.
+      const session = await requireSession()
+      const wisherId = session.user?.id || user?.id
+      if (!wisherId) throw new Error('NO_SESSION')
 
       const insertData = { titre, description, latitude, longitude, adresse, quartier, ville, code_postal, category_id, wisher_id: wisherId, type_recompense, montant_recompense }
       if (statut) insertData.statut = statut
@@ -155,11 +164,11 @@ export function useWishes() {
       if (prestation_type !== undefined) insertData.prestation_type = prestation_type
       if (prestation_montant !== undefined) insertData.prestation_montant = prestation_montant
 
-      const { data: wish, error } = await supabase
+      const { data: wish, error } = await withTimeout(supabase
         .from('wishes')
         .insert(insertData)
         .select()
-        .single()
+        .single())
       if (error) throw error
 
       if (tag_ids?.length) {
@@ -209,21 +218,24 @@ export function useWishes() {
   }
 
   async function updateWishStatus(wishId, statut) {
-    const { error } = await supabase
+    await requireSession()
+    const { error } = await withTimeout(supabase
       .from('wishes')
       .update({ statut })
       .eq('id', wishId)
-      .eq('wisher_id', user.id)
+      .eq('wisher_id', user.id))
     if (error) throw error
   }
 
   async function extendWish(wishId) {
-    const { error } = await supabase.rpc('extend_wish', { wish_id: wishId })
+    await requireSession()
+    const { error } = await withTimeout(supabase.rpc('extend_wish', { wish_id: wishId }))
     if (error) throw error
   }
 
   async function makeUrgent(wishId) {
-    const { error } = await supabase.rpc('make_urgent', { wish_id: wishId })
+    await requireSession()
+    const { error } = await withTimeout(supabase.rpc('make_urgent', { wish_id: wishId }))
     if (error) throw error
   }
 
@@ -232,17 +244,19 @@ export function useWishes() {
     // fait directement entre Wisher et Maker. On ne fait que mettre a jour
     // le statut du voeu. Stripe reste uniquement pour les packs / urgent /
     // extension.
-    const { error } = await supabase
+    await requireSession()
+    const { error } = await withTimeout(supabase
       .from('wishes')
       .update({ statut: 'realise' })
-      .eq('id', wishId)
+      .eq('id', wishId))
     if (error) throw error
   }
 
   async function submitRating({ wishId, fromUser, toUser, note, commentaire }) {
-    const { error } = await supabase
+    await requireSession()
+    const { error } = await withTimeout(supabase
       .from('ratings')
-      .insert({ wish_id: wishId, from_user: fromUser, to_user: toUser, note, commentaire })
+      .insert({ wish_id: wishId, from_user: fromUser, to_user: toUser, note, commentaire }))
     if (error) throw error
   }
 
@@ -257,28 +271,30 @@ export function useWishes() {
   }
 
   async function deleteWish(wishId) {
-    await supabase.from('wish_tags').delete().eq('wish_id', wishId)
-    await supabase.from('wish_images').delete().eq('wish_id', wishId)
-    const { error } = await supabase
+    await requireSession()
+    await withTimeout(supabase.from('wish_tags').delete().eq('wish_id', wishId))
+    await withTimeout(supabase.from('wish_images').delete().eq('wish_id', wishId))
+    const { error } = await withTimeout(supabase
       .from('wishes')
       .delete()
       .eq('id', wishId)
-      .eq('wisher_id', user.id)
+      .eq('wisher_id', user.id))
     if (error) throw error
   }
 
   async function updateWish(wishId, { titre, description, type_recompense, montant_recompense, prestation_type, prestation_montant, adresse, latitude, longitude, tags, tag_ids, category_id }) {
     setLoading(true)
     try {
+      await requireSession()
       const updateFields = { titre, description, type_recompense, montant_recompense, adresse, latitude, longitude }
       if (category_id !== undefined) updateFields.category_id = category_id
       // Nouveaux champs prestation (Sur devis / Budget) — optionnels
       if (prestation_type !== undefined) updateFields.prestation_type = prestation_type
       if (prestation_montant !== undefined) updateFields.prestation_montant = prestation_montant
-      const { error } = await supabase
+      const { error } = await withTimeout(supabase
         .from('wishes')
         .update(updateFields)
-        .eq('id', wishId)
+        .eq('id', wishId))
       if (error) throw error
       // Synchronisation des tags string (rétrocompat)
       if (tags !== undefined) {
@@ -309,7 +325,8 @@ export function useWishes() {
   // que l'appelant est bien Maker dans une conversation sur ce voeu et fait le
   // UPDATE en interne.
   async function markRealizedByMaker(wishId, conversationId = null) {
-    const { error } = await supabase.rpc('mark_wish_realized_by_maker', { p_wish_id: wishId })
+    await requireSession()
+    const { error } = await withTimeout(supabase.rpc('mark_wish_realized_by_maker', { p_wish_id: wishId }))
     if (error) throw error
 
     // Notification push au Wisher (best-effort, ne bloque pas si ça rate)
@@ -345,11 +362,12 @@ export function useWishes() {
   // Étape 2 : le Wisher confirme la réalisation → statut passe à 'realise'
   // V1 MVP : pas de capture Stripe, le paiement est direct entre Wisher et Maker.
   async function confirmRealization(wishId) {
-    const { error } = await supabase
+    await requireSession()
+    const { error } = await withTimeout(supabase
       .from('wishes')
       .update({ statut: 'realise' })
       .eq('id', wishId)
-      .eq('wisher_id', user.id)
+      .eq('wisher_id', user.id))
     if (error) throw error
   }
 

@@ -9,6 +9,7 @@ import { useWishes } from '../../hooks/useWishes'
 import { checkContent, prewarmModeration } from '../../lib/moderation'
 import { supabase, withTimeout, ensureFreshSession } from '../../lib/supabase'
 import { subscribeResilient } from '../../lib/realtimeResilient'
+import { errorMessage } from '../../lib/uiError'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
 import ReportSheet from '../../components/ui/ReportSheet'
@@ -365,7 +366,7 @@ export default function Chat() {
       toast.success('Vœu marqué comme réalisé ! 🎉')
       setShowRating(true)
     } catch (err) {
-      toast.error(err.message || 'Erreur')
+      toast.error(errorMessage(err, 'Erreur'))
     }
   }
 
@@ -381,7 +382,7 @@ export default function Chat() {
       setMarkedRealizedBy(userId)
       toast.success('En attente de confirmation du Wisher')
     } catch (err) {
-      toast.error(err.message || 'Erreur')
+      toast.error(errorMessage(err, 'Erreur'))
     } finally {
       setActionLoading(false)
     }
@@ -398,7 +399,7 @@ export default function Chat() {
       toast.success('Vœu confirmé comme réalisé ! 🎉')
       setShowRating(true)
     } catch (err) {
-      toast.error(err.message || 'Erreur')
+      toast.error(errorMessage(err, 'Erreur'))
     } finally {
       setActionLoading(false)
     }
@@ -430,7 +431,7 @@ export default function Chat() {
         setShowRating(false)
         setAlreadyRated(true)
       } else {
-        toast.error(err.message || 'Erreur')
+        toast.error(errorMessage(err, 'Erreur'))
       }
     } finally {
       setRatingLoading(false)

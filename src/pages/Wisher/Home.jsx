@@ -10,6 +10,7 @@ import useConfigStore from '../../store/configStore'
 import { useWishes } from '../../hooks/useWishes'
 import { supabase } from '../../lib/supabase'
 import { subscribeResilient } from '../../lib/realtimeResilient'
+import { errorMessage } from '../../lib/uiError'
 import WishPackModal from '../../components/ui/WishPackModal'
 import PaymentForm from '../../components/ui/PaymentForm'
 import { applyPurchase } from '../../lib/stripe'
@@ -523,7 +524,7 @@ export default function WisherHome() {
     } catch (err) {
       // NO_SESSION = juste le refetch de la liste qui a raté (l'achat, lui, est
       // déjà appliqué côté serveur) → message doux, le retry resynchronisera.
-      toast.error(err?.message === 'NO_SESSION' ? 'Synchronisation en cours, la liste va se mettre à jour.' : (err.message || 'Erreur activation'))
+      toast.error(err?.message === 'NO_SESSION' ? 'Synchronisation en cours, la liste va se mettre à jour.' : errorMessage(err, 'Erreur activation'))
     }
   }
 
@@ -541,7 +542,7 @@ export default function WisherHome() {
       setWishes((prev) => prev.filter((w) => w.id !== modal.wish.id))
       setModal(null)
     } catch (err) {
-      toast.error(err.message || 'Erreur')
+      toast.error(errorMessage(err, 'Erreur'))
     } finally { setActionLoading(false) }
   }
 
@@ -772,7 +773,7 @@ export default function WisherHome() {
                         setWishes(updated)
                         setCached('my_wishes', updated)
                       } catch (err) {
-                        toast.error(err?.message === 'NO_SESSION' ? 'Synchronisation en cours, la liste va se mettre à jour.' : (err.message || 'Erreur'))
+                        toast.error(err?.message === 'NO_SESSION' ? 'Synchronisation en cours, la liste va se mettre à jour.' : errorMessage(err, 'Erreur'))
                       }
                     }}
                   />

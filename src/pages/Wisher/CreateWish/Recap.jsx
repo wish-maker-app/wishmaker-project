@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { errorMessage } from '../../../lib/uiError'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import BottomSheet from '../../../components/ui/BottomSheet'
@@ -123,7 +124,7 @@ export default function Recap() {
       navigate('/wisher/create/success')
     } catch (err) {
       console.error('[Recap] doPublish:', err)
-      toast.error(err.message || t('wisher.create.recap.err_publication'))
+      toast.error(errorMessage(err, t('wisher.create.recap.err_publication')))
     }
   }
 
