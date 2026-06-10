@@ -79,17 +79,21 @@ export function useAuth() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) return
+        let activeSession = session
         const expiresAt = (session.expires_at || 0) * 1000
         // Refresh si token expire dans < 60s
         if (expiresAt - Date.now() < 60 * 1000) {
           const { data: refreshed } = await supabase.auth.refreshSession()
           if (refreshed?.session) {
             setUser(refreshed.session.user)
-            try { supabase.realtime.setAuth(refreshed.session.access_token) } catch {}
+            activeSession = refreshed.session
           }
         }
-        // Re-propage le JWT a Realtime (le socket a pu droper en arriere-plan)
-        try { supabase.realtime.setAuth(session.access_token) } catch {}
+        // Re-propage le JWT a Realtime (le socket a pu droper en arriere-plan).
+        // IMPORTANT : le token de la session ACTIVE (rafraîchie le cas échéant)
+        // — repropager l'ancien après un refresh laissait le join payload des
+        // canaux sur un token périmé.
+        try { supabase.realtime.setAuth(activeSession.access_token) } catch { /* best-effort */ }
         // Bump → les pages re-fetchent (et debloquent une eventuelle query morte)
         bumpAuthTick()
       } catch (err) {

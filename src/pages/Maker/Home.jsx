@@ -23,7 +23,7 @@ import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import { useUserTagSubscriptions } from '../../hooks/useTags'
 import { getCached, setCached } from '../../lib/wishesCache'
 import { CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR, getCategorySvgHtml } from '../../lib/categoryIcons'
-import { supabase } from '../../lib/supabase'
+import { subscribeResilient } from '../../lib/realtimeResilient'
 
 // Fix default marker icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -585,18 +585,23 @@ export default function MakerHome() {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [refetchWishes])
 
-  // Realtime : nouveau wish publié / modifié / supprimé → refetch silencieux
+  // Realtime : nouveau wish publié / modifié / supprimé → refetch silencieux.
+  // Souscription auto-réparante : recréée toute seule si le canal meurt en
+  // arrière-plan (PWA), avec refetch de rattrapage à chaque re-jointe.
   useEffect(() => {
-    const channel = supabase
-      .channel('maker-wishes-feed')
-      .on('postgres_changes',
+    const sub = subscribeResilient({
+      topic: 'maker-wishes-feed',
+      label: 'MakerHome',
+      build: (ch) => ch.on('postgres_changes',
         { event: '*', schema: 'public', table: 'wishes' },
         () => { refetchWishes() }
-      )
-      .subscribe((status) => {
-        if (import.meta.env.DEV) console.log('[MakerHome realtime]', status)
-      })
-    return () => { supabase.removeChannel(channel) }
+      ),
+      // Rattrapage NON forcé : le cooldown 1.5s absorbe le doublon avec le
+      // refetch visibility/authTick du réveil (qui couvre déjà le trou), tout
+      // en laissant passer le rattrapage quand la re-jointe arrive plus tard.
+      onResubscribed: () => { refetchWishes() },
+    })
+    return () => sub.dispose()
   }, [refetchWishes])
 
   // Note : polling 30s supprimé. Le Realtime + le refetch on-focus/visibility

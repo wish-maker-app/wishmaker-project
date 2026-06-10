@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
 import { useMessages } from '../../hooks/useMessages'
-import { supabase } from '../../lib/supabase'
+import { subscribeResilient } from '../../lib/realtimeResilient'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
 import PullToRefresh from '../../components/ui/PullToRefresh'
@@ -257,33 +257,37 @@ export default function Inbox() {
   }, [authTick])
 
   // Realtime : nouveau message dans n'importe quelle conv → refetch silencieux
-  // pour mettre à jour le compteur "non lus" et le dernier aperçu
+  // pour mettre à jour le compteur "non lus" et le dernier aperçu.
+  // Souscription auto-réparante (recréée si le canal meurt en arrière-plan PWA),
+  // avec refetch de rattrapage à chaque re-jointe.
   useEffect(() => {
     if (!userId) return
-    const channel = supabase
-      .channel('inbox-messages')
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        () => {
-          loadConversations().catch(() => {})
-        }
-      )
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'conversations' },
-        () => {
-          loadConversations().catch(() => {})
-        }
-      )
-      .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'messages' },
-        () => {
-          loadConversations().catch(() => {})
-        }
-      )
-      .subscribe((status) => {
-        if (import.meta.env.DEV) console.log('[Inbox realtime]', status)
-      })
-    return () => { supabase.removeChannel(channel) }
+    const sub = subscribeResilient({
+      topic: 'inbox-messages',
+      label: 'Inbox',
+      build: (ch) => ch
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages' },
+          () => {
+            loadConversations().catch(() => {})
+          }
+        )
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'conversations' },
+          () => {
+            loadConversations().catch(() => {})
+          }
+        )
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'messages' },
+          () => {
+            loadConversations().catch(() => {})
+          }
+        ),
+      // Non forcé : le cooldown 1.5s absorbe le doublon avec le refetch du réveil.
+      onResubscribed: () => { loadConversations().catch(() => {}) },
+    })
+    return () => sub.dispose()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 

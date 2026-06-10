@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { supabase, withTimeout, ensureSession, ensureFreshSession } from '../lib/supabase'
+import { supabase, withTimeout, ensureFreshSession } from '../lib/supabase'
+import { subscribeResilient } from '../lib/realtimeResilient'
 import useAuthStore from '../store/authStore'
 import { getCached, setCached } from '../lib/wishesCache'
 
@@ -17,6 +18,10 @@ export function useMessages(conversationId = null) {
   // requete tourne deja ou si la derniere date de < 1.5s (sauf force=true).
   const convInFlightRef = useRef(false)
   const lastConvTsRef = useRef(0)
+  // Dédup fetchMessages par conversation + garde anti-résultat-périmé quand on
+  // change de conversation pendant qu'un fetch est en vol.
+  const msgsFetchRef = useRef({})
+  const activeConvRef = useRef(null)
 
   // Charge les conversations de l'utilisateur
   async function loadConversations(opts = {}) {
@@ -69,69 +74,113 @@ export function useMessages(conversationId = null) {
     }
   }
 
-  // Charge les messages d'une conversation + Realtime
-  async function loadMessages(convId) {
-    if (!convId) return
-    // Hydrate depuis cache pour éviter écran vide pendant le fetch
-    const cacheKey = `messages_${convId}`
-    const cached = getCached(cacheKey)?.value
-    if (cached) setMessages(cached)
-    if (!cached) setLoading(true)
+  // Fusion par id : on garde les messages de prev absents du snapshot (envoi
+  // optimiste pas encore committé, INSERT realtime arrivé pendant le fetch) —
+  // un remplacement sec faisait disparaître transitoirement ces messages.
+  function mergeMessages(fresh, prev) {
+    const ids = new Set(fresh.map((m) => m.id))
+    const extra = (prev || []).filter((m) => !ids.has(m.id))
+    if (extra.length === 0) return fresh
+    return [...fresh, ...extra].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  }
+
+  // Fetch des messages d'une conversation (sans la partie souscription).
+  // Sert aussi de refetch de RATTRAPAGE quand le canal realtime se re-joint
+  // après un trou (les events manqués pendant le trou ne sont pas rejoués).
+  // Dédup par conversation (inFlight + cooldown 1.5s) : au réveil, authTick et
+  // la re-jointe du canal déclenchent ce fetch quasi en même temps.
+  async function fetchMessages(convId) {
+    const slot = msgsFetchRef.current[convId] || (msgsFetchRef.current[convId] = { inFlight: false, ts: 0 })
+    if (slot.inFlight) return
+    if (Date.now() - slot.ts < 1500) return
+    slot.inFlight = true
     try {
-      await ensureSession()
+      const cacheKey = `messages_${convId}`
+      // Session valide OBLIGATOIRE (comme loadConversations) : en anonyme la
+      // RLS renvoie [] SANS erreur → chat vidé + cache empoisonné.
+      const session = await ensureFreshSession()
+      if (!session) throw new Error('NO_SESSION')
       const { data, error } = await withTimeout(supabase
         .from('messages')
         .select(`*, sender:users!sender_id(id, prenom, nom, avatar_url)`)
         .eq('conversation_id', convId)
         .order('created_at', { ascending: true }))
       if (error) throw error
+      // Résultat périmé (l'utilisateur a changé de conversation pendant le
+      // fetch) → on ne touche ni au state ni au cache de l'autre conv.
+      if (activeConvRef.current !== convId) return
       const list = data || []
-      setMessages(list)
-      setCached(cacheKey, list)
+      if (mountedRef.current) {
+        setMessages((prev) => {
+          const merged = mergeMessages(list, prev)
+          // Pas d'écrasement du cache par du vide si on a déjà du contenu.
+          const existing = getCached(cacheKey)?.value
+          if (merged.length > 0 || !existing || existing.length === 0) setCached(cacheKey, merged)
+          return merged
+        })
+      }
+      slot.ts = Date.now()
 
       // Marque les messages non lus comme lus (best-effort, on ne throw pas si ça rate)
-      await supabase
-        .from('messages')
-        .update({ is_read: true })
-        .eq('conversation_id', convId)
-        .neq('sender_id', user?.id)
-        .eq('is_read', false)
-
-      // Cleanup ancien channel avant d'en créer un nouveau (évite le leak si on
-      // change de conversation sans démonter le composant)
-      if (channelRef.current) {
-        try { await channelRef.current.unsubscribe() } catch {}
-        channelRef.current = null
-      }
-
-      // ⚡ CRUCIAL : garantir que le socket Realtime a un JWT valide AVANT de
-      // souscrire. Sinon le serveur Realtime applique la RLS avec un token
-      // anonyme/périmé → tous les events sont filtrés → les messages n'arrivent
-      // jamais "en direct" (il faut recharger). C'est la cause n°1 des messages
-      // non temps-réel.
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.access_token) supabase.realtime.setAuth(session.access_token)
+        await withTimeout(supabase
+          .from('messages')
+          .update({ is_read: true })
+          .eq('conversation_id', convId)
+          .neq('sender_id', user?.id)
+          .eq('is_read', false))
       } catch { /* best-effort */ }
+    } finally {
+      slot.inFlight = false
+    }
+  }
 
-      // Souscription Realtime — guard contre les updates sur composant unmounted
-      channelRef.current = supabase
-        .channel(`messages:${convId}`)
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` },
-          (payload) => {
-            if (!mountedRef.current) return
-            setMessages((prev) => {
-              // Dédup : l'envoi optimiste a pu déjà ajouter ce message.
-              if (prev.some((m) => m.id === payload.new.id)) return prev
-              const next = [...prev, payload.new]
-              setCached(cacheKey, next)
-              return next
-            })
-          }
-        )
-        .subscribe()
+  // Charge les messages d'une conversation + Realtime
+  async function loadMessages(convId) {
+    if (!convId) return
+    activeConvRef.current = convId
+    // Hydrate depuis cache pour éviter écran vide pendant le fetch
+    const cacheKey = `messages_${convId}`
+    const cached = getCached(cacheKey)?.value
+    if (cached) setMessages(cached)
+    if (!cached) setLoading(true)
+    try {
+      // Souscription AUTO-RÉPARANTE, créée AVANT le fetch (le handler dédup
+      // par id absorbe le chevauchement → pas de trou entre le snapshot et le
+      // join) et RÉUTILISÉE si déjà en place pour cette conversation : le sub
+      // se répare seul, le recréer à chaque authTick remettait son compteur de
+      // jointes à zéro et perdait le refetch de rattrapage des re-jointes.
+      const topic = `messages:${convId}`
+      if (mountedRef.current && channelRef.current?.topic !== topic) {
+        try { channelRef.current?.handle?.dispose() } catch { /* déjà disposé */ }
+        channelRef.current = {
+          topic,
+          handle: subscribeResilient({
+            topic,
+            label: 'ChatMessages',
+            build: (ch) => ch.on(
+              'postgres_changes',
+              { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` },
+              (payload) => {
+                // Garde anti-pollution : un event encore en file pour l'ANCIENNE
+                // conversation ne doit pas s'ajouter à la liste de la nouvelle.
+                if (!mountedRef.current || activeConvRef.current !== convId) return
+                setMessages((prev) => {
+                  // Dédup : l'envoi optimiste a pu déjà ajouter ce message.
+                  if (prev.some((m) => m.id === payload.new.id)) return prev
+                  const next = [...prev, payload.new]
+                  setCached(cacheKey, next)
+                  return next
+                })
+              }
+            ),
+            onResubscribed: () => {
+              if (mountedRef.current) fetchMessages(convId).catch(() => {})
+            },
+          }),
+        }
+      }
+      await fetchMessages(convId)
     } catch (err) {
       // Timeout / reseau (ex: connexion morte au retour d'arriere-plan) :
       // on garde les messages en cache deja affiches, pas d'ecran vide ni de
@@ -212,13 +261,15 @@ export function useMessages(conversationId = null) {
     return data.id
   }
 
-  // Cleanup Realtime + flag mounted (évite warnings sur unmounted)
+  // Cleanup Realtime + flag mounted (évite warnings sur unmounted).
+  // dispose() fait un vrai removeChannel — l'ancien unsubscribe() laissait des
+  // canaux zombies dans supabase.getChannels() au fil des navigations.
   useEffect(() => {
     mountedRef.current = true
     return () => {
       mountedRef.current = false
       if (channelRef.current) {
-        try { channelRef.current.unsubscribe() } catch {}
+        try { channelRef.current.handle?.dispose() } catch { /* déjà disposé */ }
         channelRef.current = null
       }
     }

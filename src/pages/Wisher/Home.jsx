@@ -9,6 +9,7 @@ import useAuthStore from '../../store/authStore'
 import useConfigStore from '../../store/configStore'
 import { useWishes } from '../../hooks/useWishes'
 import { supabase } from '../../lib/supabase'
+import { subscribeResilient } from '../../lib/realtimeResilient'
 import WishPackModal from '../../components/ui/WishPackModal'
 import PaymentForm from '../../components/ui/PaymentForm'
 import { applyPurchase } from '../../lib/stripe'
@@ -395,19 +396,21 @@ export default function WisherHome() {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [refetchWishes])
 
-  // Realtime : changements sur ses wishes (statut, expiration, urgent…) → refetch silencieux
+  // Realtime : changements sur ses wishes (statut, expiration, urgent…) → refetch silencieux.
+  // Souscription auto-réparante (recréée si le canal meurt en arrière-plan PWA).
   useEffect(() => {
     if (!user?.id) return
-    const channel = supabase
-      .channel(`wisher-wishes-${user.id}`)
-      .on('postgres_changes',
+    const sub = subscribeResilient({
+      topic: `wisher-wishes-${user.id}`,
+      label: 'WisherHome',
+      build: (ch) => ch.on('postgres_changes',
         { event: '*', schema: 'public', table: 'wishes', filter: `wisher_id=eq.${user.id}` },
         () => { refetchWishes() }
-      )
-      .subscribe((status) => {
-        if (import.meta.env.DEV) console.log('[WisherHome realtime]', status)
-      })
-    return () => { supabase.removeChannel(channel) }
+      ),
+      // Non forcé : le cooldown 1.5s absorbe le doublon avec le refetch du réveil.
+      onResubscribed: () => { refetchWishes() },
+    })
+    return () => sub.dispose()
   }, [user?.id, refetchWishes])
 
   // Polling 30s supprimé (comme sur Maker/Home) : le Realtime + le refetch

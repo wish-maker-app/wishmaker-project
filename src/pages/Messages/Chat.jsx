@@ -8,6 +8,7 @@ import { useMessages } from '../../hooks/useMessages'
 import { useWishes } from '../../hooks/useWishes'
 import { checkContent, prewarmModeration } from '../../lib/moderation'
 import { supabase, withTimeout, ensureFreshSession } from '../../lib/supabase'
+import { subscribeResilient } from '../../lib/realtimeResilient'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
 import ReportSheet from '../../components/ui/ReportSheet'
@@ -244,9 +245,13 @@ export default function Chat() {
   useEffect(() => {
     const wid = convData?.wish_id || convData?.wish?.id
     if (!wid) return
-    const channel = supabase
-      .channel(`wish:${wid}`)
-      .on(
+    // Souscription auto-réparante. Rattrapage au re-join : re-fetch DIRECT du
+    // vœu (statut, marked_realized_*) — fonctionne aussi en mode brouillon, où
+    // l'effet dérivé [conversations] est inopérant (early-return isDraft).
+    const sub = subscribeResilient({
+      topic: `wish:${wid}`,
+      label: 'ChatWish',
+      build: (ch) => ch.on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'wishes', filter: `id=eq.${wid}` },
         (payload) => {
@@ -256,9 +261,24 @@ export default function Chat() {
           setMarkedRealizedAt(fresh.marked_realized_at || null)
           setMarkedRealizedBy(fresh.marked_realized_by || null)
         }
-      )
-      .subscribe()
-    return () => { try { supabase.removeChannel(channel) } catch {} }
+      ),
+      onResubscribed: () => {
+        withTimeout(supabase
+          .from('wishes')
+          .select('statut, marked_realized_at, marked_realized_by')
+          .eq('id', wid)
+          .single())
+          .then(({ data }) => {
+            if (!data) return
+            setWishStatut(data.statut || '')
+            setMarkedRealizedAt(data.marked_realized_at || null)
+            setMarkedRealizedBy(data.marked_realized_by || null)
+          })
+          .catch(() => { /* best-effort */ })
+      },
+    })
+    return () => sub.dispose()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [convData?.wish_id, convData?.wish?.id])
 
   // Ne PAS ouvrir automatiquement la modal — l'utilisateur clique sur "Noter" s'il veut noter
