@@ -144,11 +144,18 @@ export function useMessages(conversationId = null) {
 
   async function sendMessage(convId, contenu) {
     if (!user || !contenu.trim()) return
-    const { data, error } = await supabase
+    // Écritures protégées comme les lectures : session valide obligatoire
+    // (sinon l'insert part en anonyme → rejeté par la RLS) + withTimeout
+    // (sinon un hang interne de supabase-js au retour d'arrière-plan laisse
+    // la promesse pendante POUR TOUJOURS → le finally de l'appelant ne tourne
+    // jamais → bouton « Envoi... » bloqué jusqu'au kill de l'app).
+    const session = await ensureFreshSession()
+    if (!session) throw new Error('NO_SESSION')
+    const { data, error } = await withTimeout(supabase
       .from('messages')
       .insert({ conversation_id: convId, sender_id: user.id, contenu })
       .select('*, sender:users!sender_id(id, prenom, nom, avatar_url)')
-      .single()
+      .single())
     if (error) throw error
     // Affichage OPTIMISTE : on ajoute le message immédiatement, sans dépendre du
     // Realtime (qui peut être en retard ou filtré si le JWT du socket n'est pas
@@ -166,30 +173,41 @@ export function useMessages(conversationId = null) {
 
   async function deleteConversation(convId) {
     if (!convId) return { error: new Error('convId required') }
-    const { error } = await supabase
-      .from('conversations')
-      .delete()
-      .eq('id', convId)
-    if (!error) {
-      setConversations((prev) => prev.filter((c) => c.id !== convId))
+    try {
+      const session = await ensureFreshSession()
+      if (!session) return { error: new Error('NO_SESSION') }
+      const { error } = await withTimeout(supabase
+        .from('conversations')
+        .delete()
+        .eq('id', convId))
+      if (!error) {
+        setConversations((prev) => prev.filter((c) => c.id !== convId))
+      }
+      return { error }
+    } catch (err) {
+      // QUERY_TIMEOUT → l'appelant affiche son toast d'échec au lieu de hanger
+      return { error: err }
     }
-    return { error }
   }
 
   async function createConversation(wishId, wisherId) {
-    const { data: existing } = await supabase
+    // Même protection que sendMessage : sans session l'INSERT est rejeté par
+    // la RLS, et sans timeout un hang post-resume bloque « Envoi... » à vie.
+    const session = await ensureFreshSession()
+    if (!session) throw new Error('NO_SESSION')
+    const { data: existing } = await withTimeout(supabase
       .from('conversations')
       .select('id')
       .eq('wish_id', wishId)
       .eq('maker_id', user.id)
-      .single()
+      .single())
     if (existing) return existing.id
 
-    const { data, error } = await supabase
+    const { data, error } = await withTimeout(supabase
       .from('conversations')
       .insert({ wish_id: wishId, wisher_id: wisherId, maker_id: user.id })
       .select()
-      .single()
+      .single())
     if (error) throw error
     return data.id
   }

@@ -7,7 +7,7 @@ import useAuthStore from '../../store/authStore'
 import { useMessages } from '../../hooks/useMessages'
 import { useWishes } from '../../hooks/useWishes'
 import { checkContent, prewarmModeration } from '../../lib/moderation'
-import { supabase } from '../../lib/supabase'
+import { supabase, withTimeout, ensureFreshSession } from '../../lib/supabase'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
 import ReportSheet from '../../components/ui/ReportSheet'
@@ -140,16 +140,22 @@ export default function Chat() {
   async function submitReport(raison) {
     const interlocuteurId = isWisher ? convData?.maker_id : convData?.wisher_id
     if (!interlocuteurId || !userId) { toast.error('Impossible de signaler ici.'); return }
-    const { error } = await supabase.from('reports').insert({
-      reporter_id: userId,
-      reported_user_id: interlocuteurId,
-      reported_conversation_id: convData?.id || convId || null,
-      type: 'conversation',
-      raison,
-    })
-    if (error) {
+    try {
+      // Session + timeout : sans ça, l'insert peut rester pendu après un
+      // retour d'arrière-plan → « Envoi... » bloqué à vie dans ReportSheet.
+      const session = await ensureFreshSession()
+      if (!session) { toast.error('Connexion expirée, réessaie.'); return }
+      const { error } = await withTimeout(supabase.from('reports').insert({
+        reporter_id: userId,
+        reported_user_id: interlocuteurId,
+        reported_conversation_id: convData?.id || convId || null,
+        type: 'conversation',
+        raison,
+      }))
+      if (error) throw error
+    } catch (err) {
       toast.error("Impossible d'envoyer le signalement.")
-      console.error('[chat report] error:', error)
+      console.error('[chat report] error:', err)
       return
     }
     setShowReport(false)

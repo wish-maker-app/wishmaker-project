@@ -11,7 +11,7 @@ import Button from '../../components/ui/Button'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
-import { supabase } from '../../lib/supabase'
+import { supabase, withTimeout, ensureFreshSession } from '../../lib/supabase'
 import { useWishes, getCachedWish } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
 import { formatLocation, fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
@@ -838,16 +838,22 @@ export default function WishDetail() {
             reasons={REPORT_REASONS_WISH}
             onClose={() => setShowReportWish(false)}
             onSubmit={async (raison) => {
-              const { error } = await supabase.from('reports').insert({
-                reporter_id: profile.id,
-                reported_wish_id: wish.id,
-                reported_user_id: wish.wisher.id,
-                type: 'voeu',
-                raison,
-              })
-              if (error) {
+              try {
+                // Session + timeout : évite le « Envoi... » bloqué à vie si la
+                // requête hang après un retour d'arrière-plan (PWA).
+                const session = await ensureFreshSession()
+                if (!session) { toast.error('Connexion expirée, réessaie.'); return }
+                const { error } = await withTimeout(supabase.from('reports').insert({
+                  reporter_id: profile.id,
+                  reported_wish_id: wish.id,
+                  reported_user_id: wish.wisher.id,
+                  type: 'voeu',
+                  raison,
+                }))
+                if (error) throw error
+              } catch (err) {
                 toast.error("Impossible d'envoyer le signalement. Réessayez plus tard.")
-                console.error('[report wish] error:', error)
+                console.error('[report wish] error:', err)
                 return
               }
               toast.success('Signalement envoyé, merci !')
@@ -861,15 +867,19 @@ export default function WishDetail() {
             reasons={REPORT_REASONS_PROFILE}
             onClose={() => setShowReportProfile(false)}
             onSubmit={async (raison) => {
-              const { error } = await supabase.from('reports').insert({
-                reporter_id: profile.id,
-                reported_user_id: wish.wisher.id,
-                type: 'profil',
-                raison,
-              })
-              if (error) {
+              try {
+                const session = await ensureFreshSession()
+                if (!session) { toast.error('Connexion expirée, réessaie.'); return }
+                const { error } = await withTimeout(supabase.from('reports').insert({
+                  reporter_id: profile.id,
+                  reported_user_id: wish.wisher.id,
+                  type: 'profil',
+                  raison,
+                }))
+                if (error) throw error
+              } catch (err) {
                 toast.error("Impossible d'envoyer le signalement. Réessayez plus tard.")
-                console.error('[report profile] error:', error)
+                console.error('[report profile] error:', err)
                 return
               }
               toast.success('Signalement envoyé, merci !')
