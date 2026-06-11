@@ -1,5 +1,5 @@
-// Version de l'app affichée dans le Profil — à bumper EN MÊME TEMPS que
-// SW_VERSION (public/sw.js) à chaque déploiement. Sert à vérifier sur le
-// téléphone d'un testeur quelle version du code tourne réellement (un vieux
+// Version de l'app affichÃ©e dans le Profil â€” Ã  bumper EN MÃŠME TEMPS que
+// SW_VERSION (public/sw.js) Ã  chaque dÃ©ploiement. Sert Ã  vÃ©rifier sur le
+// tÃ©lÃ©phone d'un testeur quelle version du code tourne rÃ©ellement (un vieux
 // Service Worker peut servir un ancien bundle pendant un moment).
 export const APP_VERSION = 'v43'

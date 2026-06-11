@@ -1,5 +1,5 @@
-// Service Worker — Wish Maker PWA Push Notifications
-// Version bump pour forcer update lors d'un deploy : incrémente quand on change ce fichier.
+// Service Worker â€” Wish Maker PWA Push Notifications
+// Version bump pour forcer update lors d'un deploy : incrÃ©mente quand on change ce fichier.
 const SW_VERSION = 'v43-2026-06-11-zombie-socket-20s-warmup'
 
 self.addEventListener('push', (event) => {
@@ -44,7 +44,7 @@ self.addEventListener('notificationclick', (event) => {
 // Install : active tout de suite la nouvelle version
 self.addEventListener('install', () => self.skipWaiting())
 
-// Activate : clear les vieux caches éventuels + prend le contrôle
+// Activate : clear les vieux caches Ã©ventuels + prend le contrÃ´le
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
