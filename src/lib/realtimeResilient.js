@@ -1,4 +1,5 @@
 import { supabase, ensureFreshSession } from './supabase'
+import { logEvent } from './clientLog'
 
 /**
  * Souscription realtime AUTO-RÉPARANTE.
@@ -39,7 +40,12 @@ import { supabase, ensureFreshSession } from './supabase'
  */
 
 const RETRY_DELAYS = [1000, 2000, 5000, 10000, 30000]
-const LONG_HIDE_MS = 5 * 60 * 1000 // gel > 5 min → canal considéré zombie
+// Gel > 20 s → canal considéré zombie et recréé d'office au retour. L'OS
+// mobile tue le websocket quelques secondes après le passage en arrière-plan
+// SANS délivrer d'événement : l'état reste 'joined' (mensonge) et le heartbeat
+// ne détecte la mort qu'en ~30-60 s → fenêtre aveugle pile sur le scénario
+// client « je change d'app 1 min et je reviens ». Recréer coûte ~200 ms.
+const LONG_HIDE_MS = 20 * 1000
 const WATCHDOG_MS = 15000 // erreurs persistantes au-delà → recréation complète
 
 export function subscribeResilient({ topic, build, onResubscribed, label = topic }) {
@@ -81,6 +87,8 @@ export function subscribeResilient({ topic, build, onResubscribed, label = topic
     recreating = true
     clearTimers()
     dbg('recreate:', reason)
+    // Boîte noire : trace les recréations SUBIES (pas la création initiale)
+    if (reason !== 'initial') logEvent('rt_recreate', { label, reason })
     try {
       purgeChannel()
       try {

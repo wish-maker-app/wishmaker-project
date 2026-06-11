@@ -107,6 +107,22 @@ export function useAuth() {
         if (resumeRetryTimer) { clearTimeout(resumeRetryTimer); resumeRetryTimer = null }
       }
       try {
+        // RÉCHAUFFEUR de connexion : après un gel, la 1re requête part sur une
+        // connexion HTTP/2 zombie et perd ~4 s dans l'abort+retry. On sacrifie
+        // une requête à blanc (fetch natif, hors resilientFetch) pour purger la
+        // connexion morte → le refresh de session et les requêtes suivantes
+        // partent sur une connexion fraîche.
+        if (attempt === 0) {
+          try {
+            const ctrl = new AbortController()
+            const warmupTimer = setTimeout(() => ctrl.abort(), 2500)
+            await window.fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/health`, {
+              signal: ctrl.signal,
+              cache: 'no-store',
+            }).catch(() => {})
+            clearTimeout(warmupTimer)
+          } catch { /* best-effort */ }
+        }
         // Borné : getSession peut hanger sur le verrou interne d'auth-js
         // pendant qu'un refresh rame sur la connexion morte.
         const { data: { session } } = await withTimeout(supabase.auth.getSession(), 8000, 'SESSION_TIMEOUT')
