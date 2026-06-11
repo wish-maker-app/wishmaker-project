@@ -169,20 +169,38 @@ export function useAuth() {
     document.addEventListener('visibilitychange', onVisibility)
     window.addEventListener('focus', onFocus)
 
-    // Écoute les changements de session
+    // Écoute les changements de session.
+    // ⚠️ RÈGLE VITALE (cause du bug « plus rien ne marche après un retour
+    // d'app ») : ce callback s'exécute PENDANT que auth-js tient son VERROU
+    // interne. Toute requête supabase await-ée ICI rappelle getSession(), qui
+    // attend ce même verrou → DEADLOCK DÉFINITIF : plus aucune requête de
+    // toute l'app ne part jusqu'au reload (piège documenté par Supabase).
+    // iOS/Android RÉ-ÉMETTENT SIGNED_IN à chaque retour au premier plan →
+    // chaque bascule d'app gelait l'app entière (signature boîte noire :
+    // resume_start puis silence total). Donc : UNIQUEMENT du synchrone ici,
+    // et les requêtes sont DIFFÉRÉES hors du callback via setTimeout(0).
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        logEvent('auth_event', { event: String(event) })
         if (event === 'SIGNED_IN' && session?.user) {
           setUser(session.user)
-          await fetchProfile(session.user.id)
-          await supabase.from('users').update({ is_online: true }).eq('id', session.user.id)
+          setTimeout(() => {
+            // Skip si le profil du bon user est déjà en store (SIGNED_IN
+            // re-émis à chaque focus → éviter une rafale de selects inutiles)
+            const cached = useAuthStore.getState().profile
+            if (!cached || cached.id !== session.user.id) {
+              fetchProfile(session.user.id).catch(() => {})
+            }
+            supabase.from('users').update({ is_online: true }).eq('id', session.user.id)
+              .then(() => {}, () => {})
+          }, 0)
         }
 
         // Token rafraîchi → on met à jour le user + on bump pour déclencher refetch
         if (event === 'TOKEN_REFRESHED' && session?.user) {
           setUser(session.user)
           // ⚡ Re-propager le nouveau JWT à Realtime (sinon les channels gardent l'ancien)
-          try { supabase.realtime.setAuth(session.access_token) } catch {}
+          try { supabase.realtime.setAuth(session.access_token) } catch { /* best-effort */ }
           bumpAuthTick()
         }
 

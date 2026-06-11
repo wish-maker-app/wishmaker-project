@@ -1,6 +1,6 @@
 // Service Worker — Wish Maker PWA Push Notifications
 // Version bump pour forcer update lors d'un deploy : incrémente quand on change ce fichier.
-const SW_VERSION = 'v44-2026-06-11-actions-attendent-session'
+const SW_VERSION = 'v45-2026-06-11-fix-deadlock-onauthstatechange'
 
 self.addEventListener('push', (event) => {
   let data = { title: 'Wish Maker', body: 'Nouvelle notification', url: '/' }
