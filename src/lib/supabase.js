@@ -137,6 +137,44 @@ export async function ensureSession() {
 // - Refresh borné si le token est expiré / expire dans <60s. Si le token est
 //   DÉJÀ expiré et que le refresh échoue (offline), on renvoie null (et non un
 //   token mort qui repartirait en anonyme).
+// warmupConnection : purge la connexion HTTP/2 zombie. Après un gel (retour
+// d'arrière-plan mobile), la 1re requête part sur une connexion que l'OS a
+// tuée silencieusement et perd ~4s dans l'abort+retry de resilientFetch. On
+// sacrifie une requête à blanc (fetch NATIF, hors resilientFetch) : elle meurt
+// sur la connexion zombie et force le navigateur à en ouvrir une fraîche pour
+// les requêtes suivantes. Dédupliquée (5s) car plusieurs appelants peuvent la
+// déclencher en rafale au réveil.
+let lastWarmupTs = 0
+export async function warmupConnection() {
+  if (Date.now() - lastWarmupTs < 5000) return
+  lastWarmupTs = Date.now()
+  try {
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 2500)
+    await window.fetch(`${supabaseUrl}/auth/v1/health`, { signal: ctrl.signal, cache: 'no-store' }).catch(() => {})
+    clearTimeout(t)
+  } catch { /* best-effort */ }
+}
+
+// waitForFreshSession : version PATIENTE d'ensureFreshSession, pour les
+// ACTIONS UTILISATEUR (envoyer un message, réaliser un vœu...). Constat boîte
+// noire : au réveil, le rétablissement de session peut prendre 10-30s sur une
+// connexion gelée, alors qu'ensureFreshSession abandonne après ~5-9s → l'action
+// échouait (« NO_SESSION ») pile quand l'utilisateur enchaîne retour d'app +
+// tap. Ici on purge d'abord la connexion zombie, puis on insiste jusqu'à
+// maxWaitMs : le bouton spinne quelques secondes et l'action PART, au lieu
+// d'échouer. Retourne null seulement si vraiment aucune session n'émerge.
+export async function waitForFreshSession(maxWaitMs = 12000) {
+  const deadline = Date.now() + maxWaitMs
+  await warmupConnection()
+  for (;;) {
+    const session = await ensureFreshSession()
+    if (session) return session
+    if (Date.now() >= deadline) return null
+    await new Promise((r) => setTimeout(r, 1200))
+  }
+}
+
 export async function ensureFreshSession() {
   for (let attempt = 0; attempt < 2; attempt++) {
     let session = null

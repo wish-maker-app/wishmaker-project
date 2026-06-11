@@ -7,7 +7,7 @@ import useAuthStore from '../../store/authStore'
 import { useMessages } from '../../hooks/useMessages'
 import { useWishes } from '../../hooks/useWishes'
 import { checkContent, prewarmModeration } from '../../lib/moderation'
-import { supabase, withTimeout, ensureFreshSession } from '../../lib/supabase'
+import { supabase, withTimeout, waitForFreshSession } from '../../lib/supabase'
 import { subscribeResilient } from '../../lib/realtimeResilient'
 import { errorMessage } from '../../lib/uiError'
 import CategoryFallback from '../../components/ui/CategoryFallback'
@@ -145,7 +145,7 @@ export default function Chat() {
     try {
       // Session + timeout : sans ça, l'insert peut rester pendu après un
       // retour d'arrière-plan → « Envoi... » bloqué à vie dans ReportSheet.
-      const session = await ensureFreshSession()
+      const session = await waitForFreshSession()
       if (!session) { toast.error('Connexion expirée, réessaie.'); return }
       const { error } = await withTimeout(supabase.from('reports').insert({
         reporter_id: userId,

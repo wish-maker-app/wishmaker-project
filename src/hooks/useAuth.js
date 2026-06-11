@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase, withTimeout } from '../lib/supabase'
+import { supabase, withTimeout, warmupConnection } from '../lib/supabase'
 import { logEvent } from '../lib/clientLog'
 import useAuthStore from '../store/authStore'
 
@@ -107,22 +107,13 @@ export function useAuth() {
         if (resumeRetryTimer) { clearTimeout(resumeRetryTimer); resumeRetryTimer = null }
       }
       try {
+        // Boîte noire : trace le DÉBUT du resume (un resume sans resume_ok ni
+        // resume_fail ensuite = il s'est perdu en route, c'est une info en soi).
+        logEvent('resume_start', { attempt })
         // RÉCHAUFFEUR de connexion : après un gel, la 1re requête part sur une
-        // connexion HTTP/2 zombie et perd ~4 s dans l'abort+retry. On sacrifie
-        // une requête à blanc (fetch natif, hors resilientFetch) pour purger la
-        // connexion morte → le refresh de session et les requêtes suivantes
-        // partent sur une connexion fraîche.
-        if (attempt === 0) {
-          try {
-            const ctrl = new AbortController()
-            const warmupTimer = setTimeout(() => ctrl.abort(), 2500)
-            await window.fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/health`, {
-              signal: ctrl.signal,
-              cache: 'no-store',
-            }).catch(() => {})
-            clearTimeout(warmupTimer)
-          } catch { /* best-effort */ }
-        }
+        // connexion HTTP/2 zombie et perd ~4 s dans l'abort+retry. Purge
+        // partagée (lib/supabase), dédupliquée 5s entre tous les appelants.
+        if (attempt === 0) await warmupConnection()
         // Borné : getSession peut hanger sur le verrou interne d'auth-js
         // pendant qu'un refresh rame sur la connexion morte.
         const { data: { session } } = await withTimeout(supabase.auth.getSession(), 8000, 'SESSION_TIMEOUT')

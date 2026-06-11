@@ -11,7 +11,7 @@ import Button from '../../components/ui/Button'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
-import { supabase, withTimeout, ensureFreshSession } from '../../lib/supabase'
+import { supabase, withTimeout, waitForFreshSession } from '../../lib/supabase'
 import { errorMessage } from '../../lib/uiError'
 import { useWishes, getCachedWish } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
@@ -842,7 +842,7 @@ export default function WishDetail() {
               try {
                 // Session + timeout : évite le « Envoi... » bloqué à vie si la
                 // requête hang après un retour d'arrière-plan (PWA).
-                const session = await ensureFreshSession()
+                const session = await waitForFreshSession()
                 if (!session) { toast.error('Connexion expirée, réessaie.'); return }
                 const { error } = await withTimeout(supabase.from('reports').insert({
                   reporter_id: profile.id,
@@ -869,7 +869,7 @@ export default function WishDetail() {
             onClose={() => setShowReportProfile(false)}
             onSubmit={async (raison) => {
               try {
-                const session = await ensureFreshSession()
+                const session = await waitForFreshSession()
                 if (!session) { toast.error('Connexion expirée, réessaie.'); return }
                 const { error } = await withTimeout(supabase.from('reports').insert({
                   reporter_id: profile.id,

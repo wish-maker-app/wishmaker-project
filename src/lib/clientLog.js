@@ -57,9 +57,11 @@ async function flush() {
     const { error } = await supabase.from('client_logs').insert(batch)
     if (error) throw error
   } catch {
-    // Réseau/RLS indisponible (typique au réveil) → on remet en file, le
-    // prochain logEvent re-tentera.
+    // Réseau/RLS indisponible (typique au réveil) → on remet en file ET on
+    // re-tente tout seul dans 3s (avant : le lot restait coincé jusqu'au
+    // prochain logEvent, qui pouvait ne jamais venir → événements perdus).
     queue = [...batch, ...queue].slice(-40)
+    setTimeout(() => { void flush() }, 3000)
   } finally {
     flushing = false
   }

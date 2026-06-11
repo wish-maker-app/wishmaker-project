@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase, withTimeout, ensureFreshSession } from '../lib/supabase'
+import { supabase, withTimeout, ensureFreshSession, waitForFreshSession } from '../lib/supabase'
 import { logEvent } from '../lib/clientLog'
 import useAuthStore from '../store/authStore'
 import { getCached, setCached } from '../lib/wishesCache'
@@ -40,9 +40,11 @@ export function useWishes() {
   // UPDATE/DELETE filtré par wisher_id part en ANONYME → la RLS matche 0 ligne
   // SANS erreur = FAUX SUCCÈS silencieux (toast « confirmé ! » mais rien en
   // base), et un INSERT/RPC est rejeté avec une erreur technique illisible.
-  // NO_SESSION est traduit par lib/uiError.errorMessage côté UI.
+  // Version PATIENTE (waitForFreshSession) : une action utilisateur juste
+  // après un retour d'arrière-plan doit ATTENDRE le rétablissement de session
+  // (jusqu'à ~12s, bouton en « Envoi... ») au lieu d'échouer en NO_SESSION.
   async function requireSession() {
-    const session = await ensureFreshSession()
+    const session = await waitForFreshSession()
     if (!session) throw new Error('NO_SESSION')
     return session
   }

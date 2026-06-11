@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { supabase, withTimeout, ensureFreshSession } from '../lib/supabase'
+import { supabase, withTimeout, ensureFreshSession, waitForFreshSession } from '../lib/supabase'
 import { subscribeResilient } from '../lib/realtimeResilient'
 import useAuthStore from '../store/authStore'
 import { getCached, setCached } from '../lib/wishesCache'
@@ -210,7 +210,9 @@ export function useMessages(conversationId = null) {
     // (sinon un hang interne de supabase-js au retour d'arrière-plan laisse
     // la promesse pendante POUR TOUJOURS → le finally de l'appelant ne tourne
     // jamais → bouton « Envoi... » bloqué jusqu'au kill de l'app).
-    const session = await ensureFreshSession()
+    // waitForFreshSession : une action utilisateur ATTEND le rétablissement de
+    // session après un réveil (jusqu'à ~12s) au lieu d'échouer en NO_SESSION.
+    const session = await waitForFreshSession()
     if (!session) throw new Error('NO_SESSION')
     const { data, error } = await withTimeout(supabase
       .from('messages')
@@ -235,7 +237,7 @@ export function useMessages(conversationId = null) {
   async function deleteConversation(convId) {
     if (!convId) return { error: new Error('convId required') }
     try {
-      const session = await ensureFreshSession()
+      const session = await waitForFreshSession()
       if (!session) return { error: new Error('NO_SESSION') }
       const { error } = await withTimeout(supabase
         .from('conversations')
@@ -254,7 +256,7 @@ export function useMessages(conversationId = null) {
   async function createConversation(wishId, wisherId) {
     // Même protection que sendMessage : sans session l'INSERT est rejeté par
     // la RLS, et sans timeout un hang post-resume bloque « Envoi... » à vie.
-    const session = await ensureFreshSession()
+    const session = await waitForFreshSession()
     if (!session) throw new Error('NO_SESSION')
     const { data: existing } = await withTimeout(supabase
       .from('conversations')
