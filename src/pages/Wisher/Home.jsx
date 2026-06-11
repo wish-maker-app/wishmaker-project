@@ -11,6 +11,7 @@ import { useWishes } from '../../hooks/useWishes'
 import { supabase } from '../../lib/supabase'
 import { subscribeResilient } from '../../lib/realtimeResilient'
 import { errorMessage } from '../../lib/uiError'
+import { logEvent } from '../../lib/clientLog'
 import WishPackModal from '../../components/ui/WishPackModal'
 import PaymentForm from '../../components/ui/PaymentForm'
 import { applyPurchase } from '../../lib/stripe'
@@ -360,6 +361,7 @@ export default function WisherHome() {
     const p = getMyWishes()
       .then((w) => {
         if (unmountedRef.current) return
+        if (w.length === 0) logEvent('wisher_refetch_empty', {})
         retryCountRef.current = 0
         setWishes(w)
         // Cache TOUJOURS mis à jour, y compris avec [] : depuis que getMyWishes
@@ -377,6 +379,7 @@ export default function WisherHome() {
         if (unmountedRef.current) return
         const noSession = err?.message === 'NO_SESSION'
         const cached = getCached('my_wishes')?.value
+        logEvent('wisher_refetch_fail', { err: err?.message, cache: cached ? cached.length : -1, retry: retryCountRef.current })
         if (cached) {
           // Cache présent → échec silencieux. RÉHYDRATE l'affichage si l'état
           // est vide (un état vidé n'était jamais re-rempli depuis le cache).

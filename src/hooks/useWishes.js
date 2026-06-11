@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase, withTimeout, ensureFreshSession } from '../lib/supabase'
+import { logEvent } from '../lib/clientLog'
 import useAuthStore from '../store/authStore'
 import { getCached, setCached } from '../lib/wishesCache'
 
@@ -68,6 +69,12 @@ export function useWishes() {
       const { data, error } = await withTimeout(query)
       if (error) throw error
       const list = (data || []).map(normalizeWish)
+      // Diagnostic « 0 vœux » : si la liste revient VIDE, on consigne qui est
+      // le user du store vs celui du JWT — si ça diverge (changement de compte,
+      // requête signée pour un autre user), c'est la cause exacte du bug.
+      if (list.length === 0) {
+        logEvent('my_wishes_empty', { storeUser: user.id, jwtUser: session.user?.id || null })
+      }
       list.forEach(cacheWish)
       return list
     } finally {

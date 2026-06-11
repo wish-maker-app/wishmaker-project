@@ -7,6 +7,7 @@ import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
 import { useMessages } from '../../hooks/useMessages'
 import { subscribeResilient } from '../../lib/realtimeResilient'
+import { logEvent } from '../../lib/clientLog'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
 import PullToRefresh from '../../components/ui/PullToRefresh'
@@ -257,6 +258,7 @@ export default function Inbox() {
           // Toute autre erreur → on sort du spinner (cache conservé si présent).
           if (err?.message !== 'NO_SESSION') setBooting(false)
           console.warn('[Inbox] loadConversations:', err?.message)
+          logEvent('inbox_load_fail', { err: err?.message, attempt })
           // Retry qui n'abandonne JAMAIS tant que la page est visible :
           // 2s/5s/15s puis toutes les 30s. Le backend (instance Supabase) peut
           // avoir des trous de plusieurs minutes — un budget fini laissait un

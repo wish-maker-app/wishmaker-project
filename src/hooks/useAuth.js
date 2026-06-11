@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase, withTimeout } from '../lib/supabase'
+import { logEvent } from '../lib/clientLog'
 import useAuthStore from '../store/authStore'
 
 export function useAuth() {
@@ -135,10 +136,12 @@ export function useAuth() {
         // — repropager l'ancien après un refresh laissait le join payload des
         // canaux sur un token périmé.
         try { supabase.realtime.setAuth(activeSession.access_token) } catch { /* best-effort */ }
+        logEvent('resume_ok', { attempt, exp: Math.round((((activeSession.expires_at || 0) * 1000) - Date.now()) / 1000) })
         // Bump → les pages re-fetchent (et debloquent une eventuelle query morte)
         bumpAuthTick()
       } catch (err) {
         console.warn(`[useAuth] resume refresh failed (essai ${attempt + 1}):`, err?.message)
+        logEvent('resume_fail', { attempt, err: err?.message })
         // Retry borné, app visible uniquement : la session/connexion se
         // rétablit en général en quelques secondes après le réveil.
         // disposed : un resume encore en vol à l'unmount ne replanifie pas.
