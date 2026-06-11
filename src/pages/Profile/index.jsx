@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import BottomTabBar from '../../components/layout/BottomTabBar'
 import Button from '../../components/ui/Button'
 import useAuthStore from '../../store/authStore'
+import { APP_VERSION } from '../../lib/version'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
@@ -225,6 +226,9 @@ export default function Profile() {
         <ProfileItem icon={icons.legal} label={t('profile.item_privacy')} onClick={() => navigate('/privacy')} />
         <ProfileItem icon={icons.help} label={t('profile.item_help')} onClick={() => navigate('/support')} />
         <ProfileItem icon={icons.trash} label="Supprimer mon compte" onClick={() => setShowDeleteConfirm(true)} />
+        {/* Version du code réellement exécuté sur CET appareil (diagnostic :
+            un vieux Service Worker peut servir un ancien bundle) */}
+        <p className="text-center text-[11px] text-[#C0C0C8] mt-3">Wish Maker {APP_VERSION}</p>
 
         {/* Inviter des amis */}
         <motion.button
