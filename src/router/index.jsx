@@ -2,11 +2,13 @@ import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import useAuthStore from '../store/authStore'
 import RootLayout from '../components/layout/RootLayout'
+import { isSuspendedActive } from '../lib/suspension'
 
 // Pages — chargement lazy pour les performances
 import { lazy, Suspense } from 'react'
 
 const RouteResolver = lazy(() => import('../pages/RouteResolver'))
+const Suspended = lazy(() => import('../pages/Suspended'))
 
 // Pages publiques (accessibles a tous, sans wrapper auth) — requises pour
 // le compte Apple Developer Organization (URL d'assistance + identification
@@ -97,6 +99,9 @@ function ProtectedRoute() {
   const user = useAuthStore((s) => s.user)
   const profile = useAuthStore((s) => s.profile)
   if (!user) return <Navigate to="/auth" replace />
+  // Compte suspendu (suspension active) → écran dédié. La RLS bloque déjà
+  // ses écritures côté serveur ; ici on évite l'app « cassée » sans explication.
+  if (isSuspendedActive(profile)) return <Navigate to="/suspended" replace />
   // Onboarding pas terminé → redirige vers le 1er step manquant
   const missing = nextSetupStep(profile)
   if (missing && !profile?.onboarding_completed) return <Navigate to={missing} replace />
@@ -134,6 +139,9 @@ const router = createBrowserRouter([
     path: '/',
     element: <Suspense fallback={<PageLoader />}><RouteResolver /></Suspense>,
   },
+
+  // Écran compte suspendu (hors ProtectedRoute pour éviter la boucle de redirect)
+  { path: '/suspended',       element: <Suspense fallback={<PageLoader />}><Suspended /></Suspense> },
 
   // Pages publiques (accessibles a tous, hors wrappers auth)
   { path: '/support',         element: <Suspense fallback={<PageLoader />}><Support /></Suspense> },

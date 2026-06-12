@@ -16,5 +16,8 @@ const TECH_CODES = {
 export function errorMessage(err, fallback = 'Une erreur est survenue') {
   const m = err?.message || ''
   if (TECH_CODES[m]) return TECH_CODES[m]
+  // Violation RLS (ex: compte suspendu qui tente d'écrire malgré les gardes
+  // client) : le message PostgREST brut est incompréhensible pour l'utilisateur.
+  if (/row-level security/i.test(m)) return 'Action non autorisée sur ce compte.'
   return m || fallback
 }

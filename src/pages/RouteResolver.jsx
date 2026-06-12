@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { requestPushPermission } from '../lib/pushNotifications'
 import useAuthStore from '../store/authStore'
+import { isSuspendedActive } from '../lib/suspension'
 import Landing from './Public/Landing'
 
 /**
@@ -52,9 +53,17 @@ export default function RouteResolver() {
         if (session?.user) {
           const { data: profile } = await supabase
             .from('users')
-            .select('onboarding_completed, prenom, nom, pseudo, ville')
+            .select('onboarding_completed, prenom, nom, pseudo, ville, is_suspended, suspension_type, suspended_until')
             .eq('id', session.user.id)
             .maybeSingle()
+
+          // Suspension active → écran dédié directement (la RLS bloque déjà
+          // les écritures côté serveur, ceci est l'UX).
+          if (isSuspendedActive(profile)) {
+            setRenderState('redirect')
+            navigate('/suspended', { replace: true })
+            return
+          }
 
           if (profile?.onboarding_completed) {
             // Vérifier si on doit montrer le pré-écran push
