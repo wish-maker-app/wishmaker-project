@@ -345,7 +345,28 @@ serve(async (req) => {
       return jsonResponse({ sent: 0, message: 'No subscriptions' })
     }
 
-    const payload = JSON.stringify({ title, body: notifBody, url, tag: 'message' })
+    // Badge : nombre de messages non lus du destinataire → pastille sur
+    // l'icône de la PWA (le Service Worker appelle setAppBadge(badge) à la
+    // réception). Best-effort : à défaut, pastille générique.
+    let badge: number | undefined
+    try {
+      const { data: convIds } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`wisher_id.eq.${targetUserId},maker_id.eq.${targetUserId}`)
+      const ids = (convIds || []).map((c: { id: string }) => c.id)
+      if (ids.length) {
+        const { count } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .in('conversation_id', ids)
+          .neq('sender_id', targetUserId)
+          .eq('is_read', false)
+        if (typeof count === 'number' && count > 0) badge = count
+      }
+    } catch { /* pastille générique */ }
+
+    const payload = JSON.stringify({ title, body: notifBody, url, tag: 'message', badge })
     let sent = 0
 
     for (const sub of subscriptions) {

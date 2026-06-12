@@ -1,6 +1,6 @@
 // Service Worker — Wish Maker PWA Push Notifications
 // Version bump pour forcer update lors d'un deploy : incrémente quand on change ce fichier.
-const SW_VERSION = 'v46-2026-06-11-suspension-effective'
+const SW_VERSION = 'v47-2026-06-12-badge-icone-push'
 
 self.addEventListener('push', (event) => {
   let data = { title: 'Wish Maker', body: 'Nouvelle notification', url: '/' }
@@ -20,7 +20,21 @@ self.addEventListener('push', (event) => {
     renotify: true,
   }
 
-  event.waitUntil(self.registration.showNotification(data.title, options))
+  event.waitUntil((async () => {
+    // Pastille sur l'icône de l'app (API Badging) : l'app fermée ne peut pas
+    // la poser elle-même — c'est ICI, à la réception de la push, qu'on le fait.
+    // data.badge = nombre de messages non lus calculé côté serveur.
+    try {
+      if ('setAppBadge' in self.navigator) {
+        if (typeof data.badge === 'number' && data.badge > 0) {
+          await self.navigator.setAppBadge(data.badge)
+        } else {
+          await self.navigator.setAppBadge() // pastille générique
+        }
+      }
+    } catch { /* best-effort */ }
+    await self.registration.showNotification(data.title, options)
+  })())
 })
 
 self.addEventListener('notificationclick', (event) => {
