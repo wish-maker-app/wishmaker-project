@@ -439,6 +439,14 @@ export default function Chat() {
 
   const interlocuteurName = interlocuteur.pseudo || interlocuteur.prenom
 
+  // La notation se fait UNIQUEMENT entre le Wisher et le Maker qui a RÉELLEMENT
+  // réalisé le vœu (marked_realized_by), dans LEUR conversation. Un vœu peut
+  // avoir plusieurs propositions (donc plusieurs conversations) : les autres
+  // Makers — et le Wisher dans ses autres conversations — ne doivent PAS voir
+  // « Noter » (ils noteraient la mauvaise personne, qui n'a rien réalisé).
+  const isRealizationConv =
+    !!markedRealizedBy && convData?.maker_id === markedRealizedBy
+
   return (
     <div className="h-screen bg-[#FAFAFA] flex flex-col">
 
@@ -609,21 +617,31 @@ export default function Chat() {
         </div>
       )}
 
-      {/* Bannière statut réalisé */}
+      {/* Bannière statut réalisé.
+          - Conversation de la réalisation (Wisher ↔ Maker réalisateur) →
+            bandeau vert + bouton « Noter » (chacun note l'autre).
+          - Tout autre participant (Maker non retenu, ou Wisher dans une autre
+            de ses conversations) → simple info, PAS de « Noter ». */}
       {wishStatut === 'realise' && (
-        <div className="bg-[#ECFDF5] px-4 py-2.5 flex items-center justify-center gap-2">
-          <span className="text-lg">🎉</span>
-          <span className="text-xs font-semibold text-[#059669]">Ce vœu a été réalisé !</span>
-          {!alreadyRated && (
-            <button
-              onClick={() => setShowRating(true)}
-              className="ml-2 text-[11px] font-bold text-white px-3 py-1 rounded-full"
-              style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
-            >
-              Noter
-            </button>
-          )}
-        </div>
+        isRealizationConv ? (
+          <div className="bg-[#ECFDF5] px-4 py-2.5 flex items-center justify-center gap-2">
+            <span className="text-lg">🎉</span>
+            <span className="text-xs font-semibold text-[#059669]">Ce vœu a été réalisé !</span>
+            {!alreadyRated && (
+              <button
+                onClick={() => setShowRating(true)}
+                className="ml-2 text-[11px] font-bold text-white px-3 py-1 rounded-full"
+                style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}
+              >
+                Noter
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="bg-[#F5F5F7] px-4 py-2.5 flex items-center justify-center gap-2">
+            <span className="text-xs font-semibold text-[#8A8A9A]">Ce vœu a déjà été réalisé.</span>
+          </div>
+        )
       )}
 
       {/* ─── MAKER : bouton "J'ai réalisé ce vœu" (etat initial) ─── */}
@@ -680,8 +698,11 @@ export default function Chat() {
         </div>
       )}
 
-      {/* ─── WISHER : banniere "Le Maker indique avoir realise ce voeu" ─── */}
-      {isWisher && wishStatut !== 'realise' && markedRealizedAt && (
+      {/* ─── WISHER : banniere "Le Maker indique avoir realise ce voeu" ───
+          Uniquement dans la conversation du Maker qui a marqué (isRealizationConv) :
+          sinon le Wisher voyait la demande de confirmation dans ses AUTRES
+          conversations sur le même vœu, et pouvait confirmer le mauvais Maker. */}
+      {isWisher && wishStatut !== 'realise' && markedRealizedAt && isRealizationConv && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
