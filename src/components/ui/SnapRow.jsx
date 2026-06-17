@@ -87,8 +87,11 @@ export default function SnapRow({ children, className = '', onActiveChange }) {
       onMouseLeave={endDrag}
       onMouseMove={onMouseMove}
       onClickCapture={onClickCapture}
+      // Empêche le drag natif (images = "fantôme de fichier" + geste qui mange
+      // le tracking → le mouvement n'était pas détecté → clic parasite sur la card).
+      onDragStart={(e) => e.preventDefault()}
       className={`overflow-x-auto scrollbar-hide snap-x snap-mandatory ${className}`}
-      style={{ cursor: 'grab', userSelect: 'none', scrollPaddingLeft: '16px', scrollPaddingRight: '16px' }}
+      style={{ cursor: 'grab', userSelect: 'none', WebkitUserDrag: 'none', scrollPaddingLeft: '16px', scrollPaddingRight: '16px' }}
     >
       {children}
     </div>
