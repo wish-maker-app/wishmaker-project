@@ -52,8 +52,10 @@ export default function Login() {
         .single()
       if (profile) useAuthStore.getState().setProfile(profile)
 
-      // Marque en ligne
-      await supabase.from('users').update({ is_online: true }).eq('id', user.id)
+      // Marque en ligne + activité (alimente la relance des inactifs)
+      await supabase.from('users')
+        .update({ is_online: true, last_active_at: new Date().toISOString() })
+        .eq('id', user.id)
 
       setShowSuccess(true)
     } catch (err) {

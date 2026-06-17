@@ -191,7 +191,12 @@ export function useAuth() {
             if (!cached || cached.id !== session.user.id) {
               fetchProfile(session.user.id).catch(() => {})
             }
-            supabase.from('users').update({ is_online: true }).eq('id', session.user.id)
+            // is_online + last_active_at : ce point se déclenche à CHAQUE
+            // ouverture/réveil de l'app → c'est le marqueur d'activité qui
+            // alimente la séquence de relance des inactifs (J1/J3/J6/J9).
+            supabase.from('users')
+              .update({ is_online: true, last_active_at: new Date().toISOString() })
+              .eq('id', session.user.id)
               .then(() => {}, () => {})
           }, 0)
         }
