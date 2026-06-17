@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, withTimeout, ensureFreshSession } from '../lib/supabase'
 import { subscribeResilient } from '../lib/realtimeResilient'
+import { realtimeProbe } from '../lib/realtimeProbe'
 import useAuthStore from '../store/authStore'
 
 export function useNotifications() {
@@ -70,41 +71,36 @@ export function useNotifications() {
   useEffect(() => {
     if (!user) return
 
-    fetchUnreadCount()
+    realtimeProbe.setUser(user.id)
+    fetchUnreadCount()   // valeur initiale immédiate (avant le 1er tick de sonde)
     fetchExpiringCount()
 
-    // Realtime sur les messages — souscription auto-réparante (le badge
-    // continuait de dormir après un passage en arrière-plan PWA).
+    // Pastille non-lus pilotée par la SONDE unique partagée (ré+ fiable que le
+    // Realtime seul, et sans le double-poll du v56). La sonde est instantanée
+    // via le nudge ci-dessous quand le Realtime marche, et garantit la fraîcheur
+    // en ~3 s pendant un trou Realtime.
+    const unsubProbe = realtimeProbe.subscribe(({ unread }) => setUnreadMessagesCount(unread))
+
+    // Realtime sur les messages — souscription auto-réparante. Un event ne
+    // requête plus directement : il « nudge » la sonde (cadence rapide + sonde
+    // immédiate, dédupliquée). onSuspect : idem si le canal hoquette.
     const sub = subscribeResilient({
       topic: 'notifications-messages',
       label: 'NotifBadge',
       build: (ch) => ch.on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
-        fetchUnreadCount()
+        realtimeProbe.nudge()
       }),
-      onResubscribed: () => { fetchUnreadCount() },
+      onResubscribed: () => { realtimeProbe.nudge() },
+      onSuspect: () => { realtimeProbe.nudge() },
     })
 
     // Rafraîchir les vœux expirants toutes les 5 minutes
     const interval = setInterval(fetchExpiringCount, 5 * 60 * 1000)
 
-    // FILET DE SÉCURITÉ pastille non-lus. Le Realtime messages a des trous
-    // (canaux recréés ~160x/jour en arrière-plan PWA → l'event d'un nouveau
-    // message peut être perdu) : sans ça, la pastille restait figée tant qu'on
-    // ne changeait pas de page. On recompte donc le non-lu toutes les 10 s TANT
-    // QUE l'app est visible + au retour au premier plan. Requête count légère.
-    const unreadPoll = setInterval(() => {
-      if (document.visibilityState === 'visible') fetchUnreadCount()
-    }, 10 * 1000)
-    function onVisible() {
-      if (document.visibilityState === 'visible') fetchUnreadCount()
-    }
-    document.addEventListener('visibilitychange', onVisible)
-
     return () => {
+      unsubProbe()
       sub.dispose()
       clearInterval(interval)
-      clearInterval(unreadPoll)
-      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [user?.id])
 

@@ -48,7 +48,7 @@ const RETRY_DELAYS = [1000, 2000, 5000, 10000, 30000]
 const LONG_HIDE_MS = 20 * 1000
 const WATCHDOG_MS = 15000 // erreurs persistantes au-delà → recréation complète
 
-export function subscribeResilient({ topic, build, onResubscribed, label = topic }) {
+export function subscribeResilient({ topic, build, onResubscribed, onSuspect, label = topic }) {
   let channel = null
   let disposed = false
   let recreating = false
@@ -87,15 +87,34 @@ export function subscribeResilient({ topic, build, onResubscribed, label = topic
     recreating = true
     clearTimers()
     dbg('recreate:', reason)
-    // Boîte noire : trace les recréations SUBIES (pas la création initiale)
-    if (reason !== 'initial') logEvent('rt_recreate', { label, reason })
+    // Boîte noire : trace les recréations SUBIES (pas la création initiale),
+    // avec l'état du canal mourant pour distinguer zombie/CLOSED/erreur.
+    if (reason !== 'initial') {
+      logEvent('rt_recreate', { label, reason, state: channel?.state || 'none' })
+      // Signale aux consommateurs (ex. sonde non-lus) que le Realtime est
+      // suspect → ils peuvent passer en rattrapage rapide le temps de réparer.
+      try { onSuspect?.() } catch { /* best-effort */ }
+    }
     try {
       purgeChannel()
+      let session = null
       try {
-        const session = await ensureFreshSession()
+        session = await ensureFreshSession()
         if (!disposed && session?.access_token) await supabase.realtime.setAuth(session.access_token)
       } catch { /* best-effort : la lib re-joindra avec l'ancien payload */ }
       if (disposed) return
+      // Réveil à session GELÉE (~1 cas sur 5 mesuré) : le canal joindrait avec
+      // un token mort → events bloqués par la RLS en silence. On crée quand même
+      // (token realtime précédent éventuellement encore valide) MAIS on planifie
+      // une recréation rapprochée pour rejoindre avec un token frais dès que la
+      // session revient.
+      if (!session && !retryTimer) {
+        logEvent('rt_resume_retry', { label, reason })
+        retryTimer = setTimeout(() => {
+          retryTimer = null
+          if (!disposed && document.visibilityState === 'visible') recreate('resume-retry')
+        }, 2000)
+      }
       create()
     } finally {
       recreating = false

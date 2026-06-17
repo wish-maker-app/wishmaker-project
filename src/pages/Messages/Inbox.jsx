@@ -7,6 +7,7 @@ import BottomTabBar from '../../components/layout/BottomTabBar'
 import useAuthStore from '../../store/authStore'
 import { useMessages } from '../../hooks/useMessages'
 import { subscribeResilient } from '../../lib/realtimeResilient'
+import { realtimeProbe } from '../../lib/realtimeProbe'
 import { logEvent } from '../../lib/clientLog'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
@@ -286,6 +287,8 @@ export default function Inbox() {
       topic: 'inbox-messages',
       label: 'Inbox',
       build: (ch) => ch
+        // Nouveau message / nouvelle conversation = vraie nouveauté → refetch
+        // (instantané quand le Realtime marche).
         .on('postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'messages' },
           () => {
@@ -298,32 +301,41 @@ export default function Inbox() {
             loadConversations().catch(() => {})
           }
         )
+        // UPDATE = surtout des flips is_read (lecture) : ne PAS relancer la
+        // requête lourde à 4 jointures à chaque flip (rafale lors d'un
+        // mark-all-read) → on « nudge » la sonde, qui décidera s'il faut refetch.
         .on('postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'messages' },
           () => {
-            loadConversations().catch(() => {})
+            realtimeProbe.nudge()
           }
         ),
       // Non forcé : le cooldown 1.5s absorbe le doublon avec le refetch du réveil.
       onResubscribed: () => { loadConversations().catch(() => {}) },
+      onSuspect: () => { realtimeProbe.nudge() },
     })
     return () => sub.dispose()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
-  // FILET DE SÉCURITÉ : le Realtime a des trous (canaux recréés ~160x/jour en
-  // arrière-plan PWA → l'event d'arrivée d'un message peut être perdu pendant
-  // qu'on est SUR l'Inbox → la liste restait figée jusqu'au changement de
-  // page). On recharge donc doucement toutes les 12 s TANT QUE l'Inbox est
-  // visible. loadConversations est dédupliqué (in-flight + fenêtre 1.5s) donc
-  // ça ne se cumule pas avec le Realtime/visibility. Le Realtime garde
-  // l'instantané quand il marche ; ce poll garantit qu'on n'est jamais bloqué.
+  // FILET DE SÉCURITÉ via la SONDE unique partagée (remplace le poll 12 s à 4
+  // jointures du v56). La sonde fait 1 requête minuscule (~0,16 ms) à cadence
+  // adaptative ; on ne relance le loadConversations COMPLET que sur un VRAI
+  // changement (nouveau message non-lu plus récent, ou compteur non-lus qui
+  // bouge). Garantit que la liste n'est jamais figée, sans requête lourde à vide.
   useEffect(() => {
     if (!userId) return
-    const poll = setInterval(() => {
-      if (document.visibilityState === 'visible') loadConversations().catch(() => {})
-    }, 12 * 1000)
-    return () => clearInterval(poll)
+    realtimeProbe.setUser(userId)
+    let lastMsgAt = null
+    let lastUnread = -1
+    const unsub = realtimeProbe.subscribe(({ unread, last_msg_at }) => {
+      const newer = last_msg_at && (!lastMsgAt || new Date(last_msg_at) > new Date(lastMsgAt))
+      const changed = unread !== lastUnread
+      lastMsgAt = last_msg_at
+      lastUnread = unread
+      if (newer || changed) loadConversations().catch(() => {})
+    })
+    return () => unsub()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 

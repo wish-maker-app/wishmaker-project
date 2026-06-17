@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase, withTimeout, ensureFreshSession, waitForFreshSession } from '../lib/supabase'
 import { subscribeResilient } from '../lib/realtimeResilient'
+import { realtimeProbe } from '../lib/realtimeProbe'
 import useAuthStore from '../store/authStore'
 import { getCached, setCached } from '../lib/wishesCache'
 
@@ -129,15 +130,23 @@ export function useMessages(conversationId = null) {
       }
       slot.ts = Date.now()
 
-      // Marque les messages non lus comme lus (best-effort, on ne throw pas si ça rate)
-      try {
-        await withTimeout(supabase
-          .from('messages')
-          .update({ is_read: true })
-          .eq('conversation_id', convId)
-          .neq('sender_id', user?.id)
-          .eq('is_read', false))
-      } catch { /* best-effort */ }
+      // Marque les messages non lus comme lus — UNIQUEMENT s'il y en a vraiment
+      // un de l'autre dans le snapshot (évite un aller-retour à vide à chaque
+      // rattrapage). Best-effort : on ne throw pas si ça rate.
+      const hasUnreadFromOther = list.some((m) => m.sender_id !== user?.id && !m.is_read)
+      if (hasUnreadFromOther) {
+        try {
+          await withTimeout(supabase
+            .from('messages')
+            .update({ is_read: true })
+            .eq('conversation_id', convId)
+            .neq('sender_id', user?.id)
+            .eq('is_read', false))
+          // La pastille non-lus doit retomber vite après lecture → on pousse la
+          // sonde (cadence rapide) au lieu d'attendre son prochain tick lent.
+          realtimeProbe.nudge()
+        } catch { /* best-effort */ }
+      }
     } finally {
       slot.inFlight = false
     }
