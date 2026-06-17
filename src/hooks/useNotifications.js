@@ -87,9 +87,24 @@ export function useNotifications() {
     // Rafraîchir les vœux expirants toutes les 5 minutes
     const interval = setInterval(fetchExpiringCount, 5 * 60 * 1000)
 
+    // FILET DE SÉCURITÉ pastille non-lus. Le Realtime messages a des trous
+    // (canaux recréés ~160x/jour en arrière-plan PWA → l'event d'un nouveau
+    // message peut être perdu) : sans ça, la pastille restait figée tant qu'on
+    // ne changeait pas de page. On recompte donc le non-lu toutes les 10 s TANT
+    // QUE l'app est visible + au retour au premier plan. Requête count légère.
+    const unreadPoll = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchUnreadCount()
+    }, 10 * 1000)
+    function onVisible() {
+      if (document.visibilityState === 'visible') fetchUnreadCount()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
     return () => {
       sub.dispose()
       clearInterval(interval)
+      clearInterval(unreadPoll)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [user?.id])
 

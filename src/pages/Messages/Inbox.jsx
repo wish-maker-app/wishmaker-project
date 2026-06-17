@@ -311,9 +311,21 @@ export default function Inbox() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
-  // Polling 30s supprimé : le Realtime + le refetch on-visibility suffisent.
-  // loadConversations est désormais dédupliqué dans useMessages (in-flight +
-  // fenêtre 1.5s), donc les triggers concurrents ne provoquent plus de rafale.
+  // FILET DE SÉCURITÉ : le Realtime a des trous (canaux recréés ~160x/jour en
+  // arrière-plan PWA → l'event d'arrivée d'un message peut être perdu pendant
+  // qu'on est SUR l'Inbox → la liste restait figée jusqu'au changement de
+  // page). On recharge donc doucement toutes les 12 s TANT QUE l'Inbox est
+  // visible. loadConversations est dédupliqué (in-flight + fenêtre 1.5s) donc
+  // ça ne se cumule pas avec le Realtime/visibility. Le Realtime garde
+  // l'instantané quand il marche ; ce poll garantit qu'on n'est jamais bloqué.
+  useEffect(() => {
+    if (!userId) return
+    const poll = setInterval(() => {
+      if (document.visibilityState === 'visible') loadConversations().catch(() => {})
+    }, 12 * 1000)
+    return () => clearInterval(poll)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
 
   // Refetch au retour au premier plan (visibilitychange seul ; 'focus' faisait doublon)
   useEffect(() => {
