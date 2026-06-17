@@ -10,6 +10,8 @@ import { useWishes } from '../../../hooks/useWishes'
 import useAuthStore from '../../../store/authStore'
 import { formatLocation } from '../../../lib/geo'
 import CategoryFallback from '../../../components/ui/CategoryFallback'
+import PaymentForm from '../../../components/ui/PaymentForm'
+import { applyPurchase } from '../../../lib/stripe'
 import { useCatalog } from '../../../hooks/useTags'
 
 const HERO_H = 200
@@ -47,6 +49,11 @@ export default function Recap() {
   const [prestationMontant, setPrestationMontant] = useState(prestation_montant || '')
   const [isUrgent, setIsUrgent] = useState(false)
   const [showUrgentModal, setShowUrgentModal] = useState(false)
+  // Paiement urgent à la création : le vœu est créé (non-urgent) PUIS payé PUIS
+  // passé urgent côté serveur (make_urgent via apply-purchase). urgentWishId =
+  // l'id du vœu créé en attente du paiement → bascule le modal en mode Stripe.
+  const [urgentWishId, setUrgentWishId] = useState(null)
+  const [preparingUrgent, setPreparingUrgent] = useState(false)
 
   const cover = images.find((img) => img.is_cover) || images[0]
   const initials = profile ? `${profile.prenom?.[0] || ''}${profile.nom?.[0] || ''}` : '?'
@@ -102,20 +109,24 @@ export default function Recap() {
     }
   }
 
+  function buildWishPayload(urgent) {
+    return {
+      titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, images,
+      category_id, tag_ids,
+      type_recompense: recompenseType,
+      montant_recompense: recompenseType === 'argent' ? parseFloat(montant) || null : null,
+      prestation_type: prestationType,
+      prestation_montant: prestationType === 'budget' ? parseFloat(prestationMontant) || null : null,
+      is_urgent: urgent,
+    }
+  }
+
+  // Publication SANS paiement (vœu normal, ou "publier sans l'option urgent").
   async function doPublish(urgent) {
     setRecompense(recompenseType, recompenseType === 'argent' ? parseFloat(montant) || null : null, bonProcedeText)
     setPrestation(prestationType, prestationType === 'budget' ? parseFloat(prestationMontant) || null : null)
     try {
-      const wish = await createWish({
-        titre, description, latitude, longitude, adresse, quartier, ville, code_postal, tags, images,
-        category_id, tag_ids,
-        type_recompense: recompenseType,
-        montant_recompense: recompenseType === 'argent' ? parseFloat(montant) || null : null,
-        prestation_type: prestationType,
-        prestation_montant: prestationType === 'budget' ? parseFloat(prestationMontant) || null : null,
-        is_urgent: urgent,
-      })
-      // Si des images n'ont pas pu être uploadées, on prévient l'user
+      const wish = await createWish(buildWishPayload(urgent))
       if (wish?._failedUploads?.length) {
         toast.error(`${wish._failedUploads.length} image(s) n'ont pas pu être ajoutées au vœu`, { duration: 5000 })
       }
@@ -126,6 +137,41 @@ export default function Recap() {
       console.error('[Recap] doPublish:', err)
       toast.error(errorMessage(err, t('wisher.create.recap.err_publication')))
     }
+  }
+
+  // Étape 1 du paiement urgent : on crée le vœu (NON urgent), puis on bascule le
+  // modal sur le formulaire Stripe. Le vœu ne devient urgent qu'APRÈS paiement
+  // réussi (make_urgent côté serveur via apply-purchase). L'option urgent
+  // n'est donc plus jamais gratuite.
+  async function prepareUrgentPayment() {
+    if (urgentWishId || preparingUrgent) return
+    setPreparingUrgent(true)
+    setRecompense(recompenseType, recompenseType === 'argent' ? parseFloat(montant) || null : null, bonProcedeText)
+    setPrestation(prestationType, prestationType === 'budget' ? parseFloat(prestationMontant) || null : null)
+    try {
+      const wish = await createWish(buildWishPayload(false))
+      if (wish?._failedUploads?.length) {
+        toast.error(`${wish._failedUploads.length} image(s) n'ont pas pu être ajoutées au vœu`, { duration: 5000 })
+      }
+      setUrgentWishId(wish.id)
+    } catch (err) {
+      console.error('[Recap] prepareUrgentPayment:', err)
+      toast.error(errorMessage(err, t('wisher.create.recap.err_publication')))
+      setShowUrgentModal(false)
+    } finally {
+      setPreparingUrgent(false)
+    }
+  }
+
+  // Fin du parcours urgent. applied = l'option urgent a bien été payée+appliquée.
+  // Sinon (paiement annulé / modal fermé), le vœu reste publié SANS urgent.
+  function finishUrgentFlow(applied) {
+    reset()
+    setUrgentWishId(null)
+    setShowUrgentModal(false)
+    setIsUrgent(false)
+    toast.success(applied ? t('wisher.create.recap.succes_urgent') : 'Vœu publié.')
+    navigate('/wisher/create/success')
   }
 
   return (
@@ -467,40 +513,66 @@ export default function Recap() {
       </div>
 
       {/* Modal paiement urgent (option urgent — applique au bon procédé OU argent) */}
-      <BottomSheet open={showUrgentModal} onClose={() => setShowUrgentModal(false)}>
+      <BottomSheet
+        open={showUrgentModal}
+        onClose={() => {
+          // En phase paiement, le vœu est DÉJÀ créé (non urgent) → fermer = le
+          // publier sans l'option urgent (évite un vœu fantôme + un double-clic).
+          if (urgentWishId) finishUrgentFlow(false)
+          else setShowUrgentModal(false)
+        }}
+      >
               <div className="text-center mb-4">
-                <span className="text-4xl mb-2 block">\u26A1</span>
+                <span className="text-4xl mb-2 block">{'\u26A1'}</span>
                 <h2 className="text-lg font-bold text-[#1A1A2E]">{t('wisher.create.recap.modal_urgent_titre')}</h2>
-                <p className="text-sm text-[#8A8A9A] mt-1">{t('wisher.create.recap.modal_urgent_sub')}</p>
+                <p className="text-sm text-[#8A8A9A] mt-1">
+                  {urgentWishId
+                    ? 'Paiement s\u00E9curis\u00E9 de 0,99 \u20AC pour mettre ton v\u0153u en avant 24h.'
+                    : t('wisher.create.recap.modal_urgent_sub')}
+                </p>
               </div>
-              <div className="rounded-2xl bg-[#FFF7ED] border border-[#FFEDD5] p-4 mb-5 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold text-[#1A1A2E]">{t('wisher.create.recap.modal_urgent_option')}</p>
-                  <p className="text-xs text-[#8A8A9A]">{t('wisher.create.recap.modal_urgent_option_sub')}</p>
-                </div>
-                <p className="text-xl font-bold text-[#F59E0B]">0,99€</p>
-              </div>
-              <button
-                onClick={async () => {
-                  setShowUrgentModal(false)
-                  await doPublish(true)
-                }}
-                disabled={publishing}
-                className="w-full h-[52px] rounded-full text-white font-bold text-[15px] disabled:opacity-50 mb-3"
-                style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}
-              >
-                {publishing ? t('wisher.create.recap.btn_publication') : t('wisher.create.recap.modal_urgent_pay')}
-              </button>
-              <button
-                onClick={() => {
-                  setShowUrgentModal(false)
-                  setIsUrgent(false)
-                  doPublish(false)
-                }}
-                className="w-full text-sm text-[#8A8A9A] text-center py-2"
-              >
-                {t('wisher.create.recap.modal_urgent_skip')}
-              </button>
+              {!urgentWishId ? (
+                <>
+                  <div className="rounded-2xl bg-[#FFF7ED] border border-[#FFEDD5] p-4 mb-5 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-[#1A1A2E]">{t('wisher.create.recap.modal_urgent_option')}</p>
+                      <p className="text-xs text-[#8A8A9A]">{t('wisher.create.recap.modal_urgent_option_sub')}</p>
+                    </div>
+                    <p className="text-xl font-bold text-[#F59E0B]">0,99€</p>
+                  </div>
+                  <button
+                    onClick={prepareUrgentPayment}
+                    disabled={preparingUrgent || publishing}
+                    className="w-full h-[52px] rounded-full text-white font-bold text-[15px] disabled:opacity-50 mb-3"
+                    style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}
+                  >
+                    {preparingUrgent ? t('wisher.create.recap.btn_publication') : t('wisher.create.recap.modal_urgent_pay')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUrgentModal(false)
+                      setIsUrgent(false)
+                      doPublish(false)
+                    }}
+                    className="w-full text-sm text-[#8A8A9A] text-center py-2"
+                  >
+                    {t('wisher.create.recap.modal_urgent_skip')}
+                  </button>
+                </>
+              ) : (
+                // Phase 2 : paiement Stripe de l'option urgent_boost sur le vœu
+                // déjà créé (apply-purchase → make_urgent côté serveur).
+                <PaymentForm
+                  type="urgent_boost"
+                  wish_id={urgentWishId}
+                  submitLabel="Payer 0,99 €"
+                  onSuccess={async (pi) => {
+                    try { await applyPurchase(pi.id) } catch (e) { console.error('[urgent applyPurchase]', e) }
+                    finishUrgentFlow(true)
+                  }}
+                  onCancel={() => finishUrgentFlow(false)}
+                />
+              )}
       </BottomSheet>
     </div>
   )
