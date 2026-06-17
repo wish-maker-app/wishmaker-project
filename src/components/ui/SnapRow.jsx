@@ -48,20 +48,26 @@ export default function SnapRow({ children, className = '', onActiveChange }) {
     const el = ref.current
     if (!el) return
     drag.current = { on: true, startX: e.pageX, startScroll: el.scrollLeft, moved: false }
+    // Pendant le drag : snap coupé + scroll instantané (suit le doigt sans lag).
     el.style.scrollSnapType = 'none'
+    el.style.scrollBehavior = 'auto'
     el.style.cursor = 'grabbing'
   }
   function endDrag() {
     const el = ref.current
     if (!el || !drag.current.on) return
     drag.current.on = false
+    // Au relâché : scroll-behavior smooth PUIS on réactive le snap → le
+    // navigateur GLISSE doucement jusqu'à la carte la plus proche (au lieu de
+    // téléporter). C'est exactement la mécanique du carrousel d'exemples.
+    el.style.scrollBehavior = 'smooth'
     el.style.scrollSnapType = ''
     el.style.cursor = 'grab'
   }
   function onMouseMove(e) {
     if (!drag.current.on) return
     e.preventDefault()
-    const walk = e.pageX - drag.current.startX
+    const walk = (e.pageX - drag.current.startX) * 1.2 // x1.2 = glisse plus fluide
     if (Math.abs(walk) > 5) drag.current.moved = true
     ref.current.scrollLeft = drag.current.startScroll - walk
   }
