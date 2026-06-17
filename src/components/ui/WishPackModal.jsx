@@ -50,7 +50,7 @@ export default function WishPackModal({ open, onClose, onSuccess }) {
                 onClick={() => setSelectedPack(null)}
                 className="flex items-center gap-1 text-sm text-[#5B6BF5] font-medium"
               >
-                ← Retour aux packs
+                Retour aux packs
               </button>
               <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#F5F5F7] flex items-center justify-center">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -59,7 +59,6 @@ export default function WishPackModal({ open, onClose, onSuccess }) {
               </button>
             </div>
             <div className="text-center mb-5">
-              <span className="text-3xl mb-2 block">💳</span>
               <h2 className="text-lg font-bold text-[#1A1A2E]">{selectedPack.name}</h2>
               <p className="text-sm text-[#8A8A9A] mt-1">
                 {selectedPack.wishes} vœux pour {selectedPack.price.toFixed(2).replace('.', ',')}€
