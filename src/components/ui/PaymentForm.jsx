@@ -100,6 +100,10 @@ function InnerForm({ clientSecret, amount, onSuccess, onCancel, submitLabel }) {
   const stripe = useStripe()
   const elements = useElements()
   const [processing, setProcessing] = useState(false)
+  // Le <PaymentElement> met quelques ms à peindre son iframe. Tant qu'il n'est
+  // pas prêt (onReady), on n'affiche QUE le loader : sinon les boutons
+  // s'affichent au-dessus d'un cadre carte vide pendant un instant (flash).
+  const [ready, setReady] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -143,20 +147,33 @@ function InnerForm({ clientSecret, amount, onSuccess, onCancel, submitLabel }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <PaymentElement options={{ layout: 'tabs' }} />
-      <div className="flex gap-2 mt-2">
-        {onCancel && (
-          <Button type="button" variant="secondary" onClick={onCancel} disabled={processing}>
-            Annuler
-          </Button>
-        )}
-        <Button type="submit" loading={processing} disabled={!stripe || !elements}>
-          {submitLabel || `Payer ${formatEuros(amount)}`}
-        </Button>
+      {!ready && (
+        <div className="py-10 text-center text-[#8A8A9A]">
+          Préparation du paiement...
+        </div>
+      )}
+      {/* Toujours monté (sinon onReady ne se déclenche jamais), mais réduit à
+          une hauteur 0 tant que la carte n'est pas peinte → aucun flash. */}
+      <div style={{ height: ready ? 'auto' : 0, overflow: 'hidden' }}>
+        <PaymentElement options={{ layout: 'tabs' }} onReady={() => setReady(true)} />
       </div>
-      <p className="text-xs text-[#8A8A9A] text-center">
-        Paiement sécurisé par Stripe. Aucune carte n'est stockée chez nous.
-      </p>
+      {ready && (
+        <>
+          <div className="flex gap-2 mt-2">
+            {onCancel && (
+              <Button type="button" variant="secondary" onClick={onCancel} disabled={processing}>
+                Annuler
+              </Button>
+            )}
+            <Button type="submit" loading={processing} disabled={!stripe || !elements}>
+              {submitLabel || `Payer ${formatEuros(amount)}`}
+            </Button>
+          </div>
+          <p className="text-xs text-[#8A8A9A] text-center">
+            Paiement sécurisé par Stripe. Aucune carte n'est stockée chez nous.
+          </p>
+        </>
+      )}
     </form>
   )
 }
