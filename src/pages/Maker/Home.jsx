@@ -8,7 +8,7 @@ import { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents } from 'r
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import BottomTabBar from '../../components/layout/BottomTabBar'
-import DragScroll from '../../components/ui/DragScroll'
+import SnapRow from '../../components/ui/SnapRow'
 import useAuthStore from '../../store/authStore'
 import useMakerStore from '../../store/makerStore'
 import { useWishes } from '../../hooks/useWishes'
@@ -201,7 +201,8 @@ function SponsoredCard({ wish, onClick, userLat, userLng }) {
   return (
     <div
       onClick={onClick}
-      className="flex-shrink-0 w-[300px] h-[160px] bg-white rounded-2xl overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.08)] cursor-pointer flex"
+      className="flex-shrink-0 w-[300px] h-[160px] bg-white rounded-2xl overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.08)] cursor-pointer flex snap-start"
+      style={{ scrollSnapStop: 'always' }}
     >
       {/* Image côté gauche — avec capsule avatar/nom en overlay (cohérence DA) */}
       <div className="relative w-[120px] flex-shrink-0 bg-[#F0F0F5]">
@@ -466,6 +467,7 @@ export default function MakerHome() {
   const [search, setSearch] = useState('')
   const [selectedWish, setSelectedWish] = useState(null)
   const [swipeIndex, setSwipeIndex] = useState(0)
+  const [sponsoredActive, setSponsoredActive] = useState(0) // pastille active du carrousel sponsorisés/urgents
   const [skippedIds, setSkippedIds] = useState(new Set())
   const [acceptedWish, setAcceptedWish] = useState(null)
   const [acceptMessage, setAcceptMessage] = useState('')
@@ -943,14 +945,24 @@ export default function MakerHome() {
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="font-bold text-[#1A1A2E] text-base">Vœux sponsorisés</h2>
                   {sponsored.length > 1 && (
-                    <div className="flex gap-1">
+                    <div className="flex items-center gap-1.5">
                       {sponsored.map((_, i) => (
-                        <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: i === 0 ? '#5B6BF5' : '#D0D0D0' }} />
+                        <div
+                          key={i}
+                          className="h-1.5 rounded-full transition-all duration-200"
+                          style={{
+                            width: i === sponsoredActive ? 16 : 6,
+                            background: i === sponsoredActive ? '#5B6BF5' : '#D0D0D0',
+                          }}
+                        />
                       ))}
                     </div>
                   )}
                 </div>
-                <DragScroll className="flex gap-3 pb-2 -mx-4 px-4">
+                <SnapRow
+                  className="flex gap-3 pb-2 -mx-4 px-4"
+                  onActiveChange={setSponsoredActive}
+                >
                   {sponsored.map((wish) => (
                     <SponsoredCard
                       key={wish.id}
@@ -960,7 +972,7 @@ export default function MakerHome() {
                       userLng={center[1]}
                     />
                   ))}
-                </DragScroll>
+                </SnapRow>
               </div>
             )}
 
