@@ -175,9 +175,15 @@ export async function checkContent(text) {
     if (!w.normalized) continue
     const n = w.normalized
     const compactN = n.replace(/\s+/g, '')
-    if (compactN.length < 3) {
-      // Mot trop court : whole-word match uniquement sur les tokens
-      if (tokens.includes(compactN)) {
+    // PROTECTION ANTI-FAUX-POSITIF : les mots COURTS (≤ 5 lettres) ne sont
+    // cherchés qu'en MOT ENTIER, pas en sous-chaîne. Sinon ils matchent à
+    // l'intérieur de mots français normaux : "vape"⊂"vapeur", "cul"⊂"calcul",
+    // "pute"⊂"réputation", "anal"⊂"analyse", "viol"⊂"violet", "putes"⊂"réputés"…
+    // (la sous-chaîne reste utile pour les mots longs : pluriels/concaténations
+    // comme "salope"⊂"salopes", peu de faux positifs à cette longueur.)
+    if (compactN.length <= 5) {
+      // Mot entier sur les tokens (ou texte entièrement espacé "v a p e" → compact)
+      if (tokens.includes(compactN) || compact === compactN) {
         violations.push({ mot: w.mot, categorie: w.categorie })
       }
       continue

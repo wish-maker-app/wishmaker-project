@@ -21,6 +21,8 @@
 // dans loadModel(). Ça permet de ne PAS bundler ~40MB de TF.js dans le
 // chunk initial — il n'est téléchargé que quand l'user upload une image.
 
+import { logEvent } from './clientLog'
+
 let modelPromise = null
 
 /**
@@ -33,16 +35,18 @@ let modelPromise = null
  *
  * Basé sur les retours de la communauté NSFW.js (précision ~93% sur le modèle mid).
  */
-// Seuils ASSOUPLIS (juin 2026) : trop de faux positifs sur des photos normales
-// (objets, scènes du quotidien) qui montaient à ~0.7 en score combiné. Le vrai
-// porn/hentai score très haut (>0.85) donc on reste protégé avec des seuils
-// individuels à 0.6, et on relève fortement le combiné qui était le principal
-// déclencheur de faux positifs.
+// Seuils ASSOUPLIS x2 (juin 2026) : encore des faux positifs sur des photos
+// d'objets/scènes normales (ex. nettoyeur vapeur) qui sortaient porn/hentai
+// entre 0.6 et 0.8. Le VRAI porn/hentai du modèle MobileNetV2 score très haut
+// (typiquement > 0.9), donc on peut monter les seuils individuels à 0.85 sans
+// laisser passer de vrai contenu, et neutraliser quasi le combiné (sum ≤ 1.0,
+// donc 0.97 ne se déclenche QUE si presque toute la proba est "suspecte" — ce
+// qui n'arrive jamais sur une photo d'objet).
 const THRESHOLDS = {
-  porn: 0.6,    // Bloqué si ≥ 60% (le vrai contenu porn dépasse largement)
-  hentai: 0.6,  // Idem pour dessin porn
-  sexy: 0.92,   // Très permissif (lingerie, maillot, sport… OK)
-  combined: 0.95, // Somme des 3 scores suspects — ne bloque que les cas francs
+  porn: 0.85,   // Bloqué si ≥ 85% (le vrai contenu porn dépasse largement)
+  hentai: 0.85, // Idem pour dessin porn
+  sexy: 0.95,   // Très permissif (lingerie, maillot, sport… OK)
+  combined: 0.97, // Somme des 3 scores suspects — ne bloque que les cas francs
 }
 
 // Logs en dev uniquement, silence en prod sauf erreur
@@ -113,19 +117,19 @@ export async function moderateImage(file) {
     const sexy = scores.sexy || 0
     const suspicious = porn + hentai + sexy
 
-    if (porn >= THRESHOLDS.porn) {
-      return { isClean: false, reason: 'Contenu pornographique détecté', scores, topCategory }
-    }
-    if (hentai >= THRESHOLDS.hentai) {
-      return { isClean: false, reason: 'Contenu pornographique (dessin) détecté', scores, topCategory }
-    }
-    if (sexy >= THRESHOLDS.sexy) {
-      return { isClean: false, reason: 'Contenu trop suggestif', scores, topCategory }
-    }
-    // Score combiné : attrape les cas où chaque catégorie est juste sous son seuil
-    // (ex: porn=0.3 + sexy=0.5 + hentai=0.1 = 0.9 → bloqué)
-    if (suspicious >= THRESHOLDS.combined) {
-      return { isClean: false, reason: 'Contenu inapproprié détecté', scores, topCategory }
+    let reason = null
+    if (porn >= THRESHOLDS.porn) reason = 'Contenu pornographique détecté'
+    else if (hentai >= THRESHOLDS.hentai) reason = 'Contenu pornographique (dessin) détecté'
+    else if (sexy >= THRESHOLDS.sexy) reason = 'Contenu trop suggestif'
+    // Score combiné : attrape les cas où chaque catégorie est juste sous son seuil.
+    else if (suspicious >= THRESHOLDS.combined) reason = 'Contenu inapproprié détecté'
+
+    if (reason) {
+      // Boîte noire : on trace les scores des blocages pour CALIBRER les seuils
+      // sur de vrais cas (et repérer les faux positifs à l'œil sur des objets).
+      const r2 = (n) => Math.round((n || 0) * 100) / 100
+      logEvent('nsfw_block', { reason, topCategory, porn: r2(porn), hentai: r2(hentai), sexy: r2(sexy) })
+      return { isClean: false, reason, scores, topCategory }
     }
 
     return { isClean: true, reason: null, scores, topCategory }
