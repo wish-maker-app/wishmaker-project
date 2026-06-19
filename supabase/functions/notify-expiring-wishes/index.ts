@@ -1,13 +1,13 @@
 // Edge Function — notify-expiring-wishes
 // Cron toutes les heures : notifie les users dont un vœu expire dans < 24h
-// Push PWA + Email (Resend) si consentement
+// Push PWA + Email (Brevo) si consentement
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || ''
+const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY') || ''
 
 serve(async () => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -18,7 +18,7 @@ serve(async () => {
 
   const { data: wishes } = await supabase
     .from('wishes')
-    .select('id, titre, wisher_id, expires_at, wisher:users!wisher_id(id, pseudo, email, email_consent)')
+    .select('id, titre, wisher_id, expires_at, wisher:users!wisher_id(id, pseudo, email, email_consent, email_unsub_token)')
     .eq('statut', 'en_attente')
     .gt('expires_at', now)
     .lt('expires_at', in24h)
@@ -72,7 +72,7 @@ serve(async () => {
     }
 
     // Email si consentement
-    if (wisher?.email_consent && RESEND_API_KEY) {
+    if (wisher?.email_consent && wisher?.email && BREVO_API_KEY) {
       const { data: existingMail } = await supabase
         .from('notification_log')
         .select('id')
@@ -83,17 +83,19 @@ serve(async () => {
       if (!existingMail) {
         try {
           const pseudo = wisher.pseudo || 'Wisher'
-          const res = await fetch('https://api.resend.com/emails', {
+          const unsubUrl = `${SUPABASE_URL}/functions/v1/email-unsubscribe?token=${wisher.email_unsub_token}`
+          const res = await fetch('https://api.brevo.com/v3/smtp/email', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${RESEND_API_KEY}`,
+              'accept': 'application/json',
+              'api-key': BREVO_API_KEY,
+              'content-type': 'application/json',
             },
             body: JSON.stringify({
-              from: 'Wish Maker <noreply@wishmaker.fr>',
-              to: [wisher.email],
+              sender: { name: 'Wish Maker', email: 'noreply@wishmaker.fr' },
+              to: [{ email: wisher.email, name: pseudo }],
               subject: '⏱️ Votre vœu expire bientôt !',
-              html: `
+              htmlContent: `
                 <div style="font-family:'Plus Jakarta Sans',sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;">
                   <div style="text-align:center;margin-bottom:24px;">
                     <h1 style="font-size:24px;color:#1A1A2E;margin:0;">Wish Maker</h1>
@@ -111,7 +113,7 @@ serve(async () => {
                   </div>
                   <hr style="border:none;border-top:1px solid #F0F0F0;margin:24px 0;" />
                   <p style="color:#B0B0B0;font-size:11px;text-align:center;">
-                    <a href="https://wishmaker.fr/profile" style="color:#8A8A9A;">Se désabonner des emails</a>
+                    <a href="${unsubUrl}" style="color:#8A8A9A;">Se désabonner des emails</a>
                   </p>
                 </div>
               `,
@@ -125,6 +127,8 @@ serve(async () => {
               type: 'expiration_mail',
             })
             mailSent++
+          } else {
+            console.error('Brevo expiration error:', res.status, await res.text())
           }
         } catch (err) {
           console.error('Mail expiration error:', err)
