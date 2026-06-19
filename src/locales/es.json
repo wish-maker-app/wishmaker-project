@@ -402,6 +402,11 @@
     "notifications_off": "Desactivadas",
     "notifications_success": "¡Notificaciones activadas!",
     "notifications_help": "Para activar las notificaciones, ve a Ajustes → Wishmaker → Notificaciones",
+    "item_emails": "Emails y newsletter",
+    "emails_on": "Activados",
+    "emails_off": "Desactivados",
+    "emails_subscribed": "Recibirás nuestros emails 📬",
+    "emails_unsubscribed": "Ya no recibirás emails",
     "password": {
       "min_chars": "Mín. 6 caracteres",
       "no_match": "Las contraseñas no coinciden",

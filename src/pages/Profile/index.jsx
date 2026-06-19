@@ -210,6 +210,35 @@ export default function Profile() {
             }
           }}
         />
+        <ProfileItem
+          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="#1A1A2E" strokeWidth="1.8"/><path d="M3 7l9 6 9-6" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          label={t('profile.item_emails')}
+          value={profile?.email_consent ? t('profile.emails_on') : t('profile.emails_off')}
+          onClick={async () => {
+            const u = useAuthStore.getState().user
+            if (!u) return
+            const next = !profile?.email_consent
+            const nowIso = new Date().toISOString()
+            try {
+              const { error } = await supabase.from('users').update({
+                email_consent: next,
+                // On (re)pose la date au moment du consentement ; on garde
+                // l'ancienne au désabonnement (trace de l'opt-in initial).
+                email_consent_at: next ? nowIso : (profile?.email_consent_at || null),
+              }).eq('id', u.id)
+              if (error) throw error
+              // Reflète immédiatement dans le store → la valeur Activés/Désactivés se met à jour
+              useAuthStore.getState().setProfile({
+                ...profile,
+                email_consent: next,
+                email_consent_at: next ? nowIso : (profile?.email_consent_at || null),
+              })
+              toast.success(next ? t('profile.emails_subscribed') : t('profile.emails_unsubscribed'))
+            } catch (err) {
+              toast.error(t('common.erreur'))
+            }
+          }}
+        />
 
         {isAdmin && (
           <>
