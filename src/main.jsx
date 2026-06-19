@@ -20,7 +20,7 @@ if ('standalone' in navigator && navigator.standalone) {
   }, false)
 }
 import { RouterProvider } from 'react-router-dom'
-import { Toaster } from 'react-hot-toast'
+import toast, { Toaster } from 'react-hot-toast'
 import router from './router'
 import './lib/i18n'
 import './index.css'
@@ -32,6 +32,24 @@ import useConfigStore from './store/configStore'
 
 // Enregistrer le Service Worker au démarrage
 registerServiceWorker()
+
+// Confirmation de désabonnement email : l'Edge Function email-unsubscribe a fait
+// le désabonnement puis redirigé vers l'app avec ?unsub=ok|err → on affiche un
+// toast et on nettoie l'URL. (toast est mis en file et s'affichera dès que le
+// Toaster est monté.)
+if (typeof window !== 'undefined') {
+  const params = new URLSearchParams(window.location.search)
+  const unsub = params.get('unsub')
+  if (unsub) {
+    setTimeout(() => {
+      if (unsub === 'ok') toast.success('Tu es désabonné·e des emails Wish Maker.')
+      else toast.error('Lien de désabonnement invalide.')
+    }, 900)
+    params.delete('unsub')
+    const clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash
+    window.history.replaceState(null, '', clean)
+  }
+}
 
 // ────────────────────────────────────────────────────────────────────────
 // Auto-reload après un deploy Vercel — évite l'infinite spinner
