@@ -597,16 +597,15 @@ export default function WisherHome() {
           }
           {
             const totalCapacity = 3 + packSlots
-            const used = totalCapacity - totalRemaining
-            const pct = Math.max(0, Math.min(100, (used / totalCapacity) * 100))
+            // Barre = proportion RESTANTE (pleine = tous les vœux dispo, se vide à l'usage)
+            const pct = Math.max(0, Math.min(100, (totalRemaining / totalCapacity) * 100))
             return (
               <button
                 onClick={() => setShowPackModal(true)}
                 className="flex flex-col items-end gap-1 active:scale-95 transition-transform"
               >
-                <span className="text-[11px] font-semibold flex items-center gap-1">
-                  <span className="text-[#8A8A9A] font-medium">{t('wisher.home.quota_label')}</span>
-                  <span className="text-[#5B6BF5]">{used}/{totalCapacity}</span>
+                <span className="text-[11px] font-semibold text-[#5B6BF5]">
+                  {t('wisher.home.quota_restants', { count: totalRemaining })}
                 </span>
                 <div className="w-20 h-1.5 rounded-full bg-[#EEF0FF] overflow-hidden">
                   <div

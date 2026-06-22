@@ -191,7 +191,9 @@
       "modal_delete_desc": "This action is permanent.",
       "modal_delete_btn": "Delete",
       "quota_zero": "0 left",
-      "quota_label": "Wish"
+      "quota_label": "Wish",
+      "quota_restants_one": "{{count}} wish left",
+      "quota_restants_other": "{{count}} wishes left"
     },
     "create": {
       "step1_titre": "Make your wish",

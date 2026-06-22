@@ -191,7 +191,9 @@
       "modal_delete_desc": "Esta acción es definitiva.",
       "modal_delete_btn": "Eliminar",
       "quota_zero": "0 restantes",
-      "quota_label": "Deseo"
+      "quota_label": "Deseo",
+      "quota_restants_one": "{{count}} deseo restante",
+      "quota_restants_other": "{{count}} deseos restantes"
     },
     "create": {
       "step1_titre": "Pide tu deseo",

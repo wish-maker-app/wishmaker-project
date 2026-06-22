@@ -191,7 +191,9 @@
       "modal_delete_desc": "Cette action est définitive.",
       "modal_delete_btn": "Supprimer",
       "quota_zero": "0 restant",
-      "quota_label": "Vœu"
+      "quota_label": "Vœu",
+      "quota_restants_one": "{{count}} vœu restant",
+      "quota_restants_other": "{{count}} vœux restants"
     },
     "create": {
       "step1_titre": "Faites votre Vœux",
