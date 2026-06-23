@@ -1,0 +1,11 @@
+# Cloudflare Pages — équivalent des headers de vercel.json
+# HTML / SW / manifest : jamais en cache long (revalidation immédiate après deploy)
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
+# Assets hashés : cache long immuable
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
