@@ -58,8 +58,16 @@ if (typeof window !== 'undefined') {
 //    (typique après un deploy où les assets ont changé de hash).
 if (typeof window !== 'undefined') {
   window.addEventListener('vite:preloadError', (event) => {
-    console.warn('[preloadError] chunk obsolete, reload…', event.payload)
-    window.location.reload()
+    event.preventDefault() // empêche l'erreur de remonter en plus du reload
+    // Garde anti-boucle partagée avec l'errorElement du routeur : si on a déjà
+    // rechargé il y a moins de 12s, on ne reboucle pas (erreur peut-être permanente).
+    const KEY = '__chunk_reload_ts'
+    const last = Number(sessionStorage.getItem(KEY) || 0)
+    if (Date.now() - last > 12000) {
+      console.warn('[preloadError] chunk obsolète, reload…', event.payload)
+      sessionStorage.setItem(KEY, String(Date.now()))
+      window.location.reload()
+    }
   })
 }
 

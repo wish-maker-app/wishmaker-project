@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet, useRouteError } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import useAuthStore from '../store/authStore'
 import RootLayout from '../components/layout/RootLayout'
@@ -83,6 +83,49 @@ function PageLoader() {
 }
 
 // ──────────────────────────────────────────────
+// Error boundary du routeur
+// ──────────────────────────────────────────────
+// Capte notamment l'échec de chargement d'un chunk lazy : après un deploy,
+// l'ancien fichier hashé (ex Home-CL2Tkla9.js) n'existe plus → l'import() rejette.
+// Dans ce cas on recharge AUTOMATIQUEMENT sur la nouvelle version, avec une garde
+// anti-boucle (pas 2 reloads en moins de 12s) au cas où l'erreur serait permanente.
+const CHUNK_RELOAD_KEY = '__chunk_reload_ts'
+function isChunkLoadError(err) {
+  const msg = (err?.message || (typeof err === 'string' ? err : '') || '').toLowerCase()
+  return (
+    err?.name === 'ChunkLoadError' ||
+    msg.includes('dynamically imported module') ||
+    msg.includes('importing a module script failed') ||
+    msg.includes('error loading dynamically imported module') ||
+    msg.includes('failed to fetch')
+  )
+}
+function RouteError() {
+  const error = useRouteError()
+  const chunk = isChunkLoadError(error)
+  if (chunk) {
+    const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || 0)
+    if (Date.now() - last > 12000) {
+      sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()))
+      window.location.reload()
+      return <PageLoader />
+    }
+  }
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:'24px', textAlign:'center', fontFamily:'Plus Jakarta Sans, sans-serif' }}>
+      <h2 style={{ color:'#5B6BF5', margin:0 }}>{chunk ? 'Nouvelle version disponible' : 'Oups, un souci est survenu'}</h2>
+      <p style={{ color:'#666', marginTop:8 }}>{chunk ? 'Recharge pour continuer.' : (error?.message || '')}</p>
+      <button
+        onClick={() => { sessionStorage.removeItem(CHUNK_RELOAD_KEY); window.location.reload() }}
+        style={{ marginTop:16, padding:'10px 22px', background:'#5B6BF5', color:'#fff', border:'none', borderRadius:10, cursor:'pointer', fontWeight:600 }}
+      >
+        Recharger
+      </button>
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────
 // Guards
 // ──────────────────────────────────────────────
 
@@ -134,6 +177,7 @@ function PublicRoute() {
 const router = createBrowserRouter([
   {
     element: <RootLayout />,
+    errorElement: <RouteError />,
     children: [
   {
     path: '/',
