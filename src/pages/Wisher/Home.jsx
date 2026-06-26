@@ -35,6 +35,21 @@ const STATUS_MAP = {
   expire: 'expire',
 }
 
+// formatDuration : convertit une durée en heures en un label lisible et traduit.
+// 168h → "1 semaine", 48h → "2 jours", 30h → "30h". Évite d'afficher "168h"
+// (moche) quand la config passe à 1 semaine.
+function formatDuration(hours, t) {
+  if (hours > 0 && hours % 168 === 0) {
+    const n = hours / 168
+    return `${n} ${t(n > 1 ? 'wisher.home.unite_semaines' : 'wisher.home.unite_semaine')}`
+  }
+  if (hours > 0 && hours % 24 === 0) {
+    const n = hours / 24
+    return `${n} ${t(n > 1 ? 'wisher.home.unite_jours' : 'wisher.home.unite_jour')}`
+  }
+  return `${hours}h`
+}
+
 // timeAgo et expirationInfo prennent `t` en argument pour produire des labels
 // traduits selon la langue courante (sinon ils restent figés en FR).
 function timeAgo(iso, t) {
@@ -826,7 +841,7 @@ export default function WisherHome() {
             open
             onClose={() => setModal(null)}
             title={t('wisher.home.modal_prolonger_titre')}
-            description={t('wisher.home.modal_prolonger_desc', { h: wishDurationHours })}
+            description={t('wisher.home.modal_prolonger_desc', { duration: formatDuration(wishDurationHours, t) })}
             price="0,99€"
             buttonLabel={t('wisher.home.modal_prolonger_btn')}
             onConfirm={handleExtend}
@@ -877,7 +892,7 @@ export default function WisherHome() {
               <p className="text-sm text-[#8A8A9A] mt-1">
                 {paymentModal.type === 'urgent_boost'
                   ? 'Votre vœu sera mis en avant pendant 24h'
-                  : 'Votre vœu sera prolongé de 48h supplémentaires'}
+                  : `Votre vœu sera prolongé de ${formatDuration(wishDurationHours, t)}`}
               </p>
             </div>
             <PaymentForm
