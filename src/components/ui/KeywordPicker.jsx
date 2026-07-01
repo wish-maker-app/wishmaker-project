@@ -183,7 +183,7 @@ export default function KeywordPicker({ value = [], onChange, max = 5, autoFocus
               ) : (
                 <>
                   <p className="px-4 pt-3 pb-1 text-[11px] font-bold text-[#8A8A9A] uppercase tracking-wide">
-                    ✨ Suggestions
+                    Suggestions
                   </p>
                   {quickSuggestions.map((tag) => (
                     <button
