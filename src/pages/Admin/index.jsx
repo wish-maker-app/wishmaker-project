@@ -7,6 +7,7 @@ import useAuthStore from '../../store/authStore'
 import Header from '../../components/layout/Header'
 import ConfirmSheet from '../../components/ui/ConfirmSheet'
 import SanctionSheet from '../../components/ui/SanctionSheet'
+import TagsAdminTab from './TagsAdminTab'
 
 const CATEGORIES = [
   { value: 'all', label: 'Tous' },
@@ -697,7 +698,7 @@ export default function Admin() {
       {/* Onglets soulignés (épuré, comme la page Avis). Signalements en 1er. */}
       <div className="border-b border-[#F0F0F2] flex-shrink-0">
         <div className="flex">
-          {[['reports', 'Signalements'], ['users', 'Utilisateurs']].map(([val, label]) => {
+          {[['reports', 'Signalements'], ['users', 'Utilisateurs'], ['tags', 'Mots clefs']].map(([val, label]) => {
             const active = tab === val
             return (
               <button key={val} onClick={() => setTab(val)} className="relative flex-1 pb-3 pt-2">
@@ -720,7 +721,7 @@ export default function Admin() {
 
       {/* Contenu */}
       <div className="flex-1 overflow-y-auto px-5 py-4 pb-10">
-        {tab === 'reports' ? <SignalementsTab /> : <UtilisateursTab />}
+        {tab === 'reports' ? <SignalementsTab /> : tab === 'users' ? <UtilisateursTab /> : <TagsAdminTab />}
       </div>
     </div>
   )
