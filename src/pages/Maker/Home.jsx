@@ -223,7 +223,7 @@ function SponsoredCard({ wish, onClick, userLat, userLng }) {
       <div className="flex-1 p-2.5 flex flex-col justify-between min-w-0">
         <div>
           <h3 className="font-bold text-[#1A1A2E] text-sm leading-snug line-clamp-1">{wish.titre}</h3>
-          <p className="text-[#8A8A9A] text-[11px] leading-snug line-clamp-1 mt-0.5">{wish.description}</p>
+          <p className="text-[#8A8A9A] text-[11px] leading-snug line-clamp-3 mt-0.5">{wish.description}</p>
         </div>
         <div>
           <div className="flex items-center gap-1 text-[11px] text-[#5B6BF5] font-semibold mb-1.5">

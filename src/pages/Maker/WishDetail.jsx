@@ -217,6 +217,12 @@ export default function WishDetail() {
   const [sendingProposal, setSendingProposal] = useState(false)
   const [showExtend, setShowExtend] = useState(false)
 
+  // Description longue : toggle "Voir plus / Voir moins" (style Instagram),
+  // le bouton n'apparaît que si le texte dépasse réellement les 5 lignes.
+  const [descExpanded, setDescExpanded] = useState(false)
+  const [descOverflows, setDescOverflows] = useState(false)
+  const descRef = useRef(null)
+
   // Parallax hero (comme sur Recap)
   const scrollRef = useRef(null)
   const HERO_H = 220
@@ -372,6 +378,13 @@ export default function WishDetail() {
       toast.error(errorMessage(err, 'Erreur lors de la suppression'))
     } finally { setDeleting(false) }
   }
+
+  useEffect(() => {
+    const el = descRef.current
+    if (!el) return
+    setDescExpanded(false)
+    setDescOverflows(el.scrollHeight > el.clientHeight + 1)
+  }, [wish?.description])
 
   async function handleMessage() {
     if (isCompleted) { toast.error('Ce vœu est déjà réalisé.'); return }
@@ -598,10 +611,20 @@ export default function WishDetail() {
         </motion.div>
 
         {/* Description */}
-        <motion.p
-          custom={1} initial="hidden" animate="visible" variants={sectionVariants}
-          className="text-[#4A4A5A] text-sm leading-relaxed line-clamp-5 break-words"
-        >{wish.description}</motion.p>
+        <motion.div custom={1} initial="hidden" animate="visible" variants={sectionVariants}>
+          <p
+            ref={descRef}
+            className={`text-[#4A4A5A] text-sm leading-relaxed break-words ${descExpanded ? '' : 'line-clamp-5'}`}
+          >{wish.description}</p>
+          {descOverflows && (
+            <button
+              onClick={() => setDescExpanded((v) => !v)}
+              className="text-xs font-bold text-[#5B6BF5] mt-1"
+            >
+              {descExpanded ? 'Voir moins' : 'Voir plus'}
+            </button>
+          )}
+        </motion.div>
 
         {/* Wisher */}
         <motion.div
