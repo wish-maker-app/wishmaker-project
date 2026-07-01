@@ -102,11 +102,6 @@ export default function Step4() {
 
   const suggestedTags = useSuggestedTags(`${titre} ${description}`, tags, selectedTagIds)
 
-  function addSuggestion(tagId) {
-    if (selectedTagIds.length >= MAX_KEYWORDS || selectedTagIds.includes(tagId)) return
-    setSelectedTagIds((prev) => [...prev, tagId])
-  }
-
   function handleContinue() {
     if (selectedTagIds.length === 0) return
     // Catégorie dérivée du premier mot-clé (invisible pour l'user, sert juste au visuel)
@@ -158,29 +153,12 @@ export default function Step4() {
             {t('wisher.create.keywords.intro', { max: MAX_KEYWORDS })}
           </p>
 
-          {suggestedTags.length > 0 && selectedTagIds.length < MAX_KEYWORDS && (
-            <div className="mb-4">
-              <p className="text-xs font-semibold text-[#8A8A9A] mb-2">✨ Suggestions pour toi</p>
-              <div className="flex flex-wrap gap-2">
-                {suggestedTags.map((tag) => (
-                  <button
-                    key={tag.id}
-                    onClick={() => addSuggestion(tag.id)}
-                    className="h-9 pl-3.5 pr-3 rounded-full text-[13px] font-semibold flex items-center gap-1.5 border border-[#E0E0E0] text-[#1A1A2E] bg-white active:scale-[0.97] transition-transform"
-                  >
-                    <span>{tag.label}</span>
-                    <span className="text-[#5B6BF5] font-bold">+</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div className="flex-1 overflow-y-auto -mx-1 px-1">
             <KeywordPicker
               value={selectedTagIds}
               onChange={setSelectedTagIds}
               max={MAX_KEYWORDS}
+              suggestedTags={suggestedTags}
               autoFocus
             />
           </div>
