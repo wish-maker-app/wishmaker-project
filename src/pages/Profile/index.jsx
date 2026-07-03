@@ -266,7 +266,7 @@ export default function Profile() {
             const shareData = {
               title: 'Wish Maker',
               text: t('invite.share_text'),
-              url: 'https://wishmaker-project.vercel.app',
+              url: 'https://wishmaker.fr',
             }
             try {
               if (navigator.share) {

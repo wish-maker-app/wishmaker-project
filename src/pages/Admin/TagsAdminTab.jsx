@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
+import { CATEGORY_ICONS } from '../../lib/categoryIcons'
 
 const PRIMARY_GRADIENT = 'linear-gradient(135deg,#5B6BF5,#9B59F5)'
 const TEXT_PRIMARY = '#1A1A2E'
@@ -174,18 +175,19 @@ export default function TagsAdminTab() {
           <div className="flex flex-wrap gap-1.5 mt-1">
             {categories.map((cat) => {
               const active = selectedCatIds.includes(cat.id)
+              const Icon = CATEGORY_ICONS[cat.slug]
               return (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCatIds((prev) =>
                     prev.includes(cat.id) ? prev.filter((id) => id !== cat.id) : [...prev, cat.id]
                   )}
-                  className="h-7 px-2.5 rounded-full text-[11px] font-semibold border transition-colors"
+                  className="h-7 px-2.5 rounded-full text-[11px] font-semibold border transition-colors flex items-center gap-1.5"
                   style={active
                     ? { background: PRIMARY_GRADIENT, borderColor: 'transparent', color: '#fff' }
                     : { background: '#fff', borderColor: BORDER, color: TEXT_PRIMARY }}
                 >
-                  {cat.emoji} {cat.label}
+                  {Icon && <Icon size={13} stroke={2} />} {cat.label}
                 </button>
               )
             })}
@@ -238,16 +240,18 @@ export default function TagsAdminTab() {
                 <div className="flex flex-wrap gap-1">
                   {categories.map((cat) => {
                     const linked = linkedCats.includes(cat.id)
+                    const Icon = CATEGORY_ICONS[cat.slug]
                     return (
                       <button
                         key={cat.id}
                         onClick={() => handleToggleCategory(tag.id, cat.id)}
-                        className="h-6 px-2 rounded-full text-[10px] font-semibold border transition-colors"
+                        title={cat.label}
+                        className="h-6 w-6 rounded-full flex items-center justify-center border transition-colors"
                         style={linked
                           ? { background: PRIMARY_GRADIENT, borderColor: 'transparent', color: '#fff' }
                           : { background: '#fff', borderColor: BORDER, color: TEXT_SECONDARY }}
                       >
-                        {cat.emoji}
+                        {Icon && <Icon size={12} stroke={2} />}
                       </button>
                     )
                   })}
