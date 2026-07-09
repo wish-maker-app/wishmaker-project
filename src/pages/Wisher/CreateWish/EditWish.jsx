@@ -57,7 +57,8 @@ export default function EditWish() {
       try {
         const w = await getWishById(wishId)
         if (!w) { toast.error('Vœu introuvable'); navigate('/wisher'); return }
-        if (['realise', 'annule', 'pending_payment'].includes(w.statut)) { toast.error('Ce vœu ne peut plus être modifié'); navigate('/wisher'); return }
+        const isExpired = w.statut === 'expire' || (!!w.expires_at && new Date(w.expires_at).getTime() < Date.now())
+        if (isExpired || ['realise', 'annule', 'pending_payment'].includes(w.statut)) { toast.error('Ce vœu ne peut plus être modifié'); navigate('/wisher'); return }
         setWish(w)
         setTitre(w.titre || '')
         setDescription(w.description || '')

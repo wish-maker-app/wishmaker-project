@@ -354,9 +354,8 @@ export default function WishDetail() {
   // Comme dans la vue "Mes vœux" (Wisher/Home) : prolongation possible même
   // avant expiration, tant que le vœu est actif et pas déjà prolongé une fois.
   const canExtend = isOwner && !wish.is_extended && !isCompleted && wish.statut !== 'annule' && wish.statut !== 'pending_payment'
-  // Modifiable tant que le vœu n'est pas réalisé/annulé (même expiré : ça permet
-  // de corriger une info avant de le prolonger).
-  const canEdit = isOwner && wish.statut !== 'realise' && wish.statut !== 'annule' && wish.statut !== 'pending_payment'
+  // Modifiable tant que le vœu est actif : pas réalisé, pas expiré, pas annulé.
+  const canEdit = isOwner && !isCompleted && !isExpired && wish.statut !== 'annule' && wish.statut !== 'pending_payment'
 
   const heroImage = wish.images?.[0]?.url || null
 
