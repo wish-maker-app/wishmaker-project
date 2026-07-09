@@ -11,7 +11,7 @@ export default function Header({ title = '', onBack = null, rightAction = null, 
   const handleBack = onBack || (() => navigate(-1))
 
   return (
-    <div className={`flex items-center justify-between p-5 ${transparent ? 'absolute top-0 left-0 right-0 z-10' : ''}`}>
+    <div className={`flex items-center justify-between p-5 ${transparent ? 'absolute top-0 left-0 right-0 z-10' : 'relative'}`}>
       {/* Bouton retour */}
       <button
         onClick={handleBack}
@@ -23,9 +23,9 @@ export default function Header({ title = '', onBack = null, rightAction = null, 
         </svg>
       </button>
 
-      {/* Titre */}
+      {/* Titre — centré en absolu pour ne jamais se décaler quand rightAction change de largeur */}
       {title && (
-        <h1 className={`font-bold text-base ${transparent ? 'text-white' : 'text-[#1A1A2E]'}`}>
+        <h1 className={`absolute left-1/2 -translate-x-1/2 max-w-[55%] truncate text-center font-bold text-base ${transparent ? 'text-white' : 'text-[#1A1A2E]'}`}>
           {title}
         </h1>
       )}

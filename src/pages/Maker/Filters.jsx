@@ -69,11 +69,14 @@ function zoomForRadius(radiusKm) {
 // rendu quelle que soit la taille d'écran).
 const CIRCLE_WIDTH_RATIO = 0.65 // 65% de la largeur map (ajuste ici)
 
-function computeZoom(mapWidthPx, radiusKm, lat) {
-  const targetWidthPx = Math.max(100, mapWidthPx * CIRCLE_WIDTH_RATIO)
+function computeZoom(mapSizePx, radiusKm, lat) {
+  // Le cercle est rond en pixels (Web Mercator) — on le dimensionne par
+  // rapport à la PLUS PETITE dimension du cadre, sinon il déborde en hauteur
+  // quand le cadre est plus large que haut (cas courant ici : 180px de haut).
+  const targetSizePx = Math.max(100, Math.min(mapSizePx.x, mapSizePx.y) * CIRCLE_WIDTH_RATIO)
   const earthCirc = 156543.03 * Math.cos((lat * Math.PI) / 180)
   const diameterM = 2 * radiusKm * 1000
-  return Math.log2((earthCirc * targetWidthPx) / diameterM)
+  return Math.log2((earthCirc * targetSizePx) / diameterM)
 }
 
 function MapAutoFit({ center, radiusKm }) {
@@ -87,9 +90,9 @@ function MapAutoFit({ center, radiusKm }) {
       map.flyTo(center, 6, { duration: 0.4 })
       return
     }
-    // width réelle du map container (en px) — après invalidateSize
+    // taille réelle du map container (en px) — après invalidateSize
     const size = map.getSize()
-    const zoom = computeZoom(size.x, radiusKm, center[0])
+    const zoom = computeZoom(size, radiusKm, center[0])
     map.flyTo(center, zoom, { duration: 0.4 })
   }, [map, center, radiusKm])
   return null
