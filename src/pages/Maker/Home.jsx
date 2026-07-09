@@ -362,6 +362,17 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
   const coverUrl = wish.images?.[0]?.url || null
   const dist = distanceLabel(userLat, userLng, wish.latitude, wish.longitude)
 
+  const [descExpanded, setDescExpanded] = useState(false)
+  const [descOverflows, setDescOverflows] = useState(false)
+  const descRef = useRef(null)
+
+  useEffect(() => {
+    const el = descRef.current
+    if (!el) return
+    setDescExpanded(false)
+    setDescOverflows(el.scrollHeight > el.clientHeight + 1)
+  }, [wish?.description])
+
   function handleDragEnd(_, info) {
     if (info.offset.x > 120) onSwipeRight()
     else if (info.offset.x < -120) onSwipeLeft()
@@ -412,7 +423,20 @@ function SwipeCard({ wish, userLat, userLng, onSwipeRight, onSwipeLeft, isTop })
       {/* Contenu */}
       <div className="p-5">
         <h3 className="font-extrabold text-[#1A1A2E] text-lg mb-1 line-clamp-2">{wish.titre}</h3>
-        <p className="text-[#8A8A9A] text-[13px] leading-relaxed line-clamp-2 mb-3">{wish.description}</p>
+        <p
+          ref={descRef}
+          className={`text-[#8A8A9A] text-[13px] leading-relaxed ${descExpanded ? '' : 'line-clamp-2'}`}
+        >{wish.description}</p>
+        {descOverflows && (
+          <button
+            onPointerDownCapture={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); setDescExpanded((v) => !v) }}
+            className="text-xs font-bold text-[#5B6BF5] mb-3"
+          >
+            {descExpanded ? 'Voir moins' : 'Voir plus'}
+          </button>
+        )}
+        {!descOverflows && <div className="mb-3" />}
 
         {/* Ligne 1 : distance + temps */}
         <div className="flex items-center gap-3 mb-2">

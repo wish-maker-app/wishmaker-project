@@ -352,6 +352,9 @@ export default function WishDetail() {
   const isExpired = wish.statut === 'expire' ||
     (!!wish.expires_at && new Date(wish.expires_at).getTime() < Date.now())
   const canExtend = isOwner && isExpired && !wish.is_extended
+  // Modifiable tant que le vœu n'est pas réalisé/annulé (même expiré : ça permet
+  // de corriger une info avant de le prolonger).
+  const canEdit = isOwner && wish.statut !== 'realise' && wish.statut !== 'annule' && wish.statut !== 'pending_payment'
 
   const heroImage = wish.images?.[0]?.url || null
 
@@ -467,7 +470,7 @@ export default function WishDetail() {
                         </button>
                       )}
                       {canExtend && <div className="mx-3 h-px bg-black/5" />}
-                      {(wish.statut === 'en_attente' || wish.statut === 'en_cours') &&(
+                      {canEdit && (
                         <button onClick={() => { setShowMenu(false); navigate(`/wisher/edit/${wish.id}`) }}
                           className="w-full px-4 py-3 text-left text-sm text-[#1A1A2E] active:bg-black/5 flex items-center gap-2.5 transition-colors">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -477,7 +480,7 @@ export default function WishDetail() {
                           Modifier ce vœu
                         </button>
                       )}
-                      {(wish.statut === 'en_attente' || wish.statut === 'en_cours') &&<div className="mx-3 h-px bg-black/5" />}
+                      {canEdit && <div className="mx-3 h-px bg-black/5" />}
                       <button onClick={() => { setShowMenu(false); setShowDeleteConfirm(true) }}
                         className="w-full px-4 py-3 text-left text-sm text-red-500 active:bg-red-50/60 flex items-center gap-2.5 transition-colors">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
