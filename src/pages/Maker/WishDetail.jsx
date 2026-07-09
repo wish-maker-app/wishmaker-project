@@ -351,7 +351,9 @@ export default function WishDetail() {
   // tant qu'il n'a pas déjà été prolongé une fois.
   const isExpired = wish.statut === 'expire' ||
     (!!wish.expires_at && new Date(wish.expires_at).getTime() < Date.now())
-  const canExtend = isOwner && isExpired && !wish.is_extended
+  // Comme dans la vue "Mes vœux" (Wisher/Home) : prolongation possible même
+  // avant expiration, tant que le vœu est actif et pas déjà prolongé une fois.
+  const canExtend = isOwner && !wish.is_extended && !isCompleted && wish.statut !== 'annule' && wish.statut !== 'pending_payment'
   // Modifiable tant que le vœu n'est pas réalisé/annulé (même expiré : ça permet
   // de corriger une info avant de le prolonger).
   const canEdit = isOwner && wish.statut !== 'realise' && wish.statut !== 'annule' && wish.statut !== 'pending_payment'
@@ -710,8 +712,8 @@ export default function WishDetail() {
           <p className="text-xs text-[#8A8A9A] font-medium mt-3">Localisation approximative · {formatLocation(wish)}</p>
         </motion.div>
 
-        {/* CTA — selon l'état : réalisé (badge) / expiré+proprio (Prolonger) /
-            expiré (badge) / réaliser (Maker). Rien si c'est ton vœu encore actif. */}
+        {/* CTA — selon l'état : réalisé (badge) / proprio pas encore prolongé (Prolonger,
+            actif ou expiré) / expiré déjà prolongé (badge) / réaliser (Maker). */}
         {isCompleted ? (
           <motion.div custom={6} initial="hidden" animate="visible" variants={sectionVariants} className="pt-2">
             <div className="flex items-center justify-center gap-2 h-12 rounded-full bg-[#F0F0F2] text-[#8A8A9A] font-bold text-sm">
