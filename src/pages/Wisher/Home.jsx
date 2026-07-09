@@ -230,12 +230,22 @@ function WishCard({ wish, onExtend, onMakeUrgent, onDelete, onConfirmRealization
           <h3 className="font-bold text-[#1A1A2E] text-base leading-snug mb-1">{wish.titre}</h3>
           <p className="text-[#8A8A9A] text-xs leading-relaxed line-clamp-2 mb-3">{wish.description}</p>
 
-          {exp && isActive && (
+          {exp && isActive ? (
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full" style={{ background: exp.color }} />
               <span className="text-xs font-semibold" style={{ color: exp.color }}>{exp.label}</span>
             </div>
-          )}
+          ) : wish.statut === 'realise' ? (
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: '#22C55E' }} />
+              <span className="text-xs font-semibold" style={{ color: '#22C55E' }}>Réalisé</span>
+            </div>
+          ) : isExpired ? (
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: '#EF4444' }} />
+              <span className="text-xs font-semibold" style={{ color: '#EF4444' }}>Expiré</span>
+            </div>
+          ) : null}
         </div>
       </div>
 

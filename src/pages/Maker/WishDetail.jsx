@@ -573,8 +573,18 @@ export default function WishDetail() {
               </span>
             )}
           </div>
-          {/* Expiration */}
-          {(() => {
+          {/* Statut / expiration */}
+          {isCompleted ? (
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="w-2 h-2 rounded-full" style={{ background: '#22C55E' }} />
+              <span className="text-xs font-semibold" style={{ color: '#22C55E' }}>Réalisé</span>
+            </div>
+          ) : isExpired ? (
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="w-2 h-2 rounded-full" style={{ background: '#EF4444' }} />
+              <span className="text-xs font-semibold" style={{ color: '#EF4444' }}>Expiré</span>
+            </div>
+          ) : (() => {
             const exp = expirationInfo(wish.expires_at)
             if (!exp) return null
             return (
