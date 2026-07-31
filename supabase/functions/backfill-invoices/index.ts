@@ -103,30 +103,44 @@ async function creerFacturePayee({ customerId, type, amountCents, paymentIntentI
     idempotencyKey: `wm_inv_${paymentIntentId}`,
   })
 
-  await stripeApi('/invoiceitems', {
-    body: {
-      customer: customerId,
-      invoice: invoice.id,
-      currency: 'eur',
-      // unit_amount n'existe pas sur /invoiceitems (contrairement a /prices) :
-      // l'API attend unit_amount_decimal, en centimes, sous forme de chaine.
-      unit_amount_decimal: String(amountCents),
-      quantity: '1',
-      description: `${libelle} (achat du ${dateAchat})`,
-      'tax_rates[0]': taxRateId,
-    },
-    idempotencyKey: `wm_invitem2_${paymentIntentId}`,
-  })
+  // Un rejeu idempotent renvoie la reponse MISE EN CACHE a la creation, donc un
+  // etat potentiellement perime. On relit la facture pour connaitre son etat
+  // reel avant d'agir, et chaque etape n'est jouee que si elle reste a faire :
+  // une reprise apres echec partiel ne doit ni dupliquer une ligne, ni
+  // refinaliser une facture deja numerotee.
+  let facture = await stripeApi(`/invoices/${invoice.id}`, { method: 'GET' })
 
-  await stripeApi(`/invoices/${invoice.id}/finalize_invoice`, {
-    body: { auto_advance: 'false' },
-    idempotencyKey: `wm_invfin_${paymentIntentId}`,
-  })
+  if (facture.status === 'draft') {
+    if (!(facture.lines?.data?.length > 0)) {
+      await stripeApi('/invoiceitems', {
+        body: {
+          customer: customerId,
+          invoice: facture.id,
+          currency: 'eur',
+          // unit_amount n'existe pas sur /invoiceitems (contrairement a
+          // /prices) : l'API attend unit_amount_decimal, en centimes, en chaine.
+          unit_amount_decimal: String(amountCents),
+          quantity: '1',
+          description: `${libelle} (achat du ${dateAchat})`,
+          'tax_rates[0]': taxRateId,
+        },
+        idempotencyKey: `wm_invitem2_${paymentIntentId}`,
+      })
+    }
+    // NB : /finalize, et non /finalize_invoice qui n'existe plus depuis
+    // l'API 2026-03-25.dahlia.
+    facture = await stripeApi(`/invoices/${facture.id}/finalize`, {
+      body: { auto_advance: 'false' },
+    })
+  }
 
-  return await stripeApi(`/invoices/${invoice.id}/pay`, {
-    body: { paid_out_of_band: 'true' },
-    idempotencyKey: `wm_invpay_${paymentIntentId}`,
-  })
+  if (facture.status === 'open') {
+    facture = await stripeApi(`/invoices/${facture.id}/pay`, {
+      body: { paid_out_of_band: 'true' },
+    })
+  }
+
+  return facture
 }
 
 function decodeRole(authHeader: string | null): string {
@@ -171,9 +185,12 @@ Deno.serve(async (req: Request) => {
   let crees = 0
   let ignores = 0
   let echecs = 0
+  // Compte les TENTATIVES, pas les succes : borner sur les succes ne bornait
+  // rien des lors que tout echouait (bug du premier essai de validation).
+  let tentatives = 0
 
   for (const tx of rows || []) {
-    if (limit !== null && crees >= limit) break
+    if (limit !== null && tentatives >= limit) break
     const dateAchat = String(tx.created_at).slice(0, 10)
     try {
       // Garde-fou : on ne facture que ce qui est reellement encaisse cote
@@ -196,6 +213,11 @@ Deno.serve(async (req: Request) => {
         resultats.push({ tx: tx.id, date: dateAchat, statut: 'ignore (email introuvable)' })
         continue
       }
+
+      // A partir d'ici la transaction est reellement traitee : elle compte
+      // dans le quota `limit` (les paiements de test ecartes plus haut, eux,
+      // ne doivent pas consommer le quota de validation).
+      tentatives++
 
       if (dry_run) {
         resultats.push({

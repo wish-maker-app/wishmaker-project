@@ -115,32 +115,47 @@ async function creerFacturePayee(opts: {
     idempotencyKey: `wm_inv_${opts.paymentIntentId}`,
   })
 
-  await stripeApi('/invoiceitems', {
-    body: {
-      customer: opts.customerId,
-      invoice: invoice.id,
-      currency: 'eur',
-      // unit_amount n'existe pas sur /invoiceitems (contrairement a /prices) :
-      // l'API attend unit_amount_decimal, en centimes, sous forme de chaine.
-      unit_amount_decimal: String(opts.amountCents),
-      quantity: '1',
-      description: libelle,
-      'tax_rates[0]': opts.taxRateId,
-    },
-    idempotencyKey: `wm_invitem2_${opts.paymentIntentId}`,
-  })
+  // Un rejeu idempotent renvoie la reponse MISE EN CACHE a la creation, donc un
+  // etat potentiellement perime. On relit la facture pour connaitre son etat
+  // reel avant d'agir, et chaque etape n'est jouee que si elle reste a faire :
+  // une reprise apres echec partiel ne doit ni dupliquer une ligne, ni
+  // refinaliser une facture deja numerotee.
+  let facture = await stripeApi(`/invoices/${invoice.id}`, { method: 'GET' })
 
-  // Finalisation : c'est ce qui attribue le numero de facture et genere le PDF.
-  await stripeApi(`/invoices/${invoice.id}/finalize_invoice`, {
-    body: { auto_advance: 'false' },
-    idempotencyKey: `wm_invfin_${opts.paymentIntentId}`,
-  })
+  if (facture.status === 'draft') {
+    if (!(facture.lines?.data?.length > 0)) {
+      await stripeApi('/invoiceitems', {
+        body: {
+          customer: opts.customerId,
+          invoice: facture.id,
+          currency: 'eur',
+          // unit_amount n'existe pas sur /invoiceitems (contrairement a
+          // /prices) : l'API attend unit_amount_decimal, en centimes, en chaine.
+          unit_amount_decimal: String(opts.amountCents),
+          quantity: '1',
+          description: libelle,
+          'tax_rates[0]': opts.taxRateId,
+        },
+        idempotencyKey: `wm_invitem2_${opts.paymentIntentId}`,
+      })
+    }
+    // Finalisation = attribution du numero + generation du PDF.
+    // NB : l'endpoint est /finalize (et non /finalize_invoice, qui n'existe
+    // plus depuis l'API 2026-03-25.dahlia).
+    facture = await stripeApi(`/invoices/${facture.id}/finalize`, {
+      body: { auto_advance: 'false' },
+    })
+  }
 
-  // Reglee hors Stripe Billing : le PaymentIntent a deja encaisse.
-  return await stripeApi(`/invoices/${invoice.id}/pay`, {
-    body: { paid_out_of_band: 'true' },
-    idempotencyKey: `wm_invpay_${opts.paymentIntentId}`,
-  })
+  if (facture.status === 'open') {
+    // Reglee hors Stripe Billing : le PaymentIntent a deja encaisse, on ne
+    // represente donc rien au client.
+    facture = await stripeApi(`/invoices/${facture.id}/pay`, {
+      body: { paid_out_of_band: 'true' },
+    })
+  }
+
+  return facture
 }
 
 Deno.serve(async (req: Request) => {
