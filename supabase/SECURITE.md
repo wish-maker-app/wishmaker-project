@@ -106,9 +106,16 @@ n'apparaît pas dans le `GRANT SELECT` de `security_users_columns_v2.sql`.
   `email-unsubscribe` et `re-engagement-mail` ensemble, ce qui engage la
   délivrabilité. La rotation + le retrait de l'accès client ferment déjà la
   fuite.
-- **Investigation post-incident / RGPD** : préserver les journaux Data API
-  **avant** toute purge, déterminer la fenêtre d'exposition, qualifier la
-  violation (CNIL, 72 h). Décisions non techniques.
+- **Investigation post-incident / RGPD** : écarté par le propriétaire du projet
+  le 31/07/2026 — la base ne contient que des comptes de test créés par des
+  proches, pas d'utilisateurs réels. Pas de qualification CNIL engagée à ce
+  stade ; à réexaminer avant l'ouverture au public.
+
+  Pour mémoire si le sujet est rouvert : l'outil de logs utilisé ici est
+  plafonné à 24 h et ne permettait pas de dater le début de l'exposition. Sur
+  cette fenêtre, aucune extraction de masse observée — les seuls appels à
+  `/rest/v1/users` étaient du trafic applicatif normal. Le Logs Explorer du
+  dashboard remonte plus loin selon le plan Supabase.
 - **WM-HARD-003** : montée de `@supabase/supabase-js` et migration de la clé
   anon legacy vers `sb_publishable_...`, à faire dans un lot séparé pour ne pas
   mêler une montée de version SDK à un correctif de sécurité.
