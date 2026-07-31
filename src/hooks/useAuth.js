@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase, withTimeout, warmupConnection } from '../lib/supabase'
+import { fetchMyProfile } from '../lib/userProfile'
 import { logEvent } from '../lib/clientLog'
 import useAuthStore from '../store/authStore'
 
@@ -225,11 +226,11 @@ export function useAuth() {
   }, [])
 
   async function fetchProfile(userId) {
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single()
+    // Passe par la RPC get_my_profile() : depuis le correctif de sécurité, un
+    // select('*') sur users est refusé (colonnes privées non accordées au rôle
+    // authenticated). La RPC filtre elle-même sur auth.uid(), le paramètre
+    // userId ne sert donc plus qu'aux logs.
+    const data = await fetchMyProfile()
 
     if (data) {
       setProfile(data)
@@ -240,21 +241,25 @@ export function useAuth() {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       const meta = user.user_metadata || {}
+      // `email` volontairement absent : la colonne n'est plus accordée en
+      // écriture au client, c'est le trigger handle_new_user qui la remplit
+      // depuis auth.users.
       const newProfile = {
         id: user.id,
-        email: user.email,
         prenom: meta.prenom || meta.full_name?.split(' ')[0] || meta.name?.split(' ')[0] || '',
         nom: meta.nom || meta.full_name?.split(' ').slice(1).join(' ') || meta.name?.split(' ').slice(1).join(' ') || '',
         pseudo: meta.pseudo || null,
         type_compte: meta.type_compte || 'particulier',
         avatar_url: meta.avatar_url || meta.picture || null,
       }
-      const { data: created, error: upsertErr } = await supabase
-        .from('users')
-        .upsert(newProfile, { onConflict: 'id' })
-        .select()
-        .single()
-      if (upsertErr) console.error('[useAuth] fallback profile upsert error:', upsertErr)
+      // insert simple plutôt qu'upsert : l'upsert générait un ON CONFLICT DO
+      // UPDATE incluant `id`, colonne non accordée en écriture. En cas de
+      // conflit (le trigger a gagné la course), on relit simplement le profil.
+      const { error: insertErr } = await supabase.from('users').insert(newProfile)
+      if (insertErr && insertErr.code !== '23505') {
+        console.error('[useAuth] fallback profile insert error:', insertErr)
+      }
+      const created = await fetchMyProfile()
       if (created) setProfile(created)
       return created
     }

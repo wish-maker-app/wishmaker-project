@@ -9,6 +9,7 @@ import useAuthStore from '../../store/authStore'
 import useConfigStore from '../../store/configStore'
 import { useWishes } from '../../hooks/useWishes'
 import { supabase } from '../../lib/supabase'
+import { fetchMyProfile } from '../../lib/userProfile'
 import { subscribeResilient } from '../../lib/realtimeResilient'
 import { errorMessage } from '../../lib/uiError'
 import { logEvent } from '../../lib/clientLog'
@@ -454,8 +455,9 @@ export default function WisherHome() {
   useEffect(() => {
     refetchWishes()
     if (user?.id) {
-      supabase.from('users').select('*').eq('id', user.id).single()
-        .then(({ data }) => { if (data) useAuthStore.getState().setProfile(data) })
+      fetchMyProfile()
+        .then((data) => { if (data) useAuthStore.getState().setProfile(data) })
+        .catch(() => { /* best-effort : le store garde le profil précédent */ })
     }
   }, [authTick, refetchWishes])
 

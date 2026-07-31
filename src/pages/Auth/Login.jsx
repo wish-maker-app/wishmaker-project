@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
+import { fetchMyProfile } from '../../lib/userProfile'
 import useAuthStore from '../../store/authStore'
 import Header from '../../components/layout/Header'
 import AuthShell from '../../components/layout/AuthShell'
@@ -44,12 +45,9 @@ export default function Login() {
       const user = authData.user
       useAuthStore.getState().setUser(user)
 
-      // Charge le profil et le met dans le store
-      const { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+      // Charge le profil et le met dans le store (RPC : select('*') sur users
+      // est refusé depuis le correctif de sécurité)
+      const profile = await fetchMyProfile()
       if (profile) useAuthStore.getState().setProfile(profile)
 
       // Marque en ligne + activité (alimente la relance des inactifs)
