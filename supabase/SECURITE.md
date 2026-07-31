@@ -35,27 +35,22 @@ Les scripts sont dans `supabase/`. **L'ordre compte.**
 5. security_other_tables_rls.sql
 6. security_rotate_unsub_tokens.sql -- invalide les jetons exposés
 7. security_storage_buckets.sql     -- retire le listing des buckets publics
+8. security_users_columns_v2.sql    -- retire la LECTURE des colonnes privées
 ```
+
+> Le script 8 a été appliqué le 31/07/2026 à 20:30 UTC, après confirmation que
+> le nouveau front était en production (appel `get_my_profile` → 200 observé
+> dans les logs API à 20:19:41). Il ne doit JAMAIS être appliqué avant le
+> déploiement du front : le code d'avant le correctif fait `select('*')` sur
+> `users` et le chargement du profil casserait.
 
 > Les scripts 1 et 2 sont indissociables : les triggers de quota écrivaient
 > `users` avec les droits du client, ce qui ne marchait que grâce à la faille.
 > Appliquer 1 sans 2 casse la création de vœu.
 
-### À appliquer APRÈS le déploiement du front
-
-```
-8. security_users_columns_v2.sql    -- retire la LECTURE des colonnes privées
-```
-
-Ce script casserait la production s'il était appliqué avant le déploiement :
-le code d'avant le correctif fait `select('*')` sur `users`. Le nouveau front
-(`src/lib/userProfile.js`) fonctionne avant **comme** après, ce qui permet de
-déployer d'abord et de verrouiller ensuite.
-
-Tant que le 8 n'est pas passé, `anon` n'a plus rien, mais un compte connecté
-peut encore lire les emails et coordonnées des autres. Comme l'inscription est
-ouverte et auto-confirmée, **c'est le script 8 qui ferme réellement la fuite de
-données personnelles.**
+Le nouveau front (`src/lib/userProfile.js`) fonctionne avant **comme** après
+le script 8, ce qui a permis de déployer d'abord puis de verrouiller sans
+interruption de service.
 
 ## Vérification
 
@@ -65,8 +60,13 @@ supabase/tests/rls_users_matrix.sql
 
 Reprend la matrice de l'audit (page 8) plus les cas d'élévation de privilège.
 Le script se termine volontairement par `RAISE EXCEPTION` : cela force le
-rollback (aucune donnée touchée) et affiche le rapport. Attendu après le
-script 8 : les 13 tests en OK. Avant : les tests 4 et 5 ressortent en ECHEC.
+rollback (aucune donnée touchée) et affiche le rapport.
+
+Dernière exécution (31/07/2026, après le script 8) : **14/14 en OK** — anon
+bloqué sur `users` et `ratings`, colonnes publiques lisibles (89), email / GPS
+/ jetons refusés à un compte connecté, `is_admin` / quota / suspension non
+modifiables, écriture sur le profil d'autrui sans effet, `get_my_profile` et
+la modération admin fonctionnels.
 
 Contrôle externe après déploiement :
 
