@@ -34,6 +34,7 @@ Les scripts sont dans `supabase/`. **L'ordre compte.**
 4. security_lock_function_execute.sql
 5. security_other_tables_rls.sql
 6. security_rotate_unsub_tokens.sql -- invalide les jetons exposés
+7. security_storage_buckets.sql     -- retire le listing des buckets publics
 ```
 
 > Les scripts 1 et 2 sont indissociables : les triggers de quota écrivaient
@@ -43,7 +44,7 @@ Les scripts sont dans `supabase/`. **L'ordre compte.**
 ### À appliquer APRÈS le déploiement du front
 
 ```
-7. security_users_columns_v2.sql    -- retire la LECTURE des colonnes privées
+8. security_users_columns_v2.sql    -- retire la LECTURE des colonnes privées
 ```
 
 Ce script casserait la production s'il était appliqué avant le déploiement :
@@ -51,9 +52,9 @@ le code d'avant le correctif fait `select('*')` sur `users`. Le nouveau front
 (`src/lib/userProfile.js`) fonctionne avant **comme** après, ce qui permet de
 déployer d'abord et de verrouiller ensuite.
 
-Tant que le 7 n'est pas passé, `anon` n'a plus rien, mais un compte connecté
+Tant que le 8 n'est pas passé, `anon` n'a plus rien, mais un compte connecté
 peut encore lire les emails et coordonnées des autres. Comme l'inscription est
-ouverte et auto-confirmée, **c'est le script 7 qui ferme réellement la fuite de
+ouverte et auto-confirmée, **c'est le script 8 qui ferme réellement la fuite de
 données personnelles.**
 
 ## Vérification
@@ -65,7 +66,7 @@ supabase/tests/rls_users_matrix.sql
 Reprend la matrice de l'audit (page 8) plus les cas d'élévation de privilège.
 Le script se termine volontairement par `RAISE EXCEPTION` : cela force le
 rollback (aucune donnée touchée) et affiche le rapport. Attendu après le
-script 7 : les 13 tests en OK. Avant : les tests 4 et 5 ressortent en ECHEC.
+script 8 : les 13 tests en OK. Avant : les tests 4 et 5 ressortent en ECHEC.
 
 Contrôle externe après déploiement :
 
@@ -100,8 +101,6 @@ n'apparaît pas dans le `GRANT SELECT` de `security_users_columns_v2.sql`.
 - **Protection contre les mots de passe compromis** (advisor Supabase) :
   Dashboard → Authentication → Password strength → *Leaked password
   protection*.
-- **Buckets `avatars` et `wish-images`** : policies SELECT larges permettant de
-  lister tous les fichiers (advisor `public_bucket_allows_listing`).
 - **Hachage des `email_unsub_token`** : recommandé par l'audit, non fait. Le
   jeton doit rester en clair dans le lien e-mail ; le hacher impose de modifier
   `email-unsubscribe` et `re-engagement-mail` ensemble, ce qui engage la
