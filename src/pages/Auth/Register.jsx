@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
+import { fetchMyProfile } from '../../lib/userProfile'
 import useAuthStore from '../../store/authStore'
 import Header from '../../components/layout/Header'
 import AuthShell from '../../components/layout/AuthShell'
@@ -60,8 +61,7 @@ export default function Register() {
           updates.email_consent_at = new Date().toISOString()
         }
         await supabase.from('users').update(updates).eq('id', authData.user.id)
-        const { data: profile } = await supabase
-          .from('users').select('*').eq('id', authData.user.id).single()
+        const profile = await fetchMyProfile()
         if (profile) useAuthStore.getState().setProfile(profile)
       }
 

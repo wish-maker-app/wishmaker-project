@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { supabase, withTimeout, ensureFreshSession } from '../../lib/supabase'
+import { PUBLIC_USER_COLUMNS } from '../../lib/userProfile'
 import useAuthStore from '../../store/authStore'
 import Header from '../../components/layout/Header'
 import ConfirmSheet from '../../components/ui/ConfirmSheet'
@@ -169,8 +170,11 @@ function UtilisateursTab() {
       if (!session) throw new Error('NO_SESSION')
       // withTimeout : sans ça, une requête qui hang (réveil PWA / connexion
       // morte) laissait setLoading(false) inatteignable → SPINNER INFINI.
+      // RPC SECURITY DEFINER gardée par is_admin() : un admin reste le rôle
+      // `authenticated`, donc les privilèges de colonnes lui interdisent aussi
+      // de lire email / suspension_* en direct sur la table.
       const { data: suspended, error: e1 } = await withTimeout(
-        supabase.from('users').select('*').eq('is_suspended', true)
+        supabase.rpc('admin_list_suspended_users')
       )
       if (e1) throw e1
       setUsers(suspended || [])
@@ -399,6 +403,9 @@ function SignalementsTab() {
   const [convMsgs, setConvMsgs] = useState([])
   const [convLoading, setConvLoading] = useState(false)
   const [sanctionFor, setSanctionFor] = useState(null) // signalement dont on choisit la sanction (étape 2)
+  // is_suspended n'est plus lisible via l'embed (colonne privée) : on récupère
+  // la liste des ids suspendus par RPC admin pour le badge « suspendu ».
+  const [suspendedIds, setSuspendedIds] = useState(() => new Set())
 
   // Retourne true si chargé, false sinon (l'effet planifie alors un retry).
   async function loadReports() {
@@ -411,12 +418,17 @@ function SignalementsTab() {
         .from('reports')
         .select(`id, type, raison, created_at, reported_wish_id, reported_user_id, reported_conversation_id,
           reporter:users!reports_reporter_id_fkey(pseudo, prenom),
-          reported_user:users!reports_reported_user_id_fkey(id, pseudo, prenom, nom, avatar_url, is_suspended),
+          reported_user:users!reports_reported_user_id_fkey(id, pseudo, prenom, nom, avatar_url),
           reported_wish:wishes!reports_reported_wish_id_fkey(id, titre)`)
         .eq('statut', 'en_attente')
         .order('created_at', { ascending: false }))
       if (e) throw e
       setReports(data || [])
+
+      // Best-effort : sans cette liste on perd seulement le badge « suspendu ».
+      const { data: ids } = await withTimeout(supabase.rpc('admin_suspended_user_ids'))
+      setSuspendedIds(new Set(ids || []))
+
       setLoading(false)
       return true
     } catch (err) {
@@ -572,7 +584,7 @@ function SignalementsTab() {
                   <p className="text-[15px] font-semibold text-[#1A1A2E] truncate tracking-[-0.01em]">
                     @{r.reported_user?.pseudo || r.reported_user?.prenom || '?'}
                   </p>
-                  {r.reported_user?.is_suspended && (
+                  {r.reported_user?.id && suspendedIds.has(r.reported_user.id) && (
                     <span className="text-[9px] font-bold text-[#EF4444] bg-[#FEF2F2] px-2 py-0.5 rounded-full flex-shrink-0">suspendu</span>
                   )}
                 </div>

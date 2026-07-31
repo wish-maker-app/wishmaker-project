@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
+import { fetchMyProfile } from '../lib/userProfile'
 import { requestPushPermission } from '../lib/pushNotifications'
 import useAuthStore from '../store/authStore'
 import { isSuspendedActive } from '../lib/suspension'
@@ -51,11 +52,9 @@ export default function RouteResolver() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('onboarding_completed, prenom, nom, pseudo, ville, is_suspended, suspension_type, suspended_until')
-            .eq('id', session.user.id)
-            .maybeSingle()
+          // is_suspended / suspension_type / suspended_until sont des colonnes
+          // privées : lecture via la RPC get_my_profile plutôt qu'en direct.
+          const profile = await fetchMyProfile().catch(() => null)
 
           // Suspension active → écran dédié directement (la RLS bloque déjà
           // les écritures côté serveur, ceci est l'UX).

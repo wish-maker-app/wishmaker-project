@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { errorMessage } from '../../lib/uiError'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
+import { fetchMyProfile } from '../../lib/userProfile'
 import useAuthStore from '../../store/authStore'
 import { applyPurchase } from '../../lib/stripe'
 import PaymentForm from './PaymentForm'
@@ -21,9 +22,9 @@ export default function WishPackModal({ open, onClose, onSuccess }) {
     try {
       await applyPurchase(paymentIntent.id)
 
-      // Refresh profile local depuis BDD
-      const { data: updated } = await supabase
-        .from('users').select('*').eq('id', profile.id).single()
+      // Refresh profile local depuis BDD (quota/pack_slots : colonnes privées,
+      // donc via la RPC get_my_profile)
+      const updated = await fetchMyProfile()
       if (updated) useAuthStore.getState().setProfile(updated)
 
       toast.success(`🎉 ${pack.wishes} vœux ajoutés à votre compte !`)

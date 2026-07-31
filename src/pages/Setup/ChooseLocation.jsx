@@ -7,6 +7,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
+import { fetchMyProfile } from '../../lib/userProfile'
 import useAuthStore from '../../store/authStore'
 import Header from '../../components/layout/Header'
 import Button from '../../components/ui/Button'
@@ -190,11 +191,7 @@ export default function ChooseLocation() {
         .eq('id', user.id)
       if (error) throw error
 
-      const { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+      const profile = await fetchMyProfile()
       if (profile) useAuthStore.getState().setProfile(profile)
 
       navigate('/maker', { replace: true })
