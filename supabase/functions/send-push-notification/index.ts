@@ -154,22 +154,24 @@ async function encryptPayload(
   // Salt
   const salt = crypto.getRandomValues(new Uint8Array(16))
 
-  // HKDF-based key derivation (RFC 8291)
-  const authInfo = new TextEncoder().encode('Content-Encoding: auth\0')
-  const prkKey = await crypto.subtle.importKey('raw', sharedSecret, { name: 'HKDF' }, false, ['deriveBits'])
-
-  // IKM = HKDF(auth, sharedSecret, "Content-Encoding: auth\0", 32)
+  // HKDF-based key derivation (RFC 8291 §3.4)
+  //   PRK_key = HMAC-SHA-256(auth_secret, ecdh_secret)   → HKDF-Extract(salt=auth, ikm=ecdh)
+  //   key_info = "WebPush: info" || 0x00 || ua_public || as_public
+  //   IKM     = HMAC-SHA-256(PRK_key, key_info || 0x01)  → HKDF-Expand(info=key_info, 32)
+  // Attention : le secret ECDH est l'IKM et le auth_secret est le SALT (et non
+  // l'inverse), et l'info est bien "WebPush: info\0"||ua||as — "Content-Encoding:
+  // auth\0" appartient à l'ancien schéma aesgcm (draft-04), pas à aes128gcm.
   const ikmInfo = new Uint8Array([
     ...new TextEncoder().encode('WebPush: info\0'),
     ...clientPublicKey,
     ...localPublicKeyRaw,
   ])
 
-  const authHkdfKey = await crypto.subtle.importKey('raw', clientAuth, { name: 'HKDF' }, false, ['deriveBits'])
+  const sharedSecretKey = await crypto.subtle.importKey('raw', sharedSecret, { name: 'HKDF' }, false, ['deriveBits'])
   const ikm = new Uint8Array(
     await crypto.subtle.deriveBits(
-      { name: 'HKDF', hash: 'SHA-256', salt: sharedSecret, info: authInfo },
-      authHkdfKey,
+      { name: 'HKDF', hash: 'SHA-256', salt: clientAuth, info: ikmInfo },
+      sharedSecretKey,
       256
     )
   )
