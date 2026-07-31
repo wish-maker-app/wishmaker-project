@@ -108,12 +108,14 @@ async function creerFacturePayee({ customerId, type, amountCents, paymentIntentI
       customer: customerId,
       invoice: invoice.id,
       currency: 'eur',
-      unit_amount: String(amountCents),
+      // unit_amount n'existe pas sur /invoiceitems (contrairement a /prices) :
+      // l'API attend unit_amount_decimal, en centimes, sous forme de chaine.
+      unit_amount_decimal: String(amountCents),
       quantity: '1',
       description: `${libelle} (achat du ${dateAchat})`,
       'tax_rates[0]': taxRateId,
     },
-    idempotencyKey: `wm_invitem_${paymentIntentId}`,
+    idempotencyKey: `wm_invitem2_${paymentIntentId}`,
   })
 
   await stripeApi(`/invoices/${invoice.id}/finalize_invoice`, {
@@ -147,7 +149,10 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Forbidden — service_role requis' }, 403)
   }
 
-  const { dry_run = true } = await req.json().catch(() => ({}))
+  // limit : permet de valider le rendu d'UNE facture reelle avant de lancer le
+  // lot complet. Un dry_run ne suffit pas — il n'exerce jamais le chemin
+  // d'ecriture Stripe, donc il ne detecte pas une erreur de parametre d'API.
+  const { dry_run = true, limit = null } = await req.json().catch(() => ({}))
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
   // Ordre CHRONOLOGIQUE : les numeros de facture Stripe sont sequentiels, ils
@@ -168,6 +173,7 @@ Deno.serve(async (req: Request) => {
   let echecs = 0
 
   for (const tx of rows || []) {
+    if (limit !== null && crees >= limit) break
     const dateAchat = String(tx.created_at).slice(0, 10)
     try {
       // Garde-fou : on ne facture que ce qui est reellement encaisse cote

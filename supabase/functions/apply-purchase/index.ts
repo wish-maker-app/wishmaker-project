@@ -120,12 +120,14 @@ async function creerFacturePayee(opts: {
       customer: opts.customerId,
       invoice: invoice.id,
       currency: 'eur',
-      unit_amount: String(opts.amountCents),
+      // unit_amount n'existe pas sur /invoiceitems (contrairement a /prices) :
+      // l'API attend unit_amount_decimal, en centimes, sous forme de chaine.
+      unit_amount_decimal: String(opts.amountCents),
       quantity: '1',
       description: libelle,
       'tax_rates[0]': opts.taxRateId,
     },
-    idempotencyKey: `wm_invitem_${opts.paymentIntentId}`,
+    idempotencyKey: `wm_invitem2_${opts.paymentIntentId}`,
   })
 
   // Finalisation : c'est ce qui attribue le numero de facture et genere le PDF.
