@@ -53,3 +53,16 @@ begin
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;
 end $$;
+
+-- ⚠️  Dépendances de get_wish_config().
+--
+-- Exclure get_wish_config() de la boucle ne suffit PAS : elle n'est pas
+-- SECURITY DEFINER, donc elle s'exécute avec les droits de l'appelant et
+-- appelle wish_duration() et urgent_duration(). Sans ces deux GRANT, l'appel
+-- anonyme au démarrage de l'app renvoie 401 (constaté en production sur
+-- POST /rest/v1/rpc/get_wish_config, 200 avant le verrouillage).
+--
+-- Ces deux fonctions ne renvoient que des constantes
+-- (INTERVAL '7 days' / INTERVAL '24 hours') : aucune donnée exposée.
+grant execute on function public.wish_duration()   to anon;
+grant execute on function public.urgent_duration() to anon;
