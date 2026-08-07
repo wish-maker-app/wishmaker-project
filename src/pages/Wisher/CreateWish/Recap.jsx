@@ -473,7 +473,7 @@ export default function Recap() {
                       ? { background: '#F59E0B', color: '#fff' }
                       : { background: '#FFF4E0', color: '#F59E0B' }
                     }>
-                    0,99€
+                    1,99€
                   </span>
                   {/* Toggle switch */}
                   <div className="w-11 h-6 rounded-full p-0.5 transition-colors"
@@ -527,7 +527,7 @@ export default function Recap() {
                 <h2 className="text-lg font-bold text-[#1A1A2E]">{t('wisher.create.recap.modal_urgent_titre')}</h2>
                 <p className="text-sm text-[#8A8A9A] mt-1">
                   {urgentWishId
-                    ? 'Paiement s\u00E9curis\u00E9 de 0,99 \u20AC pour mettre ton v\u0153u en avant 24h.'
+                    ? 'Paiement s\u00E9curis\u00E9 de 1,99 \u20AC pour mettre ton v\u0153u en avant 24h.'
                     : t('wisher.create.recap.modal_urgent_sub')}
                 </p>
               </div>
@@ -538,7 +538,7 @@ export default function Recap() {
                       <p className="text-sm font-bold text-[#1A1A2E]">{t('wisher.create.recap.modal_urgent_option')}</p>
                       <p className="text-xs text-[#8A8A9A]">{t('wisher.create.recap.modal_urgent_option_sub')}</p>
                     </div>
-                    <p className="text-xl font-bold text-[#F59E0B]">0,99€</p>
+                    <p className="text-xl font-bold text-[#F59E0B]">1,99€</p>
                   </div>
                   <button
                     onClick={prepareUrgentPayment}
@@ -565,7 +565,7 @@ export default function Recap() {
                 <PaymentForm
                   type="urgent_boost"
                   wish_id={urgentWishId}
-                  submitLabel="Payer 0,99 €"
+                  submitLabel="Payer 1,99 €"
                   onSuccess={async (pi) => {
                     try { await applyPurchase(pi.id) } catch (e) { console.error('[urgent applyPurchase]', e) }
                     finishUrgentFlow(true)

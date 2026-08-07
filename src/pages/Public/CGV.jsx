@@ -71,7 +71,7 @@ export default function CGV() {
                 <li><strong className="font-semibold text-[#1A1A2E]">Pack Starter</strong> — 2,99&nbsp;€ TTC : crédit de vœux supplémentaires</li>
                 <li><strong className="font-semibold text-[#1A1A2E]">Pack Essentiel</strong> — 5,99&nbsp;€ TTC : crédit de vœux supplémentaires</li>
                 <li><strong className="font-semibold text-[#1A1A2E]">Pack Pro</strong> — 9,99&nbsp;€ TTC : crédit de vœux supplémentaires</li>
-                <li><strong className="font-semibold text-[#1A1A2E]">Option « Urgent »</strong> — 0,99&nbsp;€ TTC : mise en avant prioritaire d'un vœu pendant sa durée de vie</li>
+                <li><strong className="font-semibold text-[#1A1A2E]">Option « Urgent »</strong> — 1,99&nbsp;€ TTC : mise en avant prioritaire d'un vœu pendant sa durée de vie</li>
                 <li><strong className="font-semibold text-[#1A1A2E]">Option « Prolongation »</strong> — 0,99&nbsp;€ TTC : extension de la durée de vie d'un vœu</li>
               </ul>
               <p>
