@@ -96,7 +96,7 @@ function MapCenterUpdater({ center }) {
 }
 
 function SmallAvatar({ user, size = 28 }) {
-  const initials = `${user.prenom[0]}${user.nom[0]}`
+  const initials = `${user?.prenom?.[0] || ''}${user?.nom?.[0] || ''}`
   if (user.avatar_url) {
     return (
       <img

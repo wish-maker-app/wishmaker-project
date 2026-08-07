@@ -590,7 +590,7 @@ export default function WisherHome() {
             ) : (
               <div className="w-full h-full flex items-center justify-center font-bold text-white text-sm"
                 style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>
-                {user.prenom[0]}{user.nom[0]}
+                {user?.prenom?.[0] || ''}{user?.nom?.[0] || ''}
               </div>
             )}
           </div>

@@ -259,7 +259,7 @@ export default function EditProfile() {
               ) : (
                 <div className="w-full h-full flex items-center justify-center font-bold text-white text-2xl"
                   style={{ background: 'linear-gradient(135deg,#5B6BF5,#9B59F5)' }}>
-                  {profile.prenom[0]}{profile.nom[0]}
+                  {profile?.prenom?.[0] || ''}{profile?.nom?.[0] || ''}
                 </div>
               )}
               {uploading && (

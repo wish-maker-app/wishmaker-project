@@ -22,7 +22,7 @@ function saveHistory(history) {
 }
 
 function Avatar({ user, size = 36 }) {
-  const initials = `${user.prenom[0]}${user.nom[0]}`
+  const initials = `${user?.prenom?.[0] || ''}${user?.nom?.[0] || ''}`
   return (
     <div
       className="rounded-full flex items-center justify-center flex-shrink-0 font-bold text-white text-xs"

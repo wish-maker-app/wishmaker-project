@@ -18,7 +18,7 @@ const SWIPE_REVEAL = 80  // px que le bouton occupe quand révélé
 const SWIPE_THRESHOLD = 50  // px minimum à draguer pour snap ouvert
 
 function Avatar({ user, size = 52 }) {
-  const initials = `${user.prenom[0]}${user.nom[0]}`
+  const initials = `${user?.prenom?.[0] || ''}${user?.nom?.[0] || ''}`
   return (
     <div className="relative flex-shrink-0">
       <div
