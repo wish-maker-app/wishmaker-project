@@ -95,9 +95,13 @@ export function useWishes() {
       // lancer une requête anonyme vouée à revenir vide.
       const session = await ensureFreshSession()
       if (!session) throw new Error('NO_SESSION')
+      // Feed public : on lit la VUE wishes_public (coordonnees floutees ~150-300m,
+      // adresse exacte masquee). Elle porte deja les donnees liees (wish_images,
+      // wish_tags, wisher...) en JSON au meme format que les jointures, donc
+      // normalizeWish fonctionne sans changement et un simple select('*') suffit.
       const { data, error } = await withTimeout(supabase
-        .from('wishes')
-        .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
+        .from('wishes_public')
+        .select('*')
         .eq('statut', 'en_attente')
         .gte('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false }))
@@ -115,13 +119,14 @@ export function useWishes() {
     try {
       const session = await ensureFreshSession()
       if (!session) throw new Error('NO_SESSION')
+      // Profil d'un autre utilisateur → vue publique (coords floutees).
       // On retourne TOUS les statuts (sauf pending_payment qui sont des drafts
       // non publiés). Sinon impossible de calculer les compteurs "Réalisés" /
       // "Actifs" sur la page profil — la consommation en aval (UserWishes.jsx)
       // se charge du tri/filtre selon ce qu'elle veut afficher.
       const { data, error } = await withTimeout(supabase
-        .from('wishes')
-        .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
+        .from('wishes_public')
+        .select('*')
         .eq('wisher_id', userId)
         .neq('statut', 'pending_payment')
         .order('created_at', { ascending: false }))
@@ -145,12 +150,29 @@ export function useWishes() {
       // donnerait un spinner infini. Le race garantit que la promesse se
       // resout/rejette toujours en < 4s, quelle que soit la cause. L'appelant
       // (WishDetail) gere le retry automatique.
-      const { data, error } = await withTimeout(supabase
+      // On tente d'abord la TABLE : elle ne renvoie la ligne (coords EXACTES,
+      // adresse) que si l'utilisateur en est le proprietaire (apres verrouillage
+      // RLS 2.3). Necessaire pour l'edition du voeu (EditWish re-sauvegarde
+      // adresse/lat/lng, qui doivent rester exacts).
+      let { data } = await withTimeout(supabase
         .from('wishes')
         .select(`*, wish_images(url, is_cover), wish_tags(tag), wish_tag_links(tag_id), category:categories(slug), wisher:users!wisher_id(id, prenom, nom, pseudo, type_compte, rating, is_online, avatar_url)`)
         .eq('id', id)
-        .single())
-      if (error) throw error
+        .maybeSingle())
+      // Pas proprietaire → on lit la VUE publique (coords floutees, sans adresse).
+      if (!data) {
+        const res = await withTimeout(supabase
+          .from('wishes_public')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle())
+        data = res.data
+      }
+      if (!data) {
+        const notFound = new Error('not found')
+        notFound.code = 'PGRST116'
+        throw notFound
+      }
       return cacheWish(normalizeWish(data))
     } finally {
       setLoading(false)
