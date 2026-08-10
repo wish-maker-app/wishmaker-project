@@ -191,7 +191,9 @@ export default function Chat() {
       import('../../lib/supabase').then(({ supabase }) => {
         supabase.from('users').select('id, prenom, nom, pseudo, avatar_url, is_online, rating').eq('id', draftWisherId).single()
           .then(({ data }) => { if (data) setInterlocuteur(data) })
-        supabase.from('wishes').select('id, titre, statut, type_recompense, montant_recompense, prestation_type, prestation_montant, wish_images(url, is_cover), category:categories(slug)').eq('id', draftWishId).single()
+        // Vue publique (le Maker n'est pas encore participant de la conversation
+        // en mode brouillon) : coords floutées, wish_images/category en JSON.
+        supabase.from('wishes_public').select('id, titre, statut, type_recompense, montant_recompense, prestation_type, prestation_montant, wish_images, category').eq('id', draftWishId).single()
           .then(({ data }) => {
             if (data) {
               setWishTitre(data.titre || '')
