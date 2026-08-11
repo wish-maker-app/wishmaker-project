@@ -90,6 +90,31 @@ export default function Chat() {
   const draftWisherId = searchParams.get('wisherId')
   const [input, setInput] = useState('')
   const scrollRef = useRef(null)
+
+  // Fix clavier iOS PWA : en mode standalone, iOS ne rétrécit pas la page quand
+  // le clavier s'ouvre, il FAIT DÉFILER toute la webview vers le haut → le
+  // header sortait de l'écran. Solution : on détache le Chat du flux (position
+  // fixe) et on le colle à la zone réellement visible en suivant à la fois la
+  // hauteur (écran - clavier) ET le décalage vertical (offsetTop) appliqués par
+  // iOS. Résultat : header fixe en haut, input juste au-dessus du clavier.
+  // Sans visualViewport (desktop, vieux navigateurs) → layout 100dvh normal.
+  const [vv, setVv] = useState(null) // { height, offsetTop } ou null
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
+    const sync = () => {
+      setVv({ height: viewport.height, offsetTop: viewport.offsetTop })
+      // Recolle la conversation en bas quand la géométrie change (clavier).
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
+    }
+    viewport.addEventListener('resize', sync)
+    viewport.addEventListener('scroll', sync)
+    sync()
+    return () => {
+      viewport.removeEventListener('resize', sync)
+      viewport.removeEventListener('scroll', sync)
+    }
+  }, [])
   // Garde anti double-envoi : empêche qu'un re-clic (pendant que le 1er envoi
   // est en cours) ne reparte. Combiné au vidage immédiat du champ ci-dessous.
   const sendingRef = useRef(false)
@@ -450,7 +475,19 @@ export default function Chat() {
     !!markedRealizedBy && convData?.maker_id === markedRealizedBy
 
   return (
-    <div className="h-screen bg-[#FAFAFA] flex flex-col">
+    <div
+      className={`bg-[#FAFAFA] flex flex-col${vv ? '' : ' h-screen'}`}
+      style={vv ? {
+        position: 'fixed',
+        top: 0,
+        left: '50%',
+        width: '100%',
+        maxWidth: '430px',
+        height: `${vv.height}px`,
+        transform: `translateX(-50%) translateY(${vv.offsetTop}px)`,
+        paddingTop: 'env(safe-area-inset-top)',
+      } : undefined}
+    >
 
       {/* Header */}
       <div className="bg-white px-4 pt-4 pb-3 flex items-center gap-3 border-b border-[#F0F0F0]">
