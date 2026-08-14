@@ -28,6 +28,12 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false)
   const [acceptCGU, setAcceptCGU] = useState(false)
   const [emailConsent, setEmailConsent] = useState(false)
+  // Confirmation email : quand Supabase exige la validation, signUp ne renvoie
+  // pas de session → on bascule sur l'écran « vérifie ta boîte mail » au lieu
+  // de poursuivre vers /setup.
+  const [emailSent, setEmailSent] = useState(false)
+  const [pendingEmail, setPendingEmail] = useState('')
+  const [resending, setResending] = useState(false)
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
@@ -44,33 +50,99 @@ export default function Register() {
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
+        options: {
+          // Où revient l'utilisateur après avoir cliqué le lien de confirmation.
+          // RouteResolver (/) le renverra ensuite vers /setup/profil.
+          emailRedirectTo: `${window.location.origin}/`,
+          // Consentement CGU/CGV/Privacy + emails : transmis en métadonnées et
+          // persistés par le trigger handle_new_user (SECURITY DEFINER). Plus
+          // besoin d'écrire côté client → marche même sans session (email à
+          // confirmer), et retire une écriture client sur la table users.
+          data: {
+            cgu_accepted: true,
+            cgu_version: CGU_VERSION,
+            email_consent: emailConsent,
+          },
+        },
       })
       if (error) throw error
 
-      // Le trigger SQL handle_new_user() crée le profil minimal (email uniquement)
-      // Les champs prenom/nom/pseudo seront renseignés dans /setup/*
-      if (authData.session) {
-        useAuthStore.getState().setUser(authData.user)
-        // Tracer l'acceptation des CGU/CGV/Privacy (best-effort, non-bloquant)
-        const updates = {
-          cgu_accepted_at: new Date().toISOString(),
-          cgu_version: CGU_VERSION,
-        }
-        if (emailConsent) {
-          updates.email_consent = true
-          updates.email_consent_at = new Date().toISOString()
-        }
-        await supabase.from('users').update(updates).eq('id', authData.user.id)
-        const profile = await fetchMyProfile()
-        if (profile) useAuthStore.getState().setProfile(profile)
+      // Cas A — confirmation email requise : Supabase ne renvoie PAS de session.
+      // On affiche l'écran « vérifie ta boîte mail » (et NE poursuit pas vers
+      // /setup, qui échouerait sans session). Ce cas couvre aussi l'email déjà
+      // enregistré (Supabase renvoie un succès obfusqué anti-énumération).
+      if (!authData.session) {
+        setPendingEmail(data.email)
+        setEmailSent(true)
+        return
       }
 
-      // Redirection vers le tunnel setup (qui routera intelligemment selon ce qui manque)
+      // Cas B — confirmation désactivée (fallback) : session immédiate. Le trigger
+      // a déjà créé le profil minimal + consentement depuis les métadonnées.
+      useAuthStore.getState().setUser(authData.user)
+      const profile = await fetchMyProfile()
+      if (profile) useAuthStore.getState().setProfile(profile)
       navigate('/setup/profil', { replace: true })
     } catch (err) {
       console.error('[register] error:', err)
       toast.error(err.message || 'Erreur lors de la création du compte')
     } finally { setLoading(false) }
+  }
+
+  async function handleResend() {
+    if (!pendingEmail || resending) return
+    setResending(true)
+    try {
+      const { error } = await supabase.auth.resend({ type: 'signup', email: pendingEmail })
+      if (error) throw error
+      toast.success('Email de confirmation renvoyé')
+    } catch (err) {
+      toast.error(err.message || 'Impossible de renvoyer l\'email')
+    } finally { setResending(false) }
+  }
+
+  // ─── Écran de confirmation : « vérifie ta boîte mail » ───
+  if (emailSent) {
+    return (
+      <AuthShell>
+        <div className="min-h-screen mx-auto max-w-[480px] flex flex-col lg:max-w-[460px]">
+          <Header title="S'inscrire" />
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            className="flex-1 flex flex-col items-center text-center px-6 pt-8 gap-5"
+          >
+            <div className="w-20 h-20 rounded-3xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg,#EEF0FF,#E8E0FF)' }}>
+              <span className="text-4xl">✉️</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <h1 className="text-[#1A1A2E] font-bold text-2xl">Vérifie ta boîte mail</h1>
+              <p className="text-[#8A8A9A] text-sm leading-relaxed">
+                On a envoyé un lien de confirmation à<br />
+                <span className="font-semibold text-[#1A1A2E]">{pendingEmail}</span>.
+              </p>
+              <p className="text-[#8A8A9A] text-sm leading-relaxed mt-1">
+                Clique sur le lien pour activer ton compte, puis reviens finaliser ton profil.
+                Pense à regarder dans les spams.
+              </p>
+            </div>
+
+            <div className="w-full flex flex-col gap-3 pt-2">
+              <Button type="button" loading={resending} onClick={handleResend}>
+                Renvoyer l'email
+              </Button>
+              <button
+                type="button"
+                onClick={() => navigate('/auth/login')}
+                className="text-sm text-[#8A8A9A] font-medium py-2"
+              >
+                Retour à la connexion
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </AuthShell>
+    )
   }
 
   return (
