@@ -151,7 +151,14 @@ export async function warmupConnection() {
   try {
     const ctrl = new AbortController()
     const t = setTimeout(() => ctrl.abort(), 2500)
-    await window.fetch(`${supabaseUrl}/auth/v1/health`, { signal: ctrl.signal, cache: 'no-store' }).catch(() => {})
+    // apikey : sans elle, /auth/v1/health répond 401 → spammait la console
+    // d'erreurs (inoffensives, mais elles masquaient les vraies). Avec la clé
+    // anon → 200. Le but (rouvrir la connexion zombie) est inchangé.
+    await window.fetch(`${supabaseUrl}/auth/v1/health`, {
+      signal: ctrl.signal,
+      cache: 'no-store',
+      headers: { apikey: supabaseAnonKey },
+    }).catch(() => {})
     clearTimeout(t)
   } catch { /* best-effort */ }
 }
