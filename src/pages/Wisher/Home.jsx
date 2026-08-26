@@ -759,7 +759,7 @@ export default function WisherHome() {
                         </div>
                       )}
                       <p className="text-xs text-[#1A1A2E] leading-snug line-clamp-3">
-                        « {w.titre} »
+                        {w.titre}
                       </p>
                     </div>
                   )
