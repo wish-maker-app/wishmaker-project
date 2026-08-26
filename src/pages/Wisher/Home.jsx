@@ -291,7 +291,7 @@ export default function WisherHome() {
   const user = useAuthStore((s) => s.profile)
   const authTick = useAuthStore((s) => s.authTick)
   const wishDurationHours = useConfigStore((s) => s.wish_duration_hours)
-  const { getMyWishes, extendWish, makeUrgent, deleteWish, confirmRealization } = useWishes()
+  const { getMyWishes, extendWish, makeUrgent, deleteWish, confirmRealization, getRealizedWishes } = useWishes()
   // Hydratation depuis le cache (évite l'écran vide à chaque retour sur la page)
   const [wishes, setWishes] = useState(() => getCached('my_wishes')?.value || [])
   const [loading, setLoading] = useState(() => !getCached('my_wishes'))
@@ -301,6 +301,19 @@ export default function WisherHome() {
   const [showPackModal, setShowPackModal] = useState(false)
   const [paymentModal, setPaymentModal] = useState(null) // { type, wish_id, label }
   const [showTip, setShowTip] = useState(() => localStorage.getItem('wishmaker-tip-dismissed') !== 'true')
+
+  // Carrousel « vœux réalisés » (preuve sociale). Lit la vue publique floutée ;
+  // fallback sur les exemples statiques tant qu'aucun vœu réalisé → jamais vide.
+  const [realized, setRealized] = useState([])
+  const [realizedLoaded, setRealizedLoaded] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    getRealizedWishes(10).then((list) => {
+      if (!cancelled) { setRealized(list); setRealizedLoaded(true) }
+    })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ─── Drag-to-scroll horizontal pour le carrousel exemples (desktop uniquement) ───
   // Sur mobile/tablette le swipe natif fonctionne deja. Sur desktop, par defaut
@@ -716,40 +729,68 @@ export default function WisherHome() {
             coïncide avec le bord de la card malgré le px-5 du conteneur). */}
         <div className="mb-5">
           <p className="px-5 text-xs font-semibold text-[#8A8A9A] uppercase tracking-wide mb-2">
-            {t('wisher.home.exemples_titre')}
+            {t('wisher.home.realises_titre')}
           </p>
           <div
             ref={examplesRef}
             className="flex gap-3 overflow-x-auto px-5 pb-2 snap-x snap-mandatory scrollbar-hide"
             style={{ scrollPaddingLeft: '20px', scrollPaddingRight: '20px' }}
           >
-            {(() => {
-              // Recupere les textes traduits depuis i18n (fallback array vide)
-              const texts = t('wisher.home.exemples', { returnObjects: true })
-              const exemples = Array.isArray(texts) ? texts : []
-              return exemples.map((text, i) => {
-                const slug = WISH_EXAMPLE_SLUGS[i] || 'autre'
-                const Icon = CATEGORY_ICONS[slug]
-                const theme = CATEGORY_COLORS[slug]
-                return (
-                  <div
-                    key={i}
-                    className="flex-shrink-0 w-[260px] rounded-2xl bg-white border border-[#F0F0F0] p-3 flex items-center gap-3 snap-start"
-                    style={{ scrollSnapStop: 'always' }}
-                  >
+            {realizedLoaded && realized.length
+              ? realized.map((w) => {
+                  const cover = w.images?.find((im) => im.is_cover)?.url || w.images?.[0]?.url
+                  const slug = w.category_slug
+                  const Icon = CATEGORY_ICONS[slug]
+                  const theme = CATEGORY_COLORS[slug] || CATEGORY_COLORS.exauce
+                  return (
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
-                      style={{ background: theme?.grad }}
+                      key={w.id}
+                      className="flex-shrink-0 w-[260px] rounded-2xl bg-white border border-[#F0F0F0] p-3 flex items-center gap-3 snap-start"
+                      style={{ scrollSnapStop: 'always' }}
                     >
-                      {Icon && <Icon size={20} stroke={2.2} />}
+                      {cover ? (
+                        <img src={cover} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                      ) : (
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
+                          style={{ background: theme.grad }}
+                        >
+                          {Icon ? <Icon size={20} stroke={2.2} /> : <span className="text-base">✨</span>}
+                        </div>
+                      )}
+                      <p className="text-xs text-[#1A1A2E] leading-snug line-clamp-3">
+                        « {w.titre} »
+                      </p>
                     </div>
-                    <p className="text-xs text-[#1A1A2E] leading-snug line-clamp-3">
-                      « {text} »
-                    </p>
-                  </div>
-                )
-              })
-            })()}
+                  )
+                })
+              : (() => {
+                  // Fallback tant qu'aucun vœu réalisé : exemples statiques i18n.
+                  const texts = t('wisher.home.exemples', { returnObjects: true })
+                  const exemples = Array.isArray(texts) ? texts : []
+                  return exemples.map((text, i) => {
+                    const slug = WISH_EXAMPLE_SLUGS[i] || 'autre'
+                    const Icon = CATEGORY_ICONS[slug]
+                    const theme = CATEGORY_COLORS[slug]
+                    return (
+                      <div
+                        key={i}
+                        className="flex-shrink-0 w-[260px] rounded-2xl bg-white border border-[#F0F0F0] p-3 flex items-center gap-3 snap-start"
+                        style={{ scrollSnapStop: 'always' }}
+                      >
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
+                          style={{ background: theme?.grad }}
+                        >
+                          {Icon && <Icon size={20} stroke={2.2} />}
+                        </div>
+                        <p className="text-xs text-[#1A1A2E] leading-snug line-clamp-3">
+                          « {text} »
+                        </p>
+                      </div>
+                    )
+                  })
+                })()}
           </div>
         </div>
 

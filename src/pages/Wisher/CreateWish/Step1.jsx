@@ -11,6 +11,10 @@ import Input from '../../../components/ui/Input'
 import useWishFormStore from '../../../store/wishFormStore'
 import { checkContent } from '../../../lib/moderation'
 import { useCatalog } from '../../../hooks/useTags'
+import { CATEGORY_ICONS, CATEGORY_COLORS } from '../../../lib/categoryIcons'
+
+// Slugs des exemples de vœux (icône + couleur par exemple) — alignés sur l'accueil.
+const WISH_EXAMPLE_SLUGS = ['delegue', 'sauve', 'exauce', 'soin', 'divertis', 'transport']
 
 // Schema-factory : on crée le schema à chaque render avec les messages traduits
 function buildSchema(t) {
@@ -128,6 +132,42 @@ export default function Step1() {
         animate={{ opacity: 1, y: 0 }}
         className="flex-1 flex flex-col px-5 pt-2 pb-10 gap-5"
       >
+        {/* Exemples de vœux — inspiration pour rédiger, au-dessus du titre. */}
+        <div>
+          <p className="text-xs font-semibold text-[#8A8A9A] uppercase tracking-wide mb-2">
+            {t('wisher.home.exemples_titre')}
+          </p>
+          <div
+            className="flex gap-3 overflow-x-auto -mx-5 px-5 pb-1 snap-x snap-mandatory scrollbar-hide"
+            style={{ scrollPaddingLeft: '20px', scrollPaddingRight: '20px' }}
+          >
+            {(() => {
+              const texts = t('wisher.home.exemples', { returnObjects: true })
+              const exemples = Array.isArray(texts) ? texts : []
+              return exemples.map((text, i) => {
+                const slug = WISH_EXAMPLE_SLUGS[i] || 'exauce'
+                const Icon = CATEGORY_ICONS[slug]
+                const theme = CATEGORY_COLORS[slug]
+                return (
+                  <div
+                    key={i}
+                    className="flex-shrink-0 w-[260px] rounded-2xl bg-white border border-[#F0F0F0] p-3 flex items-center gap-3 snap-start"
+                    style={{ scrollSnapStop: 'always' }}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
+                      style={{ background: theme?.grad }}
+                    >
+                      {Icon && <Icon size={20} stroke={2.2} />}
+                    </div>
+                    <p className="text-xs text-[#1A1A2E] leading-snug line-clamp-3">« {text} »</p>
+                  </div>
+                )
+              })
+            })()}
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 flex-1">
           <Input
             label={t('wisher.create.step1.label_titre')}

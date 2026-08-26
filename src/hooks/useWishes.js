@@ -402,5 +402,28 @@ export function useWishes() {
     if (error) throw error
   }
 
-  return { loading, getMyWishes, getAvailableWishes, getWishesByUser, getWishById, createWish, updateWish, updateWishStatus, extendWish, makeUrgent, markWishRealized, markRealizedByMaker, confirmRealization, submitRating, getUserRating, deleteWish }
+  // Vitrine « vœux réalisés » (preuve sociale, ex. carrousel de la page d'accueil).
+  // Lit la VUE publique wishes_public (coords floutées, adresse masquée) → aucune
+  // fuite de données, même mécanisme que le feed. Renvoie [] en cas d'erreur pour
+  // que l'appelant puisse retomber sur un fallback (exemples statiques).
+  async function getRealizedWishes(max = 10) {
+    try {
+      const { data, error } = await withTimeout(supabase
+        .from('wishes_public')
+        .select('*')
+        .eq('statut', 'realise')
+        // Tri par DATE DE RÉALISATION (marked_realized_at), pas de création →
+        // « les plus récemment réalisés ». nullsFirst:false : un rare vœu passé
+        // en réalisé sans passer par le marquage arrive en fin de liste.
+        .order('marked_realized_at', { ascending: false, nullsFirst: false })
+        .limit(max))
+      if (error) throw error
+      return (data || []).map(normalizeWish)
+    } catch (e) {
+      console.warn('[getRealizedWishes]', e?.message)
+      return []
+    }
+  }
+
+  return { loading, getMyWishes, getAvailableWishes, getWishesByUser, getWishById, createWish, updateWish, updateWishStatus, extendWish, makeUrgent, markWishRealized, markRealizedByMaker, confirmRealization, submitRating, getUserRating, deleteWish, getRealizedWishes }
 }
