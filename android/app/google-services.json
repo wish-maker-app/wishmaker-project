@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "451353572251",
+    "project_id": "wish-maker-6c3ee",
+    "storage_bucket": "wish-maker-6c3ee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451353572251:android:45737fad362dbc6387273e",
+        "android_client_info": {
+          "package_name": "fr.wishmaker.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYg5ad87J0zQAdoKpIFoCnwcScs2INGx8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
