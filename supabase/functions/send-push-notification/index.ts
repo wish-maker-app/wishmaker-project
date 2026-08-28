@@ -1,5 +1,6 @@
 // Supabase Edge Function — send-push-notification
-// Envoie des notifications push via Web Push Protocol (RFC 8291)
+// Envoie des notifications push via Web Push Protocol (RFC 8291) pour le web,
+// et via FCM HTTP v1 pour les apps natives (Capacitor Android/iOS).
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -47,15 +48,7 @@ async function createVapidJwt(endpoint: string): Promise<string> {
   const payloadB64 = base64url(new TextEncoder().encode(JSON.stringify(payload)))
   const unsignedToken = `${headerB64}.${payloadB64}`
 
-  // Import VAPID private key
-  const rawKey = base64urlToUint8Array(VAPID_PRIVATE_KEY)
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    await convertRawToP8(rawKey),
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    false,
-    ['sign']
-  )
+  const cryptoKey = await importVapidSigningKey()
 
   const signature = await crypto.subtle.sign(
     { name: 'ECDSA', hash: 'SHA-256' },
@@ -100,19 +93,34 @@ function derToRaw(der: Uint8Array): Uint8Array {
   return raw
 }
 
-async function convertRawToP8(raw32: Uint8Array): Promise<ArrayBuffer> {
-  // PKCS#8 wrapper for EC P-256 private key (32 bytes raw)
-  const prefix = new Uint8Array([
-    0x30, 0x41, 0x02, 0x01, 0x00, 0x30, 0x13, 0x06,
-    0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01,
-    0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03,
-    0x01, 0x07, 0x04, 0x27, 0x30, 0x25, 0x02, 0x01,
-    0x01, 0x04, 0x20
-  ])
-  const result = new Uint8Array(prefix.length + raw32.length)
-  result.set(prefix)
-  result.set(raw32, prefix.length)
-  return result.buffer
+// Import de la clé privée VAPID (ES256) pour signer le JWT.
+// Historique : les 32 octets bruts étaient emballés dans un PKCS#8 construit à
+// la main, sans le champ publicKey [1] de l'ECPrivateKey (RFC 5915) — que
+// l'implémentation ECDSA de Deno exige. importKey levait « InvalidEncoding » à
+// CHAQUE appel : aucun JWT n'était signé, donc aucune push n'a jamais été
+// envoyée. Le format JWK reconstruit la paire depuis les deux secrets sans DER
+// manuel, et échoue explicitement si la publique ne correspond pas à la privée.
+let vapidSigningKey: CryptoKey | null = null
+
+async function importVapidSigningKey(): Promise<CryptoKey> {
+  if (vapidSigningKey) return vapidSigningKey
+  const pub = base64urlToUint8Array(VAPID_PUBLIC_KEY)
+  const priv = base64urlToUint8Array(VAPID_PRIVATE_KEY)
+  vapidSigningKey = await crypto.subtle.importKey(
+    'jwk',
+    {
+      kty: 'EC',
+      crv: 'P-256',
+      d: base64url(priv),
+      x: base64url(pub.slice(1, 33)), // pub = 0x04 || X(32) || Y(32)
+      y: base64url(pub.slice(33, 65)),
+      ext: false,
+    },
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    false,
+    ['sign']
+  )
+  return vapidSigningKey
 }
 
 // ── Chiffrement du payload (RFC 8291 — aes128gcm) ──
@@ -157,22 +165,24 @@ async function encryptPayload(
   // Salt
   const salt = crypto.getRandomValues(new Uint8Array(16))
 
-  // HKDF-based key derivation (RFC 8291)
-  const authInfo = new TextEncoder().encode('Content-Encoding: auth\0')
-  const prkKey = await crypto.subtle.importKey('raw', sharedSecret, { name: 'HKDF' }, false, ['deriveBits'])
-
-  // IKM = HKDF(auth, sharedSecret, "Content-Encoding: auth\0", 32)
+  // HKDF-based key derivation (RFC 8291 §3.4)
+  //   PRK_key = HMAC-SHA-256(auth_secret, ecdh_secret)   → HKDF-Extract(salt=auth, ikm=ecdh)
+  //   key_info = "WebPush: info" || 0x00 || ua_public || as_public
+  //   IKM     = HMAC-SHA-256(PRK_key, key_info || 0x01)  → HKDF-Expand(info=key_info, 32)
+  // Attention : le secret ECDH est l'IKM et le auth_secret est le SALT (et non
+  // l'inverse), et l'info est bien "WebPush: info\0"||ua||as — "Content-Encoding:
+  // auth\0" appartient à l'ancien schéma aesgcm (draft-04), pas à aes128gcm.
   const ikmInfo = new Uint8Array([
     ...new TextEncoder().encode('WebPush: info\0'),
     ...clientPublicKey,
     ...localPublicKeyRaw,
   ])
 
-  const authHkdfKey = await crypto.subtle.importKey('raw', clientAuth, { name: 'HKDF' }, false, ['deriveBits'])
+  const sharedSecretKey = await crypto.subtle.importKey('raw', sharedSecret, { name: 'HKDF' }, false, ['deriveBits'])
   const ikm = new Uint8Array(
     await crypto.subtle.deriveBits(
-      { name: 'HKDF', hash: 'SHA-256', salt: sharedSecret, info: authInfo },
-      authHkdfKey,
+      { name: 'HKDF', hash: 'SHA-256', salt: clientAuth, info: ikmInfo },
+      sharedSecretKey,
       256
     )
   )
@@ -317,6 +327,40 @@ async function sendFcm(
   return res.status
 }
 
+// ── Diagnostic de la paire de clés VAPID ──
+// Cause d'échec classique et invisible : VAPID_PUBLIC_KEY (serveur) ne
+// correspond pas à VAPID_PRIVATE_KEY, ou pas à VITE_VAPID_PUBLIC_KEY (build
+// front). Le service push renvoie alors 401/403 et rien n'est jamais délivré.
+async function diagnoseVapid(): Promise<Record<string, unknown>> {
+  const out: Record<string, unknown> = {
+    publicKey: VAPID_PUBLIC_KEY,
+    publicKeyLength: VAPID_PUBLIC_KEY?.length ?? null,
+    privateKeyLength: VAPID_PRIVATE_KEY?.length ?? null,
+    email: VAPID_EMAIL,
+  }
+  try {
+    const pubRaw = base64urlToUint8Array(VAPID_PUBLIC_KEY)
+    const privRaw = base64urlToUint8Array(VAPID_PRIVATE_KEY)
+    out.publicKeyBytes = pubRaw.length
+    out.privateKeyBytes = privRaw.length
+    out.publicKeyFirstByte = pubRaw[0] // doit valoir 4 (point non compressé)
+
+    // Signer avec la privée, vérifier avec la publique : si la vérification
+    // échoue, les deux secrets ne forment pas une paire.
+    const privKey = await importVapidSigningKey()
+    const pubKey = await crypto.subtle.importKey(
+      'raw', pubRaw,
+      { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']
+    )
+    const msg = new TextEncoder().encode('vapid-pair-check')
+    const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privKey, msg)
+    out.keyPairMatches = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, pubKey, sig, msg)
+  } catch (err) {
+    out.keyPairError = String(err)
+  }
+  return out
+}
+
 // ── Autorisation ──
 // verify_jwt=true : le gateway Supabase a déjà vérifié la SIGNATURE du JWT
 // présent dans l'en-tête Authorization. On peut donc décoder ses claims en
@@ -356,6 +400,12 @@ serve(async (req) => {
 
     // Qui appelle ? (service_role = serveur/cron/webhook, authenticated = user connecté)
     const { role: callerRole, sub: callerId } = decodeJwtClaims(req.headers.get('Authorization'))
+
+    // Diagnostic réservé au service_role (jamais exposé aux clients).
+    if (body.diagnose === true) {
+      if (callerRole !== 'service_role') return jsonResponse({ error: 'Forbidden' }, 403)
+      return jsonResponse({ vapid: await diagnoseVapid() })
+    }
 
     let targetUserId: string
     let title: string
@@ -463,6 +513,9 @@ serve(async (req) => {
 
     const payload = JSON.stringify({ title, body: notifBody, url, tag: 'message', badge })
     let sent = 0
+    // Un échec d'envoi était jusqu'ici invisible ({ sent: 0 } sans explication).
+    // On collecte les causes pour pouvoir diagnostiquer depuis l'appelant.
+    const failures: Array<Record<string, unknown>> = []
 
     // Compte de service Firebase (pour les tokens natifs). Parsé une seule fois.
     let fcmSa: Record<string, string> | null = null
@@ -475,22 +528,29 @@ serve(async (req) => {
 
       // ── Push NATIF (Android/iOS) via FCM ──
       if (platform === 'android' || platform === 'ios') {
-        if (!fcmSa) continue // secret FCM non configuré → on ignore ces abonnés
+        if (!fcmSa) { failures.push({ id: sub.id, reason: 'FCM not configured' }); continue }
         try {
           const status = await sendFcm(fcmSa, sub.endpoint, title, notifBody, url, badge)
           if (status >= 200 && status < 300) {
             sent++
           } else if (status === 404) {
             await supabase.from('push_subscriptions').delete().eq('id', sub.id) // token mort
+            failures.push({ id: sub.id, status, reason: 'fcm token dead (deleted)' })
+          } else {
+            failures.push({ id: sub.id, status, reason: 'fcm failed' })
           }
         } catch (err) {
           console.error('FCM send error:', err)
+          failures.push({ id: sub.id, error: String(err) })
         }
         continue
       }
 
-      // ── Web Push (VAPID) — inchangé ──
-      if (!sub.p256dh || !sub.auth) continue
+      // ── Web Push (VAPID) ──
+      if (!sub.p256dh || !sub.auth) {
+        failures.push({ id: sub.id, reason: 'missing keys' })
+        continue
+      }
 
       try {
         const jwt = await createVapidJwt(sub.endpoint)
@@ -510,17 +570,30 @@ serve(async (req) => {
 
         if (response.ok || response.status === 201) {
           sent++
-        } else if (response.status === 410 || response.status === 404) {
-          await supabase.from('push_subscriptions').delete().eq('id', sub.id)
         } else {
-          console.error(`Push failed: ${response.status} ${await response.text()}`)
+          const text = await response.text()
+          console.error(`Push failed: ${response.status} ${text}`)
+          failures.push({
+            id: sub.id,
+            host: new URL(sub.endpoint).host,
+            status: response.status,
+            body: text.slice(0, 500),
+          })
+          // 404/410 : abonnement définitivement périmé côté service push.
+          if (response.status === 410 || response.status === 404) {
+            await supabase.from('push_subscriptions').delete().eq('id', sub.id)
+          }
         }
       } catch (err) {
         console.error('Push send error:', err)
+        failures.push({ id: sub.id, error: String(err) })
       }
     }
 
-    return jsonResponse({ sent })
+    // Les détails d'échec ne sont renvoyés qu'aux appelants serveur.
+    return jsonResponse(
+      callerRole === 'service_role' && failures.length ? { sent, failures } : { sent }
+    )
   } catch (err) {
     return jsonResponse({ error: err.message }, 400)
   }
