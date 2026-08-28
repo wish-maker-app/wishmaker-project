@@ -10,6 +10,9 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY')!
 const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')!
 const VAPID_EMAIL = Deno.env.get('VAPID_EMAIL') || 'contact@wishmaker.app'
+// Compte de service Firebase (JSON complet) — pour l'envoi des push NATIFS via
+// FCM. Stocké dans les secrets Supabase (jamais dans le code / git).
+const FCM_SERVICE_ACCOUNT = Deno.env.get('FCM_SERVICE_ACCOUNT')
 
 // CORS — indispensable pour les appels depuis le navigateur (ex. « Avertir »
 // dans l'admin). Sans réponse au preflight OPTIONS, le navigateur bloque le POST.
@@ -222,6 +225,98 @@ async function encryptPayload(
   return { encrypted: body, salt, localPublicKey: localPublicKeyRaw }
 }
 
+// ── FCM (push natif Android/iOS via Firebase Cloud Messaging HTTP v1) ──
+// On obtient un access token OAuth2 à partir du compte de service (JWT RS256),
+// mis en cache ~1h, puis on POST le message sur l'API FCM v1.
+
+let cachedFcm: { token: string; exp: number } | null = null
+
+function pemToDer(pem: string): Uint8Array {
+  const b64 = pem
+    .replace(/-----BEGIN [^-]+-----/, '')
+    .replace(/-----END [^-]+-----/, '')
+    .replace(/\s+/g, '')
+  const bin = atob(b64)
+  const der = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) der[i] = bin.charCodeAt(i)
+  return der
+}
+
+function b64urlJson(obj: unknown): string {
+  return base64url(new TextEncoder().encode(JSON.stringify(obj)))
+}
+
+async function getFcmAccessToken(sa: Record<string, string>): Promise<string> {
+  const now = Math.floor(Date.now() / 1000)
+  if (cachedFcm && cachedFcm.exp > now + 60) return cachedFcm.token
+
+  const header = { alg: 'RS256', typ: 'JWT' }
+  const claims = {
+    iss: sa.client_email,
+    scope: 'https://www.googleapis.com/auth/firebase.messaging',
+    aud: 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600,
+  }
+  const unsigned = `${b64urlJson(header)}.${b64urlJson(claims)}`
+
+  const key = await crypto.subtle.importKey(
+    'pkcs8',
+    pemToDer(sa.private_key),
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const sig = new Uint8Array(
+    await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(unsigned))
+  )
+  const jwt = `${unsigned}.${base64url(sig)}`
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+  })
+  const json = await res.json()
+  if (!json.access_token) throw new Error('FCM token error: ' + JSON.stringify(json))
+  cachedFcm = { token: json.access_token, exp: now + (json.expires_in || 3600) }
+  return json.access_token
+}
+
+// Envoie une notif à un token natif. Retourne le status HTTP FCM (404 = token
+// mort → l'appelant nettoie l'abonnement).
+async function sendFcm(
+  sa: Record<string, string>,
+  deviceToken: string,
+  title: string,
+  body: string,
+  url: string,
+  badge?: number,
+): Promise<number> {
+  const accessToken = await getFcmAccessToken(sa)
+  const message = {
+    message: {
+      token: deviceToken,
+      notification: { title, body },
+      data: { url }, // lu par pushNotificationActionPerformed (nativePush.js)
+      android: { priority: 'high', notification: { default_sound: true } },
+      apns: { payload: { aps: { sound: 'default', ...(badge ? { badge } : {}) } } },
+    },
+  }
+  const res = await fetch(
+    `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`,
+    {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(message),
+    },
+  )
+  if (!(res.status >= 200 && res.status < 300)) {
+    console.error(`FCM ${res.status}: ${await res.text()}`)
+  }
+  return res.status
+}
+
 // ── Autorisation ──
 // verify_jwt=true : le gateway Supabase a déjà vérifié la SIGNATURE du JWT
 // présent dans l'en-tête Authorization. On peut donc décoder ses claims en
@@ -369,7 +464,32 @@ serve(async (req) => {
     const payload = JSON.stringify({ title, body: notifBody, url, tag: 'message', badge })
     let sent = 0
 
+    // Compte de service Firebase (pour les tokens natifs). Parsé une seule fois.
+    let fcmSa: Record<string, string> | null = null
+    if (FCM_SERVICE_ACCOUNT) {
+      try { fcmSa = JSON.parse(FCM_SERVICE_ACCOUNT) } catch { console.error('FCM_SERVICE_ACCOUNT: JSON invalide') }
+    }
+
     for (const sub of subscriptions) {
+      const platform = sub.platform || 'web'
+
+      // ── Push NATIF (Android/iOS) via FCM ──
+      if (platform === 'android' || platform === 'ios') {
+        if (!fcmSa) continue // secret FCM non configuré → on ignore ces abonnés
+        try {
+          const status = await sendFcm(fcmSa, sub.endpoint, title, notifBody, url, badge)
+          if (status >= 200 && status < 300) {
+            sent++
+          } else if (status === 404) {
+            await supabase.from('push_subscriptions').delete().eq('id', sub.id) // token mort
+          }
+        } catch (err) {
+          console.error('FCM send error:', err)
+        }
+        continue
+      }
+
+      // ── Web Push (VAPID) — inchangé ──
       if (!sub.p256dh || !sub.auth) continue
 
       try {
