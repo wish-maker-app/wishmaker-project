@@ -6,6 +6,7 @@ import { fetchMyProfile } from '../lib/userProfile'
 import { requestPushPermission } from '../lib/pushNotifications'
 import useAuthStore from '../store/authStore'
 import { isSuspendedActive } from '../lib/suspension'
+import { Capacitor } from '@capacitor/core'
 import Landing from './Public/Landing'
 
 /**
@@ -37,7 +38,12 @@ export default function RouteResolver() {
   // persisté, on garde le spinner (résolution probable = redirection /maker).
   const [renderState, setRenderState] = useState(() => {
     try {
-      return useAuthStore.getState().user ? null : 'landing'
+      if (useAuthStore.getState().user) return null
+      // En NATIF (app installée), on n'affiche JAMAIS la landing marketing
+      // (elle est web only) : on garde le spinner le temps de router vers
+      // l'onboarding / l'auth → évite un flash de la page marketing.
+      if (Capacitor.isNativePlatform()) return null
+      return 'landing'
     } catch {
       return 'landing'
     }
@@ -91,10 +97,18 @@ export default function RouteResolver() {
           navigate(dest, { replace: true })
           return
         }
-        // Visiteur anonyme → on rend directement la Landing publique a / .
-        // L'URL ne change pas (pas de navigate). Apple Developer & Google
-        // verront une vraie homepage marketing presentant Wish Maker SAS,
-        // sans avoir besoin de se connecter.
+        // Visiteur anonyme.
+        // NATIF : la landing marketing n'a aucun sens dans l'app installée
+        // (bouton « Télécharger l'application »…). On envoie vers l'onboarding
+        // (1re ouverture) puis l'écran d'inscription /auth.
+        if (Capacitor.isNativePlatform()) {
+          const onboardingSeen = localStorage.getItem('onboarding_seen') === 'true'
+          setRenderState('redirect')
+          navigate(onboardingSeen ? '/auth' : '/onboarding/1', { replace: true })
+          return
+        }
+        // WEB : on rend directement la Landing publique a / (SEO + Apple/Google
+        // voient une vraie homepage marketing presentant Wish Maker SAS).
         setRenderState('landing')
       } catch (err) {
         console.error('[resolver]', err)
