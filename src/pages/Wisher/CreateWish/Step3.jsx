@@ -308,7 +308,7 @@ export default function Step3() {
           zoomControl={false}
         >
           <MapResizer />
-          <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
+          <TileLayer url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=807a4d35-91c2-44be-87d1-ae533ada8f56" attribution='&copy; Stadia Maps &copy; OpenStreetMap' />
           <MapClickHandler onMapClick={handleMapClick} />
           {pin && <Marker position={[pin.lat, pin.lng]} icon={customIcon} />}
           {flyTarget && <MapFlyTo center={flyTarget} zoom={15} />}
