@@ -74,15 +74,20 @@ export default function RouteResolver() {
             // Vérifier si on doit montrer le pré-écran push
             const pushAsked = localStorage.getItem('push_asked')
             const pushDenied = localStorage.getItem('push_denied')
+            const nativePlatform = Capacitor.isNativePlatform()
             const hasNotifAPI = 'Notification' in window && 'PushManager' in window
-            const alreadyGranted = hasNotifAPI && Notification.permission === 'granted'
+            // Web : on se base sur l'API Web Push. Natif : Capacitor gère les
+            // push (l'API Web Push n'existe pas dans la WebView) → on montre le
+            // pré-écran, et la permission système est demandée à l'acceptation.
+            const canPush = nativePlatform || hasNotifAPI
+            const alreadyGranted = !nativePlatform && hasNotifAPI && Notification.permission === 'granted'
 
-            if (!pushAsked && !pushDenied && hasNotifAPI && !alreadyGranted) {
+            if (!pushAsked && !pushDenied && canPush && !alreadyGranted) {
               pendingUserId.current = session.user.id
               setShowPushPrompt(true)
               return
             }
-            // Si déjà accordé, s'assurer que la subscription est enregistrée
+            // Déjà accordé (web) → s'assurer que la subscription est enregistrée
             if (alreadyGranted) {
               requestPushPermission(session.user.id).catch(() => {})
             }
