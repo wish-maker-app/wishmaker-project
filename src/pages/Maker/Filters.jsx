@@ -334,7 +334,7 @@ export default function Filters() {
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=807a4d35-91c2-44be-87d1-ae533ada8f56"
               />
               {/* Cercle du rayon (caché en "Illimité") */}
               {maxDistance < 100 && (

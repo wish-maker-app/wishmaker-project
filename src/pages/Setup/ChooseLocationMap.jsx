@@ -142,7 +142,7 @@ export default function ChooseLocationMap() {
         >
           <MapResizer />
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=807a4d35-91c2-44be-87d1-ae533ada8f56"
             attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           />
           <MapClickHandler onMapClick={handleMapClick} />
