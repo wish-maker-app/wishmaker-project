@@ -16,6 +16,7 @@ import { errorMessage } from '../../lib/uiError'
 import { useWishes, getCachedWish } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
 import { formatLocation, fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
+import { openExternal } from '../../lib/openExternal'
 import FavoriteButton from '../../components/ui/FavoriteButton'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
@@ -119,7 +120,7 @@ function timeAgo(iso) {
 }
 
 function openGoogleMaps(lat, lng) {
-  window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank')
+  openExternal(`https://www.google.com/maps?q=${lat},${lng}`)
 }
 
 const REPORT_REASONS_WISH = ['Contenu inapproprié', 'Arnaque potentielle', 'Doublon', 'Autre']
@@ -704,7 +705,7 @@ export default function WishDetail() {
             <button
               onClick={() => {
                 const [fLat, fLng] = fuzzyCoordinates(wish.latitude, wish.longitude, wish.id)
-                window.open(`https://www.google.com/maps?q=${fLat},${fLng}`, '_blank')
+                openExternal(`https://www.google.com/maps?q=${fLat},${fLng}`)
               }}
               className="text-xs font-semibold text-[#5B6BF5]">
               Ouvrir dans Maps
