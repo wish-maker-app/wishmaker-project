@@ -310,7 +310,7 @@ export default function ChooseLocation() {
           zoomControl={false}
         >
           <MapResizer />
-          <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" attribution='&copy; CARTO' />
+          <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
           <MapClickHandler onMapClick={handleMapClick} />
           {pin && <Marker position={[pin.lat, pin.lng]} icon={customIcon} />}
           {flyTarget && <MapFlyTo center={flyTarget} zoom={15} />}

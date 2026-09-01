@@ -890,7 +890,7 @@ export default function MakerHome() {
               <MapResizer />
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               <MapClickHandler onMapClick={() => setSelectedWish(null)} />
               {/* Point bleu position utilisateur */}

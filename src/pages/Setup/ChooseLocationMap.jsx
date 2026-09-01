@@ -142,7 +142,7 @@ export default function ChooseLocationMap() {
         >
           <MapResizer />
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           />
           <MapClickHandler onMapClick={handleMapClick} />

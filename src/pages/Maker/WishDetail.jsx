@@ -61,7 +61,7 @@ function StaticMap({ lat, lng, wishId }) {
       attributionControl={false}
     >
       <MapSetup />
-      <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+      <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <Circle
         center={[fuzzyLat, fuzzyLng]}
         radius={FUZZY_RADIUS_METERS}
@@ -963,7 +963,7 @@ export default function WishDetail() {
                       style={{ width: '100%', height: '100%' }}
                       attributionControl={false}
                     >
-                      <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+                      <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
                       <Circle
                         center={[fLat, fLng]}
                         radius={FUZZY_RADIUS_METERS}
