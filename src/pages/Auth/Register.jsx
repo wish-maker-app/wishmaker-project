@@ -155,11 +155,11 @@ export default function Register() {
             <form onSubmit={handleVerifyOtp} className="w-full flex flex-col gap-4 pt-1">
               <input
                 value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                placeholder="000000"
-                className="w-full h-14 bg-[#F7F8FC] rounded-xl px-4 text-center text-2xl tracking-[0.5em] font-semibold text-[#1A1A2E] outline-none focus:ring-2 focus:ring-[#5B6BF5]/20"
+                placeholder="Code reçu par email"
+                className="w-full h-14 bg-[#F7F8FC] rounded-xl px-4 text-center text-2xl tracking-[0.3em] font-semibold text-[#1A1A2E] outline-none focus:ring-2 focus:ring-[#5B6BF5]/20 placeholder:text-base placeholder:tracking-normal placeholder:font-normal placeholder:text-[#8A8A9A]"
               />
               <Button type="submit" loading={verifying} disabled={otpCode.length < 6}>
                 Valider
