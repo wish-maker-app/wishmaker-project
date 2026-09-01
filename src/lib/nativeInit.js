@@ -25,4 +25,20 @@ export async function initNative() {
       await StatusBar.setBackgroundColor({ color: '#FFFFFF' })
     }
   } catch { /* plugin indisponible → on ignore silencieusement */ }
+
+  // Bouton retour Android : revient à l'écran précédent au lieu de fermer l'app.
+  // Sur l'accueil (plus d'historique) → minimise l'app (retour à l'écran d'accueil
+  // du téléphone, comportement Android standard).
+  if (platform === 'android') {
+    try {
+      const { App } = await import('@capacitor/app')
+      App.addListener('backButton', ({ canGoBack }) => {
+        if (canGoBack) {
+          window.history.back()
+        } else {
+          App.minimizeApp()
+        }
+      })
+    } catch { /* plugin indisponible → on ignore */ }
+  }
 }
