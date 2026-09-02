@@ -8,6 +8,7 @@ import useAuthStore from '../store/authStore'
 import { isSuspendedActive } from '../lib/suspension'
 import { Capacitor } from '@capacitor/core'
 import Landing from './Public/Landing'
+import { consumePostAuthRedirect } from '../lib/postAuthRedirect'
 
 /**
  * Point d'entrée `/` — résout silencieusement la destination selon la session.
@@ -49,6 +50,7 @@ export default function RouteResolver() {
     }
   })
   const pendingUserId = useRef(null)
+  const pendingDest = useRef('/maker')
 
   useEffect(() => {
     if (resolved.current) return
@@ -71,6 +73,8 @@ export default function RouteResolver() {
           }
 
           if (profile?.onboarding_completed) {
+            // Vœu partagé → destination de retour (sinon /maker)
+            const dest = consumePostAuthRedirect('/maker')
             // Vérifier si on doit montrer le pré-écran push
             const pushAsked = localStorage.getItem('push_asked')
             const pushDenied = localStorage.getItem('push_denied')
@@ -84,6 +88,7 @@ export default function RouteResolver() {
 
             if (!pushAsked && !pushDenied && canPush && !alreadyGranted) {
               pendingUserId.current = session.user.id
+              pendingDest.current = dest
               setShowPushPrompt(true)
               return
             }
@@ -92,7 +97,7 @@ export default function RouteResolver() {
               requestPushPermission(session.user.id).catch(() => {})
             }
             setRenderState('redirect')
-            navigate('/maker', { replace: true })
+            navigate(dest, { replace: true })
             return
           }
           let dest = '/setup/profil'
@@ -129,13 +134,13 @@ export default function RouteResolver() {
       await requestPushPermission(pendingUserId.current)
     }
     setShowPushPrompt(false)
-    navigate('/maker', { replace: true })
+    navigate(pendingDest.current, { replace: true })
   }
 
   function handleDeclinePush() {
     localStorage.setItem('push_asked', 'true')
     setShowPushPrompt(false)
-    navigate('/maker', { replace: true })
+    navigate(pendingDest.current, { replace: true })
   }
 
   // Pré-écran notifications

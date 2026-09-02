@@ -17,6 +17,7 @@ import { useWishes, getCachedWish } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
 import { formatLocation, fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
 import { openExternal } from '../../lib/openExternal'
+import { shareLink } from '../../lib/shareWish'
 import FavoriteButton from '../../components/ui/FavoriteButton'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
@@ -385,6 +386,18 @@ export default function WishDetail() {
     }
   }
 
+  async function handleShare() {
+    // Lien PUBLIC (aperçu accessible sans compte) → /w/:id
+    const url = `${window.location.origin}/w/${wish.id}`
+    const res = await shareLink({
+      url,
+      title: wish.titre,
+      text: `Découvre ce vœu sur Wish Maker : « ${wish.titre} »`,
+    })
+    if (res === 'copied') toast.success('Lien copié !')
+    else if (res === 'error') toast.error('Partage impossible sur cet appareil')
+  }
+
   async function handleDelete() {
     setDeleting(true)
     try {
@@ -450,7 +463,18 @@ export default function WishDetail() {
             }
           }}
           rightAction={
-            <div className="relative">
+            <div className="flex items-center gap-2">
+              {/* Partager le vœu — action mise en avant (croissance / viralité) */}
+              <button onClick={handleShare} aria-label="Partager ce vœu"
+                className="w-10 h-10 rounded-full bg-black/20 backdrop-blur flex items-center justify-center active:scale-95 transition-transform">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <circle cx="18" cy="5" r="2.4" stroke="white" strokeWidth="1.8"/>
+                  <circle cx="6" cy="12" r="2.4" stroke="white" strokeWidth="1.8"/>
+                  <circle cx="18" cy="19" r="2.4" stroke="white" strokeWidth="1.8"/>
+                  <path d="M8.1 10.8l7.8-4.4M8.1 13.2l7.8 4.4" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+                </svg>
+              </button>
+              <div className="relative">
               <button onClick={() => setShowMenu(!showMenu)} className="w-10 h-10 rounded-full bg-black/20 backdrop-blur flex items-center justify-center">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
                   <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
@@ -520,6 +544,7 @@ export default function WishDetail() {
                 </div>
                 </>
               )}
+              </div>
             </div>
           }
         />
