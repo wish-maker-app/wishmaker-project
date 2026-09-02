@@ -298,6 +298,18 @@ export default function WishDetail() {
   // visibilitychange bumpent authTick dans useAuth) → debloque les requetes
   // "fantomes" pausees pendant que la fenetre etait en arriere-plan.
 
+  // Mesure du débordement de la description (bouton « voir plus »).
+  // ⚠️ DOIT rester au-dessus des returns conditionnels ci-dessous : un hook
+  // placé après un `return` anticipé change le nombre de hooks selon le render
+  // (ex. arrivée depuis une conversation, vœu pas encore en cache → return
+  // « loading » avant ce hook) → React #310 « rendered fewer hooks ».
+  useEffect(() => {
+    const el = descRef.current
+    if (!el) return
+    setDescExpanded(false)
+    setDescOverflows(el.scrollHeight > el.clientHeight + 1)
+  }, [wish?.description])
+
   // ---- Fallbacks : pas de spinner infini ----
   if (loadStatus === 'loading' && !wish) {
     return (
@@ -383,13 +395,6 @@ export default function WishDetail() {
       toast.error(errorMessage(err, 'Erreur lors de la suppression'))
     } finally { setDeleting(false) }
   }
-
-  useEffect(() => {
-    const el = descRef.current
-    if (!el) return
-    setDescExpanded(false)
-    setDescOverflows(el.scrollHeight > el.clientHeight + 1)
-  }, [wish?.description])
 
   async function handleMessage() {
     if (isCompleted) { toast.error('Ce vœu est déjà réalisé.'); return }
