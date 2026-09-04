@@ -1,0 +1,16 @@
+{
+  "appId": "fr.wishmaker.app",
+  "appName": "Wish Maker",
+  "webDir": "dist",
+  "plugins": {
+    "Keyboard": {
+      "resize": "native"
+    },
+    "SplashScreen": {
+      "launchShowDuration": 1000,
+      "launchAutoHide": true,
+      "backgroundColor": "#5B6BF5",
+      "showSpinner": false
+    }
+  }
+}

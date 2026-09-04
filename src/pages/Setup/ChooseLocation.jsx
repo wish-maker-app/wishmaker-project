@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import { fetchMyProfile } from '../../lib/userProfile'
 import useAuthStore from '../../store/authStore'
+import { consumePostAuthRedirect } from '../../lib/postAuthRedirect'
 import Header from '../../components/layout/Header'
 import Button from '../../components/ui/Button'
 import useOnboardingStore from '../../store/onboardingStore'
@@ -194,7 +195,8 @@ export default function ChooseLocation() {
       const profile = await fetchMyProfile()
       if (profile) useAuthStore.getState().setProfile(profile)
 
-      navigate('/maker', { replace: true })
+      // Inscription venue d'un vœu partagé → on atterrit sur ce vœu
+      navigate(consumePostAuthRedirect('/maker'), { replace: true })
     } catch (err) {
       toast.error(err.message || 'Erreur lors de la sauvegarde')
     } finally {

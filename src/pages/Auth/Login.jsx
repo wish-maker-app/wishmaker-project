@@ -137,8 +137,11 @@ export default function Login() {
 
       <SuccessModal isOpen={showSuccess} variant="login" onContinue={() => {
         const profile = useAuthStore.getState().profile
-        // Smart redirect : reprend au 1er step manquant
-        let dest = '/maker'
+        // Smart redirect : reprend au 1er step manquant. Pour un compte déjà
+        // onboardé, on passe par '/' (RouteResolver) plutôt que '/maker' direct
+        // → ça déclenche le pré-écran notifications sur un NOUVEL appareil
+        // (nouveau téléphone = install fraîche = permission jamais demandée ici).
+        let dest = '/'
         if (!profile?.onboarding_completed) {
           if (!profile?.prenom || !profile?.nom) dest = '/setup/profil'
           else if (!profile?.pseudo) dest = '/setup/pseudo'

@@ -6,7 +6,9 @@ import { fetchMyProfile } from '../lib/userProfile'
 import { requestPushPermission } from '../lib/pushNotifications'
 import useAuthStore from '../store/authStore'
 import { isSuspendedActive } from '../lib/suspension'
+import { Capacitor } from '@capacitor/core'
 import Landing from './Public/Landing'
+import { consumePostAuthRedirect } from '../lib/postAuthRedirect'
 
 /**
  * Point d'entrée `/` — résout silencieusement la destination selon la session.
@@ -37,12 +39,18 @@ export default function RouteResolver() {
   // persisté, on garde le spinner (résolution probable = redirection /maker).
   const [renderState, setRenderState] = useState(() => {
     try {
-      return useAuthStore.getState().user ? null : 'landing'
+      if (useAuthStore.getState().user) return null
+      // En NATIF (app installée), on n'affiche JAMAIS la landing marketing
+      // (elle est web only) : on garde le spinner le temps de router vers
+      // l'onboarding / l'auth → évite un flash de la page marketing.
+      if (Capacitor.isNativePlatform()) return null
+      return 'landing'
     } catch {
       return 'landing'
     }
   })
   const pendingUserId = useRef(null)
+  const pendingDest = useRef('/maker')
 
   useEffect(() => {
     if (resolved.current) return
@@ -65,23 +73,31 @@ export default function RouteResolver() {
           }
 
           if (profile?.onboarding_completed) {
+            // Vœu partagé → destination de retour (sinon /maker)
+            const dest = consumePostAuthRedirect('/maker')
             // Vérifier si on doit montrer le pré-écran push
             const pushAsked = localStorage.getItem('push_asked')
             const pushDenied = localStorage.getItem('push_denied')
+            const nativePlatform = Capacitor.isNativePlatform()
             const hasNotifAPI = 'Notification' in window && 'PushManager' in window
-            const alreadyGranted = hasNotifAPI && Notification.permission === 'granted'
+            // Web : on se base sur l'API Web Push. Natif : Capacitor gère les
+            // push (l'API Web Push n'existe pas dans la WebView) → on montre le
+            // pré-écran, et la permission système est demandée à l'acceptation.
+            const canPush = nativePlatform || hasNotifAPI
+            const alreadyGranted = !nativePlatform && hasNotifAPI && Notification.permission === 'granted'
 
-            if (!pushAsked && !pushDenied && hasNotifAPI && !alreadyGranted) {
+            if (!pushAsked && !pushDenied && canPush && !alreadyGranted) {
               pendingUserId.current = session.user.id
+              pendingDest.current = dest
               setShowPushPrompt(true)
               return
             }
-            // Si déjà accordé, s'assurer que la subscription est enregistrée
+            // Déjà accordé (web) → s'assurer que la subscription est enregistrée
             if (alreadyGranted) {
               requestPushPermission(session.user.id).catch(() => {})
             }
             setRenderState('redirect')
-            navigate('/maker', { replace: true })
+            navigate(dest, { replace: true })
             return
           }
           let dest = '/setup/profil'
@@ -91,10 +107,18 @@ export default function RouteResolver() {
           navigate(dest, { replace: true })
           return
         }
-        // Visiteur anonyme → on rend directement la Landing publique a / .
-        // L'URL ne change pas (pas de navigate). Apple Developer & Google
-        // verront une vraie homepage marketing presentant Wish Maker SAS,
-        // sans avoir besoin de se connecter.
+        // Visiteur anonyme.
+        // NATIF : la landing marketing n'a aucun sens dans l'app installée
+        // (bouton « Télécharger l'application »…). On envoie vers l'onboarding
+        // (1re ouverture) puis l'écran d'inscription /auth.
+        if (Capacitor.isNativePlatform()) {
+          const onboardingSeen = localStorage.getItem('onboarding_seen') === 'true'
+          setRenderState('redirect')
+          navigate(onboardingSeen ? '/auth' : '/onboarding/1', { replace: true })
+          return
+        }
+        // WEB : on rend directement la Landing publique a / (SEO + Apple/Google
+        // voient une vraie homepage marketing presentant Wish Maker SAS).
         setRenderState('landing')
       } catch (err) {
         console.error('[resolver]', err)
@@ -110,13 +134,13 @@ export default function RouteResolver() {
       await requestPushPermission(pendingUserId.current)
     }
     setShowPushPrompt(false)
-    navigate('/maker', { replace: true })
+    navigate(pendingDest.current, { replace: true })
   }
 
   function handleDeclinePush() {
     localStorage.setItem('push_asked', 'true')
     setShowPushPrompt(false)
-    navigate('/maker', { replace: true })
+    navigate(pendingDest.current, { replace: true })
   }
 
   // Pré-écran notifications

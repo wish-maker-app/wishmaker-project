@@ -1,4 +1,6 @@
+import { Capacitor } from '@capacitor/core'
 import { supabase } from './supabase'
+import { registerNativePush } from './nativePush'
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY
 
@@ -25,6 +27,10 @@ export async function registerServiceWorker() {
 }
 
 export async function requestPushPermission(userId) {
+  // App native (iOS/Android) → push NATIF (APNs/FCM) au lieu du Web Push.
+  // Sur le web/PWA, on continue avec le Web Push (VAPID) ci-dessous.
+  if (Capacitor.isNativePlatform()) return registerNativePush(userId)
+
   if (!('Notification' in window) || !('PushManager' in window)) return false
 
   // Vérifier si déjà refusé

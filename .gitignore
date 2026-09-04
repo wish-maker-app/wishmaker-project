@@ -33,3 +33,6 @@ dist-ssr
 .mcp.json
 .claude/settings.local.json
 .claude/worktrees/
+
+# Fichiers temporaires locaux du CLI Supabase
+supabase/.temp/

@@ -28,10 +28,14 @@ import './index.css'
 // chaque page carte (lazy) l'importe déjà localement, donc le style n'arrive
 // que quand une carte est réellement affichée.
 import { registerServiceWorker } from './lib/pushNotifications'
+import { initNative } from './lib/nativeInit'
 import useConfigStore from './store/configStore'
 
 // Enregistrer le Service Worker au démarrage
 registerServiceWorker()
+
+// Initialisation native (Capacitor) — no-op sur le web/PWA (guardé en interne).
+initNative()
 
 // Confirmation de désabonnement email : l'Edge Function email-unsubscribe a fait
 // le désabonnement puis redirigé vers l'app avec ?unsub=ok|err → on affiche un

@@ -28,11 +28,14 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false)
   const [acceptCGU, setAcceptCGU] = useState(false)
   const [emailConsent, setEmailConsent] = useState(false)
-  // Confirmation email : quand Supabase exige la validation, signUp ne renvoie
-  // pas de session → on bascule sur l'écran « vérifie ta boîte mail » au lieu
-  // de poursuivre vers /setup.
+  // Confirmation email par CODE OTP (6 chiffres) : quand Supabase exige la
+  // validation, signUp ne renvoie pas de session → on affiche l'écran de saisie
+  // du code. Choix OTP plutôt que lien : l'app native ne peut pas capter un lien
+  // de confirmation ouvert dans le navigateur (la session resterait hors de l'app).
   const [emailSent, setEmailSent] = useState(false)
   const [pendingEmail, setPendingEmail] = useState('')
+  const [otpCode, setOtpCode] = useState('')
+  const [verifying, setVerifying] = useState(false)
   const [resending, setResending] = useState(false)
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
@@ -51,9 +54,6 @@ export default function Register() {
         email: data.email,
         password: data.password,
         options: {
-          // Où revient l'utilisateur après avoir cliqué le lien de confirmation.
-          // RouteResolver (/) le renverra ensuite vers /setup/profil.
-          emailRedirectTo: `${window.location.origin}/`,
           // Consentement CGU/CGV/Privacy + emails : transmis en métadonnées et
           // persistés par le trigger handle_new_user (SECURITY DEFINER). Plus
           // besoin d'écrire côté client → marche même sans session (email à
@@ -95,13 +95,39 @@ export default function Register() {
     try {
       const { error } = await supabase.auth.resend({ type: 'signup', email: pendingEmail })
       if (error) throw error
-      toast.success('Email de confirmation renvoyé')
+      toast.success('Nouveau code envoyé')
     } catch (err) {
-      toast.error(err.message || 'Impossible de renvoyer l\'email')
+      toast.error(err.message || 'Impossible de renvoyer le code')
     } finally { setResending(false) }
   }
 
-  // ─── Écran de confirmation : « vérifie ta boîte mail » ───
+  // Vérifie le code OTP saisi → confirme le compte et ouvre la session.
+  async function handleVerifyOtp(e) {
+    e?.preventDefault?.()
+    const token = otpCode.trim()
+    if (token.length < 6 || verifying) return
+    setVerifying(true)
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: pendingEmail,
+        token,
+        type: 'signup',
+      })
+      if (error) throw error
+      // Code valide → session créée. Le trigger handle_new_user a déjà posé le
+      // profil minimal + le consentement depuis les métadonnées du signUp.
+      if (data.session) {
+        useAuthStore.getState().setUser(data.user)
+        const profile = await fetchMyProfile()
+        if (profile) useAuthStore.getState().setProfile(profile)
+        navigate('/setup/profil', { replace: true })
+      }
+    } catch (err) {
+      toast.error(err.message || 'Code invalide ou expiré')
+    } finally { setVerifying(false) }
+  }
+
+  // ─── Écran de saisie du code de confirmation (OTP à 6 chiffres) ───
   if (emailSent) {
     return (
       <AuthShell>
@@ -116,25 +142,43 @@ export default function Register() {
               <span className="text-4xl">✉️</span>
             </div>
             <div className="flex flex-col gap-2">
-              <h1 className="text-[#1A1A2E] font-bold text-2xl">Vérifie ta boîte mail</h1>
+              <h1 className="text-[#1A1A2E] font-bold text-2xl">Entre ton code</h1>
               <p className="text-[#8A8A9A] text-sm leading-relaxed">
-                On a envoyé un lien de confirmation à<br />
+                On a envoyé un code à 6 chiffres à<br />
                 <span className="font-semibold text-[#1A1A2E]">{pendingEmail}</span>.
               </p>
               <p className="text-[#8A8A9A] text-sm leading-relaxed mt-1">
-                Clique sur le lien pour activer ton compte, puis reviens finaliser ton profil.
-                Pense à regarder dans les spams.
+                Saisis-le ci-dessous pour activer ton compte. Pense à regarder dans les spams.
               </p>
             </div>
 
-            <div className="w-full flex flex-col gap-3 pt-2">
-              <Button type="button" loading={resending} onClick={handleResend}>
-                Renvoyer l'email
+            <form onSubmit={handleVerifyOtp} className="w-full flex flex-col gap-4 pt-1">
+              <input
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="Code reçu par email"
+                className="w-full h-14 bg-[#F7F8FC] rounded-xl px-4 text-center text-2xl tracking-[0.3em] font-semibold text-[#1A1A2E] outline-none focus:ring-2 focus:ring-[#5B6BF5]/20 placeholder:text-base placeholder:tracking-normal placeholder:font-normal placeholder:text-[#8A8A9A]"
+              />
+              <Button type="submit" loading={verifying} disabled={otpCode.length < 6}>
+                Valider
               </Button>
+            </form>
+
+            <div className="w-full flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending}
+                className="text-sm text-[#5B6BF5] font-medium py-2 disabled:opacity-50"
+              >
+                {resending ? 'Envoi…' : 'Renvoyer le code'}
+              </button>
               <button
                 type="button"
                 onClick={() => navigate('/auth/login')}
-                className="text-sm text-[#8A8A9A] font-medium py-2"
+                className="text-sm text-[#8A8A9A] font-medium py-1"
               >
                 Retour à la connexion
               </button>

@@ -1,0 +1,60 @@
+import { Capacitor } from '@capacitor/core'
+import { openExternal } from './openExternal'
+
+/**
+ * Initialisation native (Capacitor) — barre de statut, etc.
+ *
+ * ⚠️ Ne s'exécute QUE dans l'app native (iOS/Android). Sur le web/PWA,
+ * `Capacitor.isNativePlatform()` renvoie false → on sort immédiatement, donc
+ * AUCUN impact sur le site Vercel / la PWA (le code n'est même pas atteint).
+ *
+ * Le clavier (resize: native) et le splash screen sont configurés dans
+ * capacitor.config.json — pas besoin de code ici pour eux.
+ */
+export async function initNative() {
+  if (!Capacitor.isNativePlatform()) return
+  const platform = Capacitor.getPlatform()
+
+  // Barre de statut : contenu SOMBRE (l'app est sur fond clair).
+  // NB: dans @capacitor/status-bar, Style.Light = texte sombre pour fond clair.
+  try {
+    const { StatusBar, Style } = await import('@capacitor/status-bar')
+    await StatusBar.setStyle({ style: Style.Light })
+    if (platform === 'android') {
+      // Empêche le contenu de passer SOUS la barre de statut + fond cohérent.
+      await StatusBar.setOverlaysWebView({ overlay: false })
+      await StatusBar.setBackgroundColor({ color: '#FFFFFF' })
+    }
+  } catch { /* plugin indisponible → on ignore silencieusement */ }
+
+  // Liens externes : un lien vers un site tiers ouvert DANS la WebView piège
+  // l'utilisateur (motif de rejet App Store). On intercepte les liens http(s)
+  // d'origine externe → navigateur in-app (openExternal). Les liens internes
+  // (routes SPA) et les schémas mailto/tel passent normalement (gérés par l'OS).
+  document.addEventListener('click', (e) => {
+    const a = e.target?.closest?.('a')
+    if (!a || !a.href) return
+    let url
+    try { url = new URL(a.href) } catch { return }
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return
+    if (url.origin === window.location.origin) return
+    e.preventDefault()
+    openExternal(a.href)
+  })
+
+  // Bouton retour Android : revient à l'écran précédent au lieu de fermer l'app.
+  // Sur l'accueil (plus d'historique) → minimise l'app (retour à l'écran d'accueil
+  // du téléphone, comportement Android standard).
+  if (platform === 'android') {
+    try {
+      const { App } = await import('@capacitor/app')
+      App.addListener('backButton', ({ canGoBack }) => {
+        if (canGoBack) {
+          window.history.back()
+        } else {
+          App.minimizeApp()
+        }
+      })
+    } catch { /* plugin indisponible → on ignore */ }
+  }
+}
