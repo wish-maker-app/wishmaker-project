@@ -1,5 +1,21 @@
 import { Capacitor } from '@capacitor/core'
 
+// Domaine public canonique — utilisé pour construire les liens PARTAGEABLES.
+// ⚠️ Dans l'app native, window.location.origin vaut `https://localhost`
+// (serveur local de la WebView) : inutilisable par le destinataire. On force
+// donc le vrai domaine. Sur le web de prod, on garde l'origine réelle.
+const SITE_URL = 'https://wishmaker.fr'
+
+export function publicBaseUrl() {
+  try {
+    if (!Capacitor.isNativePlatform()) {
+      const o = window.location.origin
+      if (o && !/^https?:\/\/(localhost|127\.)/i.test(o)) return o
+    }
+  } catch { /* ignore */ }
+  return SITE_URL
+}
+
 function isCancel(e) {
   const m = (e?.message || '').toLowerCase()
   return e?.name === 'AbortError' ||

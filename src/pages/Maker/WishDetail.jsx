@@ -17,7 +17,7 @@ import { useWishes, getCachedWish } from '../../hooks/useWishes'
 import { useMessages } from '../../hooks/useMessages'
 import { formatLocation, fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
 import { openExternal } from '../../lib/openExternal'
-import { shareLink } from '../../lib/shareWish'
+import { shareLink, publicBaseUrl } from '../../lib/shareWish'
 import FavoriteButton from '../../components/ui/FavoriteButton'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
@@ -387,13 +387,11 @@ export default function WishDetail() {
   }
 
   async function handleShare() {
-    // Lien PUBLIC (aperçu accessible sans compte) → /w/:id
-    const url = `${window.location.origin}/w/${wish.id}`
-    const res = await shareLink({
-      url,
-      title: wish.titre,
-      text: `Découvre ce vœu sur Wish Maker : « ${wish.titre} »`,
-    })
+    // Lien PUBLIC (aperçu accessible sans compte) → /w/:id sur le vrai domaine.
+    // On ne passe QUE le titre + l'URL (pas de longue phrase) : ainsi le bouton
+    // « copier » de la feuille de partage Android ne copie que le lien.
+    const url = `${publicBaseUrl()}/w/${wish.id}`
+    const res = await shareLink({ url, title: wish.titre })
     if (res === 'copied') toast.success('Lien copié !')
     else if (res === 'error') toast.error('Partage impossible sur cet appareil')
   }
