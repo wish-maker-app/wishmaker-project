@@ -13,6 +13,7 @@ import AuthShell from '../../components/layout/AuthShell'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
 import SuccessModal from '../../components/ui/SuccessModal'
+import { isNativeGoogleAvailable, signInWithGoogleNative, isGoogleCancel } from '../../lib/nativeGoogleAuth'
 
 const schema = z.object({
   email: z.string().email('Email invalide'),
@@ -65,6 +66,18 @@ export default function Login() {
   }
 
   async function handleGoogle() {
+    // App native : connexion Google NATIVE (sélecteur de compte système) →
+    // signInWithIdToken. Le flux web signInWithOAuth ne marche pas en WebView
+    // (Google bloque les WebViews, et redirectTo=localhost ne revient pas).
+    if (isNativeGoogleAvailable()) {
+      try {
+        await signInWithGoogleNative()
+        navigate('/', { replace: true }) // RouteResolver gère onboarding/destination
+      } catch (err) {
+        if (!isGoogleCancel(err)) toast.error('Connexion Google impossible')
+      }
+      return
+    }
     await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/` } })
   }
   async function handleApple() {

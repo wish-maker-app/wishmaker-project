@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import AuthShell from '../../components/layout/AuthShell'
+import { isNativeGoogleAvailable, signInWithGoogleNative, isGoogleCancel } from '../../lib/nativeGoogleAuth'
 
 export default function Landing() {
   const navigate = useNavigate()
@@ -20,6 +21,16 @@ export default function Landing() {
   }
 
   async function handleGoogle() {
+    // App native : connexion Google native (cf. Login.jsx).
+    if (isNativeGoogleAvailable()) {
+      try {
+        await signInWithGoogleNative()
+        navigate('/', { replace: true })
+      } catch (err) {
+        if (!isGoogleCancel(err)) toast.error('Connexion Google impossible')
+      }
+      return
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/` },
