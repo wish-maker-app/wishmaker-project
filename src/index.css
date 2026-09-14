@@ -112,6 +112,23 @@ body {
    donc AUCUN effet sur le web/PWA. */
 html.capacitor-native #root {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Plein écran natif : pas de colonne "shell" 430px (elle laissait des marges
+     grises sur les téléphones larges >430px). Le shell 430px reste sur le web. */
+  max-width: none;
+  box-shadow: none;
+}
+html.capacitor-native body {
+  background: #FFFFFF; /* pas de fond gris "shell" derrière, sur grand écran */
+}
+/* Neutralise les plafonds de largeur internes (shell auth/onboarding/public,
+   barre d'onglets, overlays) → plein écran en natif. */
+html.capacitor-native .max-w-\[430px\],
+html.capacitor-native .max-w-\[440px\],
+html.capacitor-native .max-w-\[460px\],
+html.capacitor-native .max-w-\[480px\],
+html.capacitor-native .overlay-backdrop,
+html.capacitor-native .bottom-sheet {
+  max-width: 100% !important;
 }
 /* En natif, les pages pleine hauteur tiennent dans la zone sûre du #root
    (qui exclut déjà les insets haut + bas) au lieu de 100dvh brut. */
