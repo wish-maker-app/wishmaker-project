@@ -12,7 +12,8 @@ export default function OnboardingStep3() {
 
   return (
     <div className="fixed inset-0 bg-white flex items-center justify-center">
-      <div className="w-full max-w-[430px] h-[100dvh] flex flex-col overflow-hidden relative">
+      <div className="w-full max-w-[430px] h-[100dvh] flex flex-col overflow-hidden relative"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
 
         {/* Image de fond carte Toulouse */}
         <div className="absolute inset-0">
