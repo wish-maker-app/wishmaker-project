@@ -104,6 +104,24 @@ body {
   }
 }
 
+/* ─── App native (Capacitor) : safe-area du BAS ─── */
+/* Android 15+ (targetSdk 36) impose l'edge-to-edge : la barre de navigation
+   gestuelle recouvre le contenu. Le #root gère déjà la safe-area du haut ;
+   ici on réserve celle du bas → les boutons "en flux" (Continuer, Passer…)
+   ne sont plus collés sous la barre gestuelle. Classe posée par initNative,
+   donc AUCUN effet sur le web/PWA. */
+html.capacitor-native #root {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+/* En natif, les pages pleine hauteur tiennent dans la zone sûre du #root
+   (qui exclut déjà les insets haut + bas) au lieu de 100dvh brut. */
+html.capacitor-native .h-screen,
+html.capacitor-native .min-h-screen {
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+}
+
 /* ─── Pages publiques fixed inset-0 : safe-area top + bottom ─── */
 /* Les pages Landing/Mentions/CGU/CGV/Privacy/Support utilisent position:fixed
    pour echapper au shell mobile 430px (responsive desktop). Comme fixed est

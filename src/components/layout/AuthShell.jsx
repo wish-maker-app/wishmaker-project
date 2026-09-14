@@ -13,7 +13,15 @@ export default function AuthShell({ children }) {
   return (
     <div
       className="fixed inset-0 z-[1000] overflow-y-auto bg-white"
-      style={{ width: '100vw', maxWidth: '100vw' }}
+      style={{
+        width: '100vw',
+        maxWidth: '100vw',
+        // fixed inset-0 échappe au #root : on réintègre la safe-area ici pour
+        // que le header (retour + titre) passe sous la barre de statut et que
+        // le contenu ne touche pas la barre gestuelle. env()=0 sur le web.
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
     >
       {children}
     </div>

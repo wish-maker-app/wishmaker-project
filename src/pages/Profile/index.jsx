@@ -11,7 +11,7 @@ import { APP_VERSION } from '../../lib/version'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
-import { requestPushPermission } from '../../lib/pushNotifications'
+import { requestPushPermission, getNotifPermission } from '../../lib/pushNotifications'
 
 // ── Composants utilitaires ──
 
@@ -78,15 +78,18 @@ export default function Profile() {
   )
 
   useEffect(() => {
-    function syncPermission() {
-      if (typeof Notification !== 'undefined') {
-        setNotifPermission(Notification.permission)
-      }
+    let alive = true
+    async function syncPermission() {
+      // Lit la vraie permission : native (Capacitor) ou web selon la plateforme
+      const p = await getNotifPermission()
+      if (alive) setNotifPermission(p)
     }
+    syncPermission() // au montage (essentiel en natif : l'init Web est erronée)
     // Resync au focus de la page (cas où user va dans Réglages OS puis revient)
     window.addEventListener('focus', syncPermission)
     document.addEventListener('visibilitychange', syncPermission)
     return () => {
+      alive = false
       window.removeEventListener('focus', syncPermission)
       document.removeEventListener('visibilitychange', syncPermission)
     }
@@ -199,10 +202,9 @@ export default function Profile() {
             const user = useAuthStore.getState().user
             if (!user) return
             const ok = await requestPushPermission(user.id)
-            // Resync immédiatement après la demande, peu importe le résultat
-            if (typeof Notification !== 'undefined') {
-              setNotifPermission(Notification.permission)
-            }
+            // Resync immédiatement après la demande (native ou web), peu importe
+            // le résultat → l'affichage reflète la vraie permission.
+            setNotifPermission(await getNotifPermission())
             if (ok) {
               toast.success(t('profile.notifications_success'))
             } else {

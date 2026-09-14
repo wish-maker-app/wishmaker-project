@@ -15,6 +15,30 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray
 }
 
+/**
+ * Statut ACTUEL de la permission de notifications, cross-plateforme.
+ * Renvoie 'granted' | 'denied' | 'default' | 'unsupported'.
+ *
+ * ⚠️ En natif, on lit la permission Capacitor (FCM/APNs) et NON l'API Web
+ * `Notification`, qui ne reflète pas l'état natif dans la WebView (elle
+ * renverrait toujours « désactivé » alors que le push natif est bien accordé).
+ */
+export async function getNotifPermission() {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const { PushNotifications } = await import('@capacitor/push-notifications')
+      const res = await PushNotifications.checkPermissions()
+      if (res.receive === 'granted') return 'granted'
+      if (res.receive === 'denied') return 'denied'
+      return 'default'
+    } catch {
+      return 'unsupported'
+    }
+  }
+  if (typeof Notification !== 'undefined') return Notification.permission
+  return 'unsupported'
+}
+
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return null
   try {

@@ -15,6 +15,11 @@ export async function initNative() {
   if (!Capacitor.isNativePlatform()) return
   const platform = Capacitor.getPlatform()
 
+  // Marqueur fiable "app native" sur <html> → permet au CSS de gérer la
+  // safe-area du BAS (barre gestuelle Android en edge-to-edge / home indicator
+  // iOS) sans dépendre de `display-mode: standalone` (peu fiable en WebView).
+  document.documentElement.classList.add('capacitor-native')
+
   // Barre de statut : contenu SOMBRE (l'app est sur fond clair).
   // NB: dans @capacitor/status-bar, Style.Light = texte sombre pour fond clair.
   try {
