@@ -40,9 +40,11 @@ export async function signInWithGoogleNative() {
   const { SocialLogin } = await import('@capgo/capacitor-social-login')
   await ensureInit(SocialLogin)
 
+  // Pas de `scopes` ici : le plugin les refuse sans config native dédiée, et
+  // email + profil sont de toute façon inclus par défaut dans l'idToken.
   const res = await SocialLogin.login({
     provider: 'google',
-    options: { scopes: ['email', 'profile'] },
+    options: {},
   })
   const idToken = res?.result?.idToken
   if (!idToken) throw new Error('Aucun jeton Google reçu')
