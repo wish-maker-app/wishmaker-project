@@ -3,6 +3,7 @@ import { supabase, withTimeout, ensureFreshSession, waitForFreshSession } from '
 import { logEvent } from '../lib/clientLog'
 import useAuthStore from '../store/authStore'
 import { getCached, setCached } from '../lib/wishesCache'
+import { getBlockedIds } from '../lib/blocks'
 
 function normalizeWish(wish) {
   if (!wish) return null
@@ -106,7 +107,10 @@ export function useWishes() {
         .gte('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false }))
       if (error) throw error
-      const list = (data || []).map(normalizeWish)
+      let list = (data || []).map(normalizeWish)
+      // Masque les vœux des utilisateurs bloqués (dans les deux sens)
+      const blocked = await getBlockedIds()
+      if (blocked.size) list = list.filter((w) => !blocked.has(String(w.wisher_id)))
       list.forEach(cacheWish)
       return list
     } finally {

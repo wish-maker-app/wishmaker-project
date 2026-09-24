@@ -12,6 +12,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
 import AccountTypeBadge from '../../components/ui/AccountTypeBadge'
 import { requestPushPermission, getNotifPermission } from '../../lib/pushNotifications'
+import { getMyBlockedList, unblockUser } from '../../lib/blocks'
 
 // ── Composants utilitaires ──
 
@@ -64,7 +65,21 @@ export default function Profile() {
   // Source de verite : colonne users.is_admin en BDD (coherent avec /admin et /admin/stats)
   const isAdmin = !!profile?.is_admin
 
-  const [editModal, setEditModal] = useState(null) // 'password' | 'langue' | null
+  const [editModal, setEditModal] = useState(null) // 'password' | 'langue' | 'blocked' | null
+  const [blockedList, setBlockedList] = useState([])
+  const [blockedLoading, setBlockedLoading] = useState(false)
+
+  async function loadBlocked() {
+    setBlockedLoading(true)
+    try { setBlockedList(await getMyBlockedList()) } finally { setBlockedLoading(false) }
+  }
+  async function handleUnblock(id) {
+    try {
+      await unblockUser(id)
+      setBlockedList((l) => l.filter((b) => b.id !== id))
+      toast.success('Utilisateur débloqué')
+    } catch { toast.error('Impossible de débloquer') }
+  }
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -194,6 +209,10 @@ export default function Profile() {
 
         <SectionTitle title={t('profile.section_general')} />
         <ProfileItem icon={icons.globe} label={t('profile.item_langue')} onClick={() => setEditModal('langue')} />
+        <ProfileItem
+          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#1A1A2E" strokeWidth="1.8"/><path d="M5.6 5.6l12.8 12.8" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round"/></svg>}
+          label="Utilisateurs bloqués"
+          onClick={() => { setEditModal('blocked'); loadBlocked() }} />
         <ProfileItem
           icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke="#1A1A2E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
           label={t('profile.item_notifications')}
@@ -378,6 +397,32 @@ export default function Profile() {
             Sauvegarder
           </Button>
         </div>
+      </EditModal>
+
+      {/* Modal utilisateurs bloqués */}
+      <EditModal open={editModal === 'blocked'} onClose={() => setEditModal(null)} title="Utilisateurs bloqués">
+        {blockedLoading ? (
+          <p className="text-sm text-[#8A8A9A] text-center py-4">Chargement…</p>
+        ) : blockedList.length === 0 ? (
+          <p className="text-sm text-[#8A8A9A] text-center py-4">Vous n'avez bloqué personne.</p>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {blockedList.map((b) => (
+              <div key={b.id} className="flex items-center gap-3 py-2">
+                <div className="w-10 h-10 rounded-full bg-[#EEF0FF] flex items-center justify-center font-bold text-[#5B6BF5] text-sm overflow-hidden flex-shrink-0">
+                  {b.profile?.avatar_url
+                    ? <img src={b.profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                    : `${b.profile?.prenom?.[0] || ''}${b.profile?.nom?.[0] || ''}`}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#1A1A2E] truncate">{b.profile?.prenom} {b.profile?.nom}</p>
+                  {b.profile?.pseudo && <p className="text-xs text-[#8A8A9A] truncate">{b.profile.pseudo}</p>}
+                </div>
+                <button onClick={() => handleUnblock(b.id)} className="text-sm font-semibold text-[#5B6BF5] px-3 py-1.5 flex-shrink-0">Débloquer</button>
+              </div>
+            ))}
+          </div>
+        )}
       </EditModal>
 
       {/* Modal confirmation déconnexion */}

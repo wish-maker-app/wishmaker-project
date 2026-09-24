@@ -18,6 +18,7 @@ import { useMessages } from '../../hooks/useMessages'
 import { formatLocation, fuzzyCoordinates, FUZZY_RADIUS_METERS } from '../../lib/geo'
 import { openExternal } from '../../lib/openExternal'
 import { shareLink, publicBaseUrl } from '../../lib/shareWish'
+import { blockUser } from '../../lib/blocks'
 import FavoriteButton from '../../components/ui/FavoriteButton'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
@@ -210,6 +211,8 @@ export default function WishDetail() {
   const [showMenu, setShowMenu] = useState(false)
   const [showReportWish, setShowReportWish] = useState(false)
   const [showReportProfile, setShowReportProfile] = useState(false)
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false)
+  const [blocking, setBlocking] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showProposal, setShowProposal] = useState(false)
@@ -396,6 +399,18 @@ export default function WishDetail() {
     else if (res === 'error') toast.error('Partage impossible sur cet appareil')
   }
 
+  async function handleBlock() {
+    setBlocking(true)
+    try {
+      await blockUser(wish.wisher_id)
+      toast.success('Utilisateur bloqué')
+      setShowBlockConfirm(false)
+      navigate(-1) // on quitte le vœu de la personne bloquée
+    } catch (err) {
+      toast.error(errorMessage(err, 'Impossible de bloquer'))
+    } finally { setBlocking(false) }
+  }
+
   async function handleDelete() {
     setDeleting(true)
     try {
@@ -536,6 +551,15 @@ export default function WishDetail() {
                           <line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
                         </svg>
                         Signaler ce profil
+                      </button>
+                      <div className="mx-3 h-px bg-black/5" />
+                      <button onClick={() => { setShowMenu(false); setShowBlockConfirm(true) }}
+                        className="w-full px-4 py-3 text-left text-sm text-red-500 active:bg-red-50/60 flex items-center gap-2.5 transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/>
+                          <path d="M5.6 5.6l12.8 12.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                        </svg>
+                        Bloquer cet utilisateur
                       </button>
                     </>
                   )}
@@ -894,6 +918,20 @@ export default function WishDetail() {
           {deleting ? 'Suppression...' : 'Supprimer'}
         </button>
         <button onClick={() => setShowDeleteConfirm(false)} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">Annuler</button>
+      </BottomSheet>
+
+      <BottomSheet open={showBlockConfirm} onClose={() => setShowBlockConfirm(false)}>
+        <h2 className="text-lg font-bold text-[#1A1A2E] mb-2">Bloquer cet utilisateur ?</h2>
+        <p className="text-sm text-[#8A8A9A] mb-5">Vous ne verrez plus ses vœux ni ses messages, et il ne pourra plus vous contacter. Vous pourrez le débloquer depuis votre profil.</p>
+        <button
+          onClick={handleBlock}
+          disabled={blocking}
+          className="w-full h-12 rounded-full text-white font-bold text-sm disabled:opacity-50"
+          style={{ background: '#EF4444' }}
+        >
+          {blocking ? 'Blocage...' : 'Bloquer'}
+        </button>
+        <button onClick={() => setShowBlockConfirm(false)} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">Annuler</button>
       </BottomSheet>
 
       {/* Modals signalement */}

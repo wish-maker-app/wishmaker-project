@@ -13,6 +13,7 @@ import { errorMessage } from '../../lib/uiError'
 import CategoryFallback from '../../components/ui/CategoryFallback'
 import BottomSheet from '../../components/ui/BottomSheet'
 import ReportSheet from '../../components/ui/ReportSheet'
+import { blockUser } from '../../lib/blocks'
 
 function RatingModal({ open, onClose, onSubmit, interlocuteurName, loading }) {
   const [note, setNote] = useState(0)
@@ -143,6 +144,22 @@ export default function Chat() {
   const [showMenu, setShowMenu] = useState(false)
   const [showReport, setShowReport] = useState(false)
   const [showDeleteConv, setShowDeleteConv] = useState(false)
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false)
+  const [blocking, setBlocking] = useState(false)
+
+  async function handleBlockConv() {
+    const interlocuteurId = isWisher ? convData?.maker_id : convData?.wisher_id
+    if (!interlocuteurId) { toast.error('Impossible de bloquer ici.'); return }
+    setBlocking(true)
+    try {
+      await blockUser(interlocuteurId)
+      toast.success('Utilisateur bloqué')
+      setShowBlockConfirm(false)
+      navigate(`/messages?tab=${fromTab}`, { replace: true })
+    } catch (err) {
+      toast.error(errorMessage(err, 'Impossible de bloquer'))
+    } finally { setBlocking(false) }
+  }
   const [deletingConv, setDeletingConv] = useState(false)
 
   async function handleDeleteConv() {
@@ -598,6 +615,19 @@ export default function Chat() {
                   <div className="h-px bg-[#F0F0F0]" />
 
                   <button
+                    onClick={() => { setShowMenu(false); setShowBlockConfirm(true) }}
+                    className="w-full flex items-center gap-3 px-4 py-3 active:bg-[#FEF2F2] transition-colors text-left"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0">
+                      <circle cx="12" cy="12" r="9"/>
+                      <path d="M5.6 5.6l12.8 12.8"/>
+                    </svg>
+                    <span className="text-sm font-medium text-[#EF4444] truncate">Bloquer</span>
+                  </button>
+
+                  <div className="h-px bg-[#F0F0F0]" />
+
+                  <button
                     disabled={deletingConv}
                     onClick={() => { setShowMenu(false); setShowDeleteConv(true) }}
                     className="w-full flex items-center gap-3 px-4 py-3 active:bg-[#FEF2F2] transition-colors text-left disabled:opacity-50"
@@ -964,6 +994,32 @@ export default function Chat() {
           {deletingConv ? 'Suppression…' : 'Supprimer définitivement'}
         </button>
         <button onClick={() => setShowDeleteConv(false)} className="w-full text-sm text-[#8A8A9A] py-2">
+          Annuler
+        </button>
+      </BottomSheet>
+
+      <BottomSheet open={showBlockConfirm} onClose={() => setShowBlockConfirm(false)}>
+        <div className="text-center mb-4">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: '#FEE2E2' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M5.6 5.6l12.8 12.8"/>
+            </svg>
+          </div>
+          <h2 className="text-lg font-bold text-[#1A1A2E]">Bloquer {interlocuteurName} ?</h2>
+          <p className="text-sm text-[#8A8A9A] mt-1 max-w-[280px] mx-auto">
+            Vous ne verrez plus ses vœux ni ses messages, et il ne pourra plus vous contacter. Vous pourrez le débloquer depuis votre profil.
+          </p>
+        </div>
+        <button
+          onClick={handleBlockConv}
+          disabled={blocking}
+          className="w-full h-12 rounded-full text-white font-bold text-sm disabled:opacity-50"
+          style={{ background: '#EF4444' }}
+        >
+          {blocking ? 'Blocage...' : 'Bloquer'}
+        </button>
+        <button onClick={() => setShowBlockConfirm(false)} className="w-full text-sm text-[#8A8A9A] py-2 mt-2">
           Annuler
         </button>
       </BottomSheet>

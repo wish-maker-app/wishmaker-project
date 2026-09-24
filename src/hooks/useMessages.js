@@ -4,6 +4,7 @@ import { subscribeResilient } from '../lib/realtimeResilient'
 import { realtimeProbe } from '../lib/realtimeProbe'
 import useAuthStore from '../store/authStore'
 import { getCached, setCached } from '../lib/wishesCache'
+import { getBlockedIds } from '../lib/blocks'
 
 export function useMessages(conversationId = null) {
   const user = useAuthStore((s) => s.user)
@@ -64,7 +65,15 @@ export function useMessages(conversationId = null) {
           .or(`wisher_id.eq.${user.id},maker_id.eq.${user.id}`)
           .order('created_at', { ascending: false }))
         if (error) throw error
-        const list = data || []
+        let list = data || []
+        // Masque les conversations avec un utilisateur bloqué (deux sens)
+        const blocked = await getBlockedIds()
+        if (blocked.size) {
+          list = list.filter((c) => {
+            const other = c.wisher_id === user.id ? c.maker_id : c.wisher_id
+            return !blocked.has(String(other))
+          })
+        }
         setConversations(list)
         // Cache TOUJOURS mis à jour, y compris avec [] : NO_SESSION est levé
         // avant toute requête anonyme, donc un [] est AUTHENTIQUE (l'ancienne
