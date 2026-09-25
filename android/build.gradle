@@ -24,6 +24,18 @@ allprojects {
     }
 }
 
+// @capgo/capacitor-social-login : on n'utilise que Google. On exclut les SDK
+// Facebook et Twitter (sinon Facebook ajoute l'identifiant publicitaire AD_ID
+// et peut collecter des données, contraire à notre déclaration Play Store).
+// Le plugin a son propre gradle.properties (include=true) qui l'emporte sur le
+// nôtre : on force donc la valeur ici, avant l'évaluation du plugin.
+subprojects { sp ->
+    if (sp.path == ':capgo-capacitor-social-login') {
+        sp.ext['socialLogin.facebook.include'] = 'false'
+        sp.ext['socialLogin.twitter.include'] = 'false'
+    }
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
