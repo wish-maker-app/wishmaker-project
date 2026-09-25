@@ -19,6 +19,7 @@ const CGU = lazy(() => import('../pages/Public/CGU'))
 const CGV = lazy(() => import('../pages/Public/CGV'))
 const Privacy = lazy(() => import('../pages/Public/Privacy'))
 const WishPreview = lazy(() => import('../pages/Public/WishPreview'))
+const SuppressionCompte = lazy(() => import('../pages/Public/SuppressionCompte'))
 
 // Onboarding
 const OnboardingStep1 = lazy(() => import('../pages/Onboarding/Step1'))
@@ -196,6 +197,8 @@ const router = createBrowserRouter([
   { path: '/privacy',         element: <Suspense fallback={<PageLoader />}><Privacy /></Suspense> },
   // Aperçu public d'un vœu partagé (lien /w/:id) — accessible sans compte
   { path: '/w/:id',           element: <Suspense fallback={<PageLoader />}><WishPreview /></Suspense> },
+  // Demande de suppression de compte (exigée par Google Play — Sécurité des données)
+  { path: '/suppression-compte', element: <Suspense fallback={<PageLoader />}><SuppressionCompte /></Suspense> },
 
   // Onboarding (public)
   {
