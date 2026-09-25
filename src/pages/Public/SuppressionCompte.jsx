@@ -71,8 +71,20 @@ export default function SuppressionCompte() {
             Votre demande est traitée sous 30 jours maximum.
           </p>
 
+          {/* Suppression partielle */}
+          <h2 className="mt-10 text-[18px] font-bold">Supprimer certaines données sans supprimer votre compte</h2>
+          <p className="mt-3 text-[15px] leading-[1.6] text-[#3A3A4E]">
+            Vous pouvez supprimer une partie de vos données tout en conservant votre compte :
+          </p>
+          <ul className="mt-3 flex flex-col gap-2 text-[15px] leading-[1.6] text-[#3A3A4E] list-disc pl-5">
+            <li><strong>Vos vœux</strong> : ouvrez le vœu, menu « ⋯ » → « Supprimer ce vœu » (ses photos sont supprimées avec lui).</li>
+            <li><strong>Vos conversations</strong> : ouvrez la conversation, menu « ⋯ » → « Supprimer la conversation ».</li>
+            <li><strong>Votre photo et vos informations de profil</strong> : onglet Profil → « Profil », puis modifiez ou retirez votre photo et vos informations.</li>
+            <li><strong>Toute autre donnée</strong> : écrivez à <a href="mailto:contact@wishmaker.fr?subject=Suppression%20de%20donn%C3%A9es" className="text-[#5B6BF5] font-medium">contact@wishmaker.fr</a> avec pour objet « Suppression de données », en précisant les données concernées. Traitement sous 30 jours maximum.</li>
+          </ul>
+
           {/* Données concernées */}
-          <h2 className="mt-10 text-[18px] font-bold">Données supprimées</h2>
+          <h2 className="mt-10 text-[18px] font-bold">Données supprimées avec le compte</h2>
           <p className="mt-3 text-[15px] leading-[1.6] text-[#3A3A4E]">
             La suppression entraîne l'effacement de votre compte et des données associées :
             profil (nom, pseudo, photo), vœux publiés, messages, photos et données de localisation.
