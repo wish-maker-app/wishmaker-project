@@ -9,6 +9,7 @@ import { isSuspendedActive } from '../lib/suspension'
 import { Capacitor } from '@capacitor/core'
 import Landing from './Public/Landing'
 import { consumePostAuthRedirect } from '../lib/postAuthRedirect'
+import { retryPendingPlayPurchases } from '../lib/playBilling'
 
 /**
  * Point d'entrée `/` — résout silencieusement la destination selon la session.
@@ -73,6 +74,9 @@ export default function RouteResolver() {
           }
 
           if (profile?.onboarding_completed) {
+            // Achats Google Play payés mais pas encore crédités (coupure réseau,
+            // app tuée…) → on les rejoue en arrière-plan. Sans effet sur le web.
+            retryPendingPlayPurchases().catch(() => {})
             // Vœu partagé → destination de retour (sinon /maker)
             const dest = consumePostAuthRedirect('/maker')
             // Vérifier si on doit montrer le pré-écran push

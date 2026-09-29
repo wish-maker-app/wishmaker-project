@@ -58,6 +58,11 @@ export function formatEuros(cents) {
  * avant d'appliquer l'action (empêche le bypass client).
  */
 export async function applyPurchase(paymentIntentId) {
+  // Achat Google Play (app Android) : déjà vérifié + appliqué par le serveur
+  // dans buyWithGooglePlay (lib/playBilling.js) → rien à rejouer ici.
+  if (typeof paymentIntentId === 'string' && paymentIntentId.startsWith('gp:')) {
+    return { success: true, already_applied: true, provider: 'google_play' }
+  }
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new Error('Non authentifié')
 

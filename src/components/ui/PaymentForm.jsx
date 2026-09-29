@@ -2,10 +2,81 @@ import { useEffect, useState } from 'react'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import toast from 'react-hot-toast'
 import { getStripe, createPaymentIntent, formatEuros } from '../../lib/stripe'
+import { isPlayBillingAvailable, getPlayPrice, buyWithGooglePlay } from '../../lib/playBilling'
 import Button from './Button'
 
 /**
- * Formulaire de paiement Stripe réutilisable.
+ * Point d'entrée unique des paiements (packs, urgent, prolongation).
+ *  - App Android → Google Play Billing (obligatoire pour les achats numériques)
+ *  - Web / PWA   → Stripe (inchangé)
+ * Même interface pour les écrans appelants : onSuccess({ id, ... }).
+ */
+export default function PaymentForm(props) {
+  return isPlayBillingAvailable() ? <PlayBillingForm {...props} /> : <StripePaymentForm {...props} />
+}
+
+function isUserCancel(err) {
+  const m = `${err?.code || ''} ${err?.message || ''}`.toLowerCase()
+  return m.includes('cancel') || m.includes('user_canceled') || m.includes('annul')
+}
+
+function PlayBillingForm({ type, wish_id, onSuccess, onCancel }) {
+  const [price, setPrice] = useState(null)
+  const [loadingPrice, setLoadingPrice] = useState(true)
+  const [processing, setProcessing] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    getPlayPrice(type).then((p) => {
+      if (!cancelled) { setPrice(p); setLoadingPrice(false) }
+    })
+    return () => { cancelled = true }
+  }, [type])
+
+  async function handleBuy() {
+    setProcessing(true)
+    try {
+      const res = await buyWithGooglePlay({ type, wishId: wish_id })
+      onSuccess?.(res)
+    } catch (err) {
+      if (!isUserCancel(err)) toast.error(err?.message || 'Paiement impossible')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  if (loadingPrice) {
+    return <div className="py-10 text-center text-[#8A8A9A]">Préparation du paiement...</div>
+  }
+  if (!price) {
+    return (
+      <div className="py-6 text-center">
+        <p className="text-red-500 text-sm mb-4">Ce produit n'est pas disponible pour le moment.</p>
+        {onCancel && <Button onClick={onCancel} variant="secondary">Fermer</Button>}
+      </div>
+    )
+  }
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex gap-2 mt-2">
+        {onCancel && (
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={processing}>
+            Annuler
+          </Button>
+        )}
+        <Button type="button" loading={processing} onClick={handleBuy}>
+          {`Payer ${price}`}
+        </Button>
+      </div>
+      <p className="text-xs text-[#8A8A9A] text-center">
+        Paiement sécurisé par Google Play.
+      </p>
+    </div>
+  )
+}
+
+/**
+ * Formulaire de paiement Stripe réutilisable (web).
  *
  * Props :
  *  - type: 'urgent_boost' | 'extension' | 'pack_starter' | 'pack_essential' | 'pack_pro'  (prix fixes côté serveur)
@@ -15,7 +86,7 @@ import Button from './Button'
  *  - onCancel : callback si l'user ferme le modal
  *  - submitLabel: texte custom pour le bouton ("Publier", "Payer", etc.)
  */
-export default function PaymentForm({
+function StripePaymentForm({
   type,
   amount_cents,
   wish_id,
