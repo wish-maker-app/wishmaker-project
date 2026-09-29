@@ -159,6 +159,231 @@ async function creerFacturePayee(opts: {
   return facture
 }
 
+// ── Application de l'achat (commune Stripe + Google Play) ──
+// adminClient (service_role) : make_urgent/extend_wish sont reservees au
+// serveur (REVOKE authenticated). L'appel serveur n'a pas d'auth.uid() ;
+// les RPC le gerent. wishId provient d'une transaction validee.
+async function applyEffect(adminClient, userId: string, type: string, wishId: string | null, amountCents: number) {
+  if (type === 'pack_starter' || type === 'pack_essential' || type === 'pack_pro') {
+    const wishesToAdd = PACK_WISHES[type]
+    const { error: insertErr } = await adminClient.from('wish_packs').insert({
+      user_id: userId,
+      pack_type: type,
+      prix: amountCents / 100,
+      wishes_added: wishesToAdd,
+    })
+    if (insertErr) throw new Error(`wish_packs insert: ${insertErr.message}`)
+  } else if (type === 'urgent_boost') {
+    if (!wishId) throw new Error('wish_id manquant')
+    const { error } = await adminClient.rpc('make_urgent', { wish_id: wishId })
+    if (error) throw new Error(`make_urgent: ${error.message}`)
+  } else if (type === 'extension') {
+    if (!wishId) throw new Error('wish_id manquant')
+    const { error } = await adminClient.rpc('extend_wish', { wish_id: wishId })
+    if (error) throw new Error(`extend_wish: ${error.message}`)
+  } else {
+    throw new Error(`Type non supporte: ${type}`)
+  }
+}
+
+// ═══════════════ Google Play Billing (app Android) ═══════════════
+// Google impose son système de paiement pour les achats numériques dans l'app.
+// L'app achète SANS confirmation auto ; ici on vérifie l'achat auprès de Google
+// (compte de service, secret PLAY_SERVICE_ACCOUNT), on le crédite une seule
+// fois (index unique payment_intent_id = 'gp:<orderId>'), puis on le CONSOMME
+// (vaut confirmation : sans elle Google rembourse sous 3 jours).
+// Pas de facture Stripe : pour ces ventes, Google est le vendeur et gère la TVA.
+const PLAY_PACKAGE = 'fr.wishmaker.app'
+const PLAY_PRICE_CENTS: Record<string, number> = {
+  pack_starter: 299,
+  pack_essential: 599,
+  pack_pro: 999,
+  urgent_boost: 199,
+  extension: 99,
+}
+
+function b64url(bytes: Uint8Array): string {
+  let s = ''
+  for (const b of bytes) s += String.fromCharCode(b)
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+function pemToDer(pem: string): Uint8Array {
+  const b64 = pem.replace(/-----BEGIN [^-]+-----/, '').replace(/-----END [^-]+-----/, '').replace(/\s+/g, '')
+  const bin = atob(b64)
+  const der = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) der[i] = bin.charCodeAt(i)
+  return der
+}
+
+let cachedPlayToken: { token: string; exp: number } | null = null
+async function getPlayAccessToken(): Promise<string> {
+  const now = Math.floor(Date.now() / 1000)
+  if (cachedPlayToken && cachedPlayToken.exp > now + 60) return cachedPlayToken.token
+  const raw = Deno.env.get('PLAY_SERVICE_ACCOUNT')
+  if (!raw) throw new Error('PLAY_SERVICE_ACCOUNT manquant')
+  const sa = JSON.parse(raw)
+  const enc = (o: unknown) => b64url(new TextEncoder().encode(JSON.stringify(o)))
+  const unsigned = `${enc({ alg: 'RS256', typ: 'JWT' })}.${enc({
+    iss: sa.client_email,
+    scope: 'https://www.googleapis.com/auth/androidpublisher',
+    aud: 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600,
+  })}`
+  const key = await crypto.subtle.importKey(
+    'pkcs8', pemToDer(sa.private_key),
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign'],
+  )
+  const sig = new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(unsigned)))
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${unsigned}.${b64url(sig)}`,
+  })
+  const data = await res.json()
+  if (!data.access_token) throw new Error('OAuth Google Play: ' + JSON.stringify(data))
+  cachedPlayToken = { token: data.access_token, exp: now + (data.expires_in || 3600) }
+  return data.access_token
+}
+
+function playUrl(productId: string, token: string, suffix = '') {
+  return `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PLAY_PACKAGE}` +
+    `/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(token)}${suffix}`
+}
+
+async function playGetPurchase(productId: string, token: string) {
+  const res = await fetch(playUrl(productId, token), {
+    headers: { Authorization: `Bearer ${await getPlayAccessToken()}` },
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`)
+  return data
+}
+
+async function playConsume(productId: string, token: string) {
+  const res = await fetch(playUrl(productId, token, ':consume'), {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${await getPlayAccessToken()}` },
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data?.error?.message || `HTTP ${res.status}`)
+  }
+}
+
+async function handleGooglePlay(adminClient, userId: string, body) {
+  const productId = String(body.product_id || '')
+  const token = String(body.purchase_token || '')
+  const wishId = body.wish_id || null
+
+  if (!PLAY_PRICE_CENTS[productId]) return json({ error: 'Produit inconnu' }, 400)
+  if (!token) return json({ error: 'purchase_token requis' }, 400)
+
+  // Urgent / prolongation : le vœu doit exister et appartenir à l'acheteur
+  if (productId === 'urgent_boost' || productId === 'extension') {
+    if (!wishId) return json({ error: 'wish_id requis' }, 400)
+    const { data: wish } = await adminClient.from('wishes').select('id, wisher_id').eq('id', wishId).maybeSingle()
+    if (!wish || wish.wisher_id !== userId) return json({ error: 'Vœu introuvable' }, 403)
+  }
+
+  // 1) Vérification auprès de Google
+  let gp
+  try {
+    gp = await playGetPurchase(productId, token)
+  } catch (e) {
+    console.error('[apply-purchase][play] verification:', e?.message)
+    return json({ error: 'Vérification Google impossible' }, 502)
+  }
+  if (gp.purchaseState !== 0) {
+    return json({ error: `Achat non finalisé (état ${gp.purchaseState})` }, 400)
+  }
+  if (gp.obfuscatedExternalAccountId && gp.obfuscatedExternalAccountId !== userId) {
+    return json({ error: 'Achat lié à un autre compte' }, 403)
+  }
+
+  const key = `gp:${gp.orderId || token.slice(0, 100)}`
+
+  // 2) Enregistrement 'pending' (idempotent : index unique sur payment_intent_id)
+  const { error: insErr } = await adminClient.from('transactions').insert({
+    user_id: userId,
+    wish_id: wishId,
+    type: productId,
+    payment_intent_id: key,
+    amount_cents: PLAY_PRICE_CENTS[productId],
+    currency: 'eur',
+    status: 'pending',
+    metadata: {
+      provider: 'google_play',
+      order_id: gp.orderId || null,
+      product_id: productId,
+      purchase_token: token,
+      test: gp.purchaseType === 0,
+      region: gp.regionCode || null,
+    },
+  })
+  if (insErr && insErr.code !== '23505') {
+    console.error('[apply-purchase][play] insert:', insErr.message)
+    return json({ error: 'Erreur enregistrement transaction' }, 500)
+  }
+
+  // 3) Claim atomique (même principe que Stripe)
+  const { data: claimed, error: claimErr } = await adminClient
+    .from('transactions')
+    .update({ status: 'succeeded' })
+    .eq('payment_intent_id', key)
+    .eq('user_id', userId)
+    .neq('status', 'succeeded')
+    .select()
+    .maybeSingle()
+  if (claimErr) {
+    console.error('[apply-purchase][play] claim:', claimErr.message)
+    return json({ error: 'Erreur claim transaction' }, 500)
+  }
+  if (!claimed) {
+    const { data: existing } = await adminClient
+      .from('transactions').select('type, status, user_id').eq('payment_intent_id', key).maybeSingle()
+    if (!existing || existing.user_id !== userId) return json({ error: 'Transaction introuvable' }, 403)
+    if (existing.status === 'succeeded') {
+      // Déjà crédité : on (re)tente juste la consommation si elle avait échoué
+      let consumed = gp.consumptionState === 1
+      if (!consumed) {
+        try { await playConsume(productId, token); consumed = true } catch (e) {
+          console.error('[apply-purchase][play] consume:', e?.message)
+        }
+      }
+      return json({ success: true, already_applied: true, type: existing.type, consumed })
+    }
+    return json({ error: `Transaction ${existing.status}` }, 409)
+  }
+
+  // Jeton déjà consommé alors qu'aucun crédit n'a été fait : anormal → refus
+  if (gp.consumptionState === 1) {
+    await adminClient.from('transactions').update({ status: 'failed' }).eq('payment_intent_id', key)
+    return json({ error: 'Achat déjà utilisé' }, 409)
+  }
+
+  // 4) Application (valeurs de la transaction enregistrée, pas du corps de la requête)
+  try {
+    await applyEffect(adminClient, userId, claimed.type, claimed.wish_id, claimed.amount_cents)
+  } catch (applyErr) {
+    await adminClient.from('transactions').update({ status: 'pending' }).eq('payment_intent_id', key)
+    console.error('[apply-purchase][play] application echouee, claim annule:', applyErr?.message)
+    return json({ error: String(applyErr?.message || applyErr), reverted: true }, 500)
+  }
+
+  // 5) Consommation (= confirmation). Si elle échoue, l'achat reste crédité ;
+  // le client rejouera et on retentera la consommation (branche already_applied).
+  let consumed = true
+  try {
+    await playConsume(productId, token)
+  } catch (e) {
+    consumed = false
+    console.error('[apply-purchase][play] consume:', e?.message)
+  }
+
+  return json({ success: true, type: claimed.type, wish_id: claimed.wish_id, consumed })
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS })
   try {
@@ -173,7 +398,14 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: userErr } = await authClient.auth.getUser()
     if (userErr || !user) return json({ error: 'Unauthorized' }, 401)
 
-    const { payment_intent_id } = await req.json()
+    const body = await req.json()
+
+    // Achat fait dans l'app Android via Google Play Billing
+    if (body?.provider === 'google_play') {
+      return await handleGooglePlay(adminClient, user.id, body)
+    }
+
+    const { payment_intent_id } = body
     if (!payment_intent_id) return json({ error: 'payment_intent_id required' }, 400)
 
     const stripeRes = await fetch(`https://api.stripe.com/v1/payment_intents/${payment_intent_id}`, {
@@ -223,29 +455,7 @@ Deno.serve(async (req: Request) => {
     // historique : extend_wish lisait une table app_config inexistante -> 500,
     // user debite, voeu non prolonge.
     try {
-      if (type === 'pack_starter' || type === 'pack_essential' || type === 'pack_pro') {
-        const wishesToAdd = PACK_WISHES[type]
-        const { error: insertErr } = await adminClient.from('wish_packs').insert({
-          user_id: user.id,
-          pack_type: type,
-          prix: claimed.amount_cents / 100,
-          wishes_added: wishesToAdd,
-        })
-        if (insertErr) throw new Error(`wish_packs insert: ${insertErr.message}`)
-      } else if (type === 'urgent_boost') {
-        if (!wishId) throw new Error('wish_id manquant')
-        // adminClient (service_role) : make_urgent/extend_wish sont reservees au
-        // serveur (REVOKE authenticated). L'appel serveur n'a pas d'auth.uid() ;
-        // les RPC le gerent. wishId provient de la transaction Stripe validee.
-        const { error } = await adminClient.rpc('make_urgent', { wish_id: wishId })
-        if (error) throw new Error(`make_urgent: ${error.message}`)
-      } else if (type === 'extension') {
-        if (!wishId) throw new Error('wish_id manquant')
-        const { error } = await adminClient.rpc('extend_wish', { wish_id: wishId })
-        if (error) throw new Error(`extend_wish: ${error.message}`)
-      } else {
-        throw new Error(`Type non supporte: ${type}`)
-      }
+      await applyEffect(adminClient, user.id, type, wishId, claimed.amount_cents)
     } catch (applyErr) {
       // Revert du claim -> la transaction redevient 'pending', le paiement
       // pourra etre re-applique (ou rembourse) au lieu de rester en limbe.

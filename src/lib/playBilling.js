@@ -103,7 +103,12 @@ export async function buyWithGooglePlay({ type, wishId }) {
   writePending([...readPending().filter((p) => p.purchaseToken !== tx.purchaseToken), pending])
 
   const result = await sendToServer(pending)
-  writePending(readPending().filter((p) => p.purchaseToken !== tx.purchaseToken))
+  // Crédité ET confirmé chez Google → plus rien à rejouer. Si la confirmation a
+  // échoué (consumed=false), on garde l'achat : le rejeu retentera la
+  // confirmation (sinon Google rembourserait sous 3 jours).
+  if (result?.consumed !== false) {
+    writePending(readPending().filter((p) => p.purchaseToken !== tx.purchaseToken))
+  }
   return { id: `gp:${tx.orderId || tx.transactionId}`, provider: 'google_play', result }
 }
 
@@ -119,7 +124,8 @@ export async function retryPendingPlayPurchases() {
   const remaining = []
   for (const p of list) {
     try {
-      await sendToServer(p)
+      const result = await sendToServer(p)
+      if (result?.consumed === false) remaining.push(p) // confirmation Google à retenter
     } catch (err) {
       // 4xx = refus définitif (achat invalide, remboursé, pas le bon compte…) →
       // on abandonne. Réseau / 5xx = temporaire → on réessaiera plus tard.
