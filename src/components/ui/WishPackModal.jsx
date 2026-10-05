@@ -6,6 +6,7 @@ import { fetchMyProfile } from '../../lib/userProfile'
 import useAuthStore from '../../store/authStore'
 import { applyPurchase } from '../../lib/stripe'
 import PaymentForm from './PaymentForm'
+import { isPlayBillingAvailable } from '../../lib/playBilling'
 import BottomSheet from './BottomSheet'
 
 const PACKS = [
@@ -127,7 +128,7 @@ export default function WishPackModal({ open, onClose, onSuccess }) {
               ))}
             </div>
 
-            <p className="text-center text-[11px] text-[#B0B0B0] mt-4">Paiement sécurisé — Stripe</p>
+            <p className="text-center text-[11px] text-[#B0B0B0] mt-4">Paiement sécurisé — {isPlayBillingAvailable() ? 'Google Play' : 'Stripe'}</p>
           </>
         )}
     </BottomSheet>
