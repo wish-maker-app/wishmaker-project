@@ -14,17 +14,19 @@ function PhotoModal({ open, onClose, onPickGallery, onDelete, hasPhoto }) {
     <AnimatePresence>
       {open && (
         <>
+          {/* Fond sur tout l'écran (pas .overlay-backdrop, borné à 430px) : un clic n'importe où ferme */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 z-[900] overlay-backdrop"
+            className="fixed inset-0 bg-black/40 z-[900]"
           />
+          <div className="fixed inset-0 z-[901] flex items-center justify-center px-6 pointer-events-none">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed left-6 right-6 top-1/2 -translate-y-1/2 bg-white rounded-3xl z-[901] px-1 py-6 shadow-2xl"
+            className="pointer-events-auto w-full max-w-[382px] bg-white rounded-3xl px-1 py-6 shadow-2xl"
           >
             <h2 className="text-lg font-bold text-[#1A1A2E] text-center mb-5">{t('profile.edit.photo_titre')}</h2>
 
@@ -56,6 +58,7 @@ function PhotoModal({ open, onClose, onPickGallery, onDelete, hasPhoto }) {
               </button>
             )}
           </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
