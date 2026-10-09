@@ -93,7 +93,10 @@ export default function CGV() {
                 Les paiements sont effectués en ligne par carte bancaire via notre prestataire de paiement <strong className="font-semibold text-[#1A1A2E]">Stripe Payments Europe Ltd.</strong>, conforme aux normes PCI-DSS.
               </p>
               <p>
-                Wish Maker SAS ne stocke aucune donnée bancaire. Les informations de paiement sont traitées directement par Stripe selon ses propres conditions et politique de confidentialité.
+                Dans l'application Android, les achats sont réalisés via le système de facturation de <strong className="font-semibold text-[#1A1A2E]">Google Play</strong>. Le paiement est alors encaissé par Google selon ses propres conditions d'utilisation, avec le moyen de paiement enregistré sur le compte Google de l'Utilisateur, et le reçu est émis par Google.
+              </p>
+              <p>
+                Wish Maker SAS ne stocke aucune donnée bancaire. Les informations de paiement sont traitées directement par Stripe ou par Google, selon leurs propres conditions et politiques de confidentialité.
               </p>
               <p>
                 Le débit intervient immédiatement à la validation de la commande. Une facture électronique récapitulative est disponible sur demande à l'adresse <a href="mailto:wm@wishmaker.fr" className="text-[#5B6BF5] hover:underline">wm@wishmaker.fr</a>.

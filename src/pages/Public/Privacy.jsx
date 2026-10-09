@@ -78,7 +78,7 @@ export default function Privacy() {
                 <li><strong className="font-semibold text-[#1A1A2E]">Localisation</strong> : ville, coordonnées géographiques approximatives renseignées par l'Utilisateur</li>
                 <li><strong className="font-semibold text-[#1A1A2E]">Photo de profil et photos de vœux</strong> : images téléchargées par l'Utilisateur</li>
                 <li><strong className="font-semibold text-[#1A1A2E]">Contenu publié</strong> : vœux, messages échangés, avis</li>
-                <li><strong className="font-semibold text-[#1A1A2E]">Données de paiement</strong> : traitées exclusivement par notre prestataire Stripe — nous ne stockons aucune donnée bancaire</li>
+                <li><strong className="font-semibold text-[#1A1A2E]">Données de paiement</strong> : traitées exclusivement par nos prestataires de paiement (Stripe sur le site web, Google Play pour les achats effectués dans l'application Android) — nous ne stockons aucune donnée bancaire</li>
                 <li><strong className="font-semibold text-[#1A1A2E]">Données techniques</strong> : adresse IP, type de navigateur, logs de connexion</li>
               </ul>
             </Section>
@@ -118,7 +118,8 @@ export default function Privacy() {
                 <li>Les équipes internes de Wish Maker SAS, dans la limite de leurs habilitations</li>
                 <li><strong className="font-semibold text-[#1A1A2E]">Supabase Inc.</strong> (hébergement back-end et base de données, Singapour)</li>
                 <li><strong className="font-semibold text-[#1A1A2E]">Vercel Inc.</strong> (hébergement front-end, États-Unis)</li>
-                <li><strong className="font-semibold text-[#1A1A2E]">Stripe Payments Europe Ltd.</strong> (traitement des paiements, Irlande)</li>
+                <li><strong className="font-semibold text-[#1A1A2E]">Stripe Payments Europe Ltd.</strong> (traitement des paiements sur le site web, Irlande)</li>
+                <li><strong className="font-semibold text-[#1A1A2E]">Google Commerce Limited</strong> (achats intégrés réalisés dans l'application Android via Google Play, Irlande)</li>
                 <li><strong className="font-semibold text-[#1A1A2E]">OVH SAS</strong> (nom de domaine, France)</li>
                 <li>Les autorités administratives ou judiciaires sur réquisition légale</li>
               </ul>

@@ -153,7 +153,7 @@ export default function MentionsLegales() {
             <p>
               <strong className="font-semibold text-[#1A1A2E]">Données collectées</strong>
               <br />
-              Identité (prénom, nom, pseudo), email, ville, données de géolocalisation, photos, messages échangés, informations de paiement (traitées par notre partenaire Stripe).
+              Identité (prénom, nom, pseudo), email, ville, données de géolocalisation, photos, messages échangés, informations de paiement (traitées par nos partenaires Stripe et Google Play).
             </p>
             <p>
               <strong className="font-semibold text-[#1A1A2E]">Vos droits</strong>
