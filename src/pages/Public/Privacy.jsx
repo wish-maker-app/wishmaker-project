@@ -44,7 +44,7 @@ export default function Privacy() {
             Politique de Confidentialité
           </h1>
           <p className="mt-2 text-[13px] text-[#8A8A9A]">
-            Version 1.0 — En vigueur au 1ᵉʳ mai 2026
+            Version 1.1 — En vigueur au 9 octobre 2026
           </p>
 
           <p className="mt-6 text-[14.5px] leading-[1.7] text-[#3A3A4E]">

@@ -46,7 +46,7 @@ export default function CGV() {
             Conditions Générales de Vente
           </h1>
           <p className="mt-2 text-[13px] text-[#8A8A9A]">
-            Version 1.0 — En vigueur au 1ᵉʳ mai 2026
+            Version 1.1 — En vigueur au 9 octobre 2026
           </p>
 
           <div className="mt-10 flex flex-col gap-10">

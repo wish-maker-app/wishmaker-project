@@ -48,7 +48,7 @@ export default function MentionsLegales() {
           Mentions légales
         </h1>
         <p className="mt-2 text-[13px] text-[#8A8A9A]">
-          Dernière mise à jour : mai 2026
+          Dernière mise à jour : octobre 2026
         </p>
 
         {/* Sections */}
