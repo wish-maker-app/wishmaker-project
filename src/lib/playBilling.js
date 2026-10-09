@@ -102,7 +102,15 @@ export async function buyWithGooglePlay({ type, wishId }) {
   const pending = { productId: type, purchaseToken: tx.purchaseToken, wishId: wishId || null }
   writePending([...readPending().filter((p) => p.purchaseToken !== tx.purchaseToken), pending])
 
-  const result = await sendToServer(pending)
+  let result
+  try {
+    result = await sendToServer(pending)
+  } catch (err) {
+    // Payé chez Google mais pas encore appliqué (réseau, serveur…) : l'achat
+    // reste mémorisé et sera rejoué → l'écran doit le dire, pas « échec ».
+    if (!(err?.status >= 400 && err?.status < 500)) err.paidButPending = true
+    throw err
+  }
   // Crédité ET confirmé chez Google → plus rien à rejouer. Si la confirmation a
   // échoué (consumed=false), on garde l'achat : le rejeu retentera la
   // confirmation (sinon Google rembourserait sous 3 jours).

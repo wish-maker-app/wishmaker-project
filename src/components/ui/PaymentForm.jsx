@@ -39,7 +39,13 @@ function PlayBillingForm({ type, wish_id, onSuccess, onCancel }) {
       const res = await buyWithGooglePlay({ type, wishId: wish_id })
       onSuccess?.(res)
     } catch (err) {
-      if (!isUserCancel(err)) toast.error(err?.message || 'Paiement impossible')
+      // err.status = refus de NOTRE serveur (message déjà en français). Sinon
+      // l'erreur vient du plugin Google (texte technique en anglais) → message neutre.
+      if (err?.paidButPending) {
+        toast("Paiement reçu. L'activation prend un peu plus de temps que prévu, elle se fera automatiquement.", { duration: 6000 })
+      } else if (!isUserCancel(err)) {
+        toast.error(err?.status ? (err.message || 'Paiement impossible') : "Le paiement n'a pas abouti.")
+      }
     } finally {
       setProcessing(false)
     }
