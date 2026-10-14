@@ -139,6 +139,12 @@ html.capacitor-native .min-h-screen {
   max-height: 100% !important;
 }
 
+/* iOS : la zone du home indicator (34 pt) + 8 px laissait les icônes de la
+   barre d'onglets trop hautes. On ne garde qu'une partie de la safe-area. */
+html.platform-ios nav.has-safe-bottom {
+  padding-bottom: max(6px, calc(env(safe-area-inset-bottom, 0px) - 14px)) !important;
+}
+
 /* ─── Pages publiques fixed inset-0 : safe-area top + bottom ─── */
 /* Les pages Landing/Mentions/CGU/CGV/Privacy/Support utilisent position:fixed
    pour echapper au shell mobile 430px (responsive desktop). Comme fixed est

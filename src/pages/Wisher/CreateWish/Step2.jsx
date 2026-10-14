@@ -70,18 +70,11 @@ export default function Step2() {
     e.target.value = '' // reset tout de suite pour permettre re-sélection
 
     setProcessing(files.length)
-    setStage('verify')
+    setStage('compress')
     try {
-      // Modération NSFW avant compression (bloque tout de suite si illicite)
-      const { moderateImages } = await import('../../../lib/moderationImage')
-      const modResult = await moderateImages(files)
-      if (!modResult.isClean) {
-        toast.error(modResult.reason || t('wisher.create.step2.image_invalide'))
-        return
-      }
-
-      // Compression côté client : photo iPhone 4 MB → ~200-300 KB
-      setStage('compress')
+      // Compression côté client d'abord : photo iPhone 4 MB → ~200-300 KB.
+      // La modération analyse ensuite l'image réduite (bien plus rapide que la
+      // photo plein format, surtout sur iPhone).
       const { compressImage } = await import('../../../lib/imageCompression')
       const compressedFiles = await Promise.all(
         files.map(async (file) => {
@@ -93,6 +86,16 @@ export default function Step2() {
           }
         })
       )
+
+      // Modération NSFW (bloque si illicite) sur les images compressées
+      setStage('verify')
+      const { moderateImages } = await import('../../../lib/moderationImage')
+      const modResult = await moderateImages(compressedFiles)
+      if (!modResult.isClean) {
+        toast.error(modResult.reason || t('wisher.create.step2.image_invalide'))
+        return
+      }
+
       const newImages = compressedFiles.map((file, i) => ({
         id: `${Date.now()}-${i}`,
         file,

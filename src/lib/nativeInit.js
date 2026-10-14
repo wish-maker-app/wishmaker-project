@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core'
+import { Geolocation } from '@capacitor/geolocation'
 import { openExternal } from './openExternal'
 
 /**
@@ -18,7 +19,13 @@ export async function initNative() {
   // Marqueur fiable "app native" sur <html> → permet au CSS de gérer la
   // safe-area du BAS (barre gestuelle Android en edge-to-edge / home indicator
   // iOS) sans dépendre de `display-mode: standalone` (peu fiable en WebView).
-  document.documentElement.classList.add('capacitor-native')
+  document.documentElement.classList.add('capacitor-native', `platform-${platform}`)
+
+  // Géolocalisation iOS : on remplace navigator.geolocation (API web de la
+  // WebView) par le plugin Capacitor. Sinon iOS affiche une 2e demande au nom de
+  // « localhost » en plus de celle de l'app. Même interface → aucun écran à modifier.
+  // (Android inchangé pour l'instant.)
+  if (platform === 'ios') installNativeGeolocation()
 
   // Barre de statut : contenu SOMBRE (l'app est sur fond clair).
   // NB: dans @capacitor/status-bar, Style.Light = texte sombre pour fond clair.
@@ -31,6 +38,21 @@ export async function initNative() {
       await StatusBar.setBackgroundColor({ color: '#FFFFFF' })
     }
   } catch { /* plugin indisponible → on ignore silencieusement */ }
+
+  // Clavier iOS : barre « Terminé » au-dessus du clavier (pour le fermer) et
+  // champ actif ramené au centre de l'écran quand le clavier s'ouvre.
+  if (platform === 'ios') {
+    try {
+      const { Keyboard } = await import('@capacitor/keyboard')
+      await Keyboard.setAccessoryBarVisible({ isVisible: true })
+      Keyboard.addListener('keyboardDidShow', () => {
+        const el = document.activeElement
+        if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) {
+          el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        }
+      })
+    } catch { /* plugin indisponible → on ignore */ }
+  }
 
   // Liens externes : un lien vers un site tiers ouvert DANS la WebView piège
   // l'utilisateur (motif de rejet App Store). On intercepte les liens http(s)
@@ -62,4 +84,51 @@ export async function initNative() {
       })
     } catch { /* plugin indisponible → on ignore */ }
   }
+}
+
+/**
+ * navigator.geolocation → plugin @capacitor/geolocation (même interface que
+ * l'API web : getCurrentPosition / watchPosition / clearWatch).
+ */
+function installNativeGeolocation() {
+  const toPosition = (p) => ({ coords: p.coords, timestamp: p.timestamp })
+  const toError = (e) => {
+    const msg = e?.message || ''
+    return { code: /denied|permission|refus/i.test(msg) ? 1 : 2, message: msg, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 }
+  }
+  const toOptions = (o = {}) => ({
+    enableHighAccuracy: !!o.enableHighAccuracy,
+    timeout: o.timeout ?? 15000,
+    maximumAge: o.maximumAge ?? 0,
+  })
+  const watches = new Map() // id renvoyé à l'appelant → id du plugin
+  let nextId = 0
+
+  const geolocation = {
+    getCurrentPosition(onSuccess, onError, options) {
+      Geolocation.getCurrentPosition(toOptions(options))
+        .then((p) => onSuccess(toPosition(p)), (e) => onError?.(toError(e)))
+    },
+    watchPosition(onSuccess, onError, options) {
+      const id = ++nextId
+      watches.set(id, null)
+      Geolocation.watchPosition(toOptions(options), (p, e) => {
+        if (e) onError?.(toError(e))
+        else if (p) onSuccess(toPosition(p))
+      }).then((pluginId) => {
+        // clearWatch appelé avant que le plugin ait répondu → on arrête tout de suite
+        if (watches.has(id)) watches.set(id, pluginId)
+        else Geolocation.clearWatch({ id: pluginId })
+      })
+      return id
+    },
+    clearWatch(id) {
+      const pluginId = watches.get(id)
+      watches.delete(id)
+      if (pluginId) Geolocation.clearWatch({ id: pluginId })
+    },
+  }
+  try {
+    Object.defineProperty(navigator, 'geolocation', { value: geolocation, configurable: true })
+  } catch { /* lecture seule sur ce moteur → on garde l'API web */ }
 }
