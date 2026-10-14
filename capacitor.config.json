@@ -4,7 +4,8 @@
   "webDir": "dist",
   "plugins": {
     "Keyboard": {
-      "resize": "native"
+      "resize": "native",
+      "style": "LIGHT"
     },
     "SplashScreen": {
       "launchShowDuration": 1000,
@@ -12,5 +13,8 @@
       "backgroundColor": "#5B6BF5",
       "showSpinner": false
     }
+  },
+  "ios": {
+    "backgroundColor": "#ffffff"
   }
 }
