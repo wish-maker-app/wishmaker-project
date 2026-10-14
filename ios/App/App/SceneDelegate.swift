@@ -8,7 +8,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = CAPBridgeViewController()
+        // Fond blanc derrière la WebView : quand le clavier s'ouvre, la WebView
+        // rétrécit et la zone libérée prenait le noir par défaut de la fenêtre.
+        window?.backgroundColor = .white
+        let bridge = CAPBridgeViewController()
+        bridge.view.backgroundColor = .white
+        window?.rootViewController = bridge
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
