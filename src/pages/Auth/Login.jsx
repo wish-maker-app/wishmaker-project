@@ -13,7 +13,7 @@ import AuthShell from '../../components/layout/AuthShell'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
 import SuccessModal from '../../components/ui/SuccessModal'
-import { isNativeGoogleAvailable, signInWithGoogleNative, isGoogleCancel } from '../../lib/nativeGoogleAuth'
+import { isNativeGoogleAvailable, signInWithGoogleNative, isGoogleCancel, isNativeAppleAvailable, signInWithAppleNative } from '../../lib/nativeGoogleAuth'
 
 const schema = z.object({
   email: z.string().email('Email invalide'),
@@ -81,6 +81,16 @@ export default function Login() {
     await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/` } })
   }
   async function handleApple() {
+    // iPhone : « Se connecter avec Apple » natif (feuille système Apple).
+    if (isNativeAppleAvailable()) {
+      try {
+        await signInWithAppleNative()
+        navigate('/', { replace: true })
+      } catch (err) {
+        if (!isGoogleCancel(err)) toast.error('Connexion Apple impossible')
+      }
+      return
+    }
     await supabase.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: `${window.location.origin}/` } })
   }
 
