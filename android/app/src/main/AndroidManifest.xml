@@ -32,4 +32,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Position APPROXIMATIVE uniquement (cohérent avec la déclaration « Sécurité
+         des données » du Play Store) : vœux autour de soi, localisation d'un vœu. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-feature android:name="android.hardware.location" android:required="false" />
 </manifest>

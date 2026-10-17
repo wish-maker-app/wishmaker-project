@@ -21,11 +21,12 @@ export async function initNative() {
   // iOS) sans dépendre de `display-mode: standalone` (peu fiable en WebView).
   document.documentElement.classList.add('capacitor-native', `platform-${platform}`)
 
-  // Géolocalisation iOS : on remplace navigator.geolocation (API web de la
-  // WebView) par le plugin Capacitor. Sinon iOS affiche une 2e demande au nom de
-  // « localhost » en plus de celle de l'app. Même interface → aucun écran à modifier.
-  // (Android inchangé pour l'instant.)
-  if (platform === 'ios') installNativeGeolocation()
+  // Géolocalisation : on remplace navigator.geolocation (API web de la WebView)
+  // par le plugin Capacitor, qui demande l'autorisation système au nom de l'app.
+  // iOS : évite une 2e demande au nom de « localhost ». Android : l'API web ne
+  // demandait jamais l'autorisation → position toujours refusée.
+  // Même interface → aucun écran à modifier.
+  installNativeGeolocation()
 
   // Barre de statut : contenu SOMBRE (l'app est sur fond clair).
   // NB: dans @capacitor/status-bar, Style.Light = texte sombre pour fond clair.
