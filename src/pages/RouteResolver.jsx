@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { fetchMyProfile } from '../lib/userProfile'
-import { requestPushPermission } from '../lib/pushNotifications'
+import { requestPushPermission, getNotifPermission } from '../lib/pushNotifications'
 import useAuthStore from '../store/authStore'
 import { isSuspendedActive } from '../lib/suspension'
 import { Capacitor } from '@capacitor/core'
@@ -99,6 +99,14 @@ export default function RouteResolver() {
             // Déjà accordé (web) → s'assurer que la subscription est enregistrée
             if (alreadyGranted) {
               requestPushPermission(session.user.id).catch(() => {})
+            }
+            // Natif : si l'autorisation système est déjà accordée, on réenregistre
+            // le jeton à chaque lancement (il peut changer : réinstallation,
+            // passage APNs → FCM sur iPhone…). Aucune fenêtre n'est affichée.
+            if (nativePlatform) {
+              getNotifPermission()
+                .then((p) => { if (p === 'granted') return requestPushPermission(session.user.id) })
+                .catch(() => {})
             }
             setRenderState('redirect')
             navigate(dest, { replace: true })
