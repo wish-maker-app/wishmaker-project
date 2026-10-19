@@ -60,7 +60,7 @@ export function formatEuros(cents) {
 export async function applyPurchase(paymentIntentId) {
   // Achat Google Play (app Android) : déjà vérifié + appliqué par le serveur
   // dans buyWithGooglePlay (lib/playBilling.js) → rien à rejouer ici.
-  if (typeof paymentIntentId === 'string' && paymentIntentId.startsWith('gp:')) {
+  if (typeof paymentIntentId === 'string' && (paymentIntentId.startsWith('gp:') || paymentIntentId.startsWith('as:'))) {
     return { success: true, already_applied: true, provider: 'google_play' }
   }
   const { data: { session } } = await supabase.auth.getSession()

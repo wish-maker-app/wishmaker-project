@@ -2,7 +2,14 @@ import { Capacitor } from '@capacitor/core'
 import { supabase } from './supabase'
 
 /**
- * Achats intégrés via Google Play Billing (app Android uniquement).
+ * Achats intégrés natifs : Google Play Billing (Android) et App Store (iPhone).
+ *
+ * iPhone : même principe. L'achat StoreKit n'est PAS terminé automatiquement ;
+ * le serveur (apply-purchase, provider 'app_store') vérifie la transaction
+ * auprès d'Apple et crédite, PUIS l'app termine la transaction
+ * (acknowledgePurchase). Non terminée, Apple la redélivre au lancement suivant.
+ *
+ * Ci-dessous le détail Google Play (Android) :
  *
  * Google impose son propre système de paiement pour les achats numériques
  * utilisés dans l'app (packs de vœux, boost urgent, prolongation) : Stripe y
@@ -20,8 +27,16 @@ import { supabase } from './supabase'
 
 const PENDING_KEY = 'play_pending_purchases'
 
+const isIOS = () => Capacitor.getPlatform() === 'ios'
+
+/** Achats via le magasin d'applications (Google Play ou App Store) disponibles ? */
 export function isPlayBillingAvailable() {
-  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
+  return Capacitor.isNativePlatform() && ['android', 'ios'].includes(Capacitor.getPlatform())
+}
+
+/** Nom du magasin affiché à l'utilisateur. */
+export function storeName() {
+  return isIOS() ? 'l’App Store' : 'Google Play'
 }
 
 async function plugin() {
@@ -50,7 +65,7 @@ function writePending(list) {
 }
 
 /** Envoie un achat Google au serveur, qui le vérifie, le crédite puis le consomme. */
-async function sendToServer({ productId, purchaseToken, wishId }) {
+async function sendToServer({ provider, productId, purchaseToken, transactionId, wishId }) {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new Error('Non authentifié')
   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/apply-purchase`, {
@@ -60,12 +75,9 @@ async function sendToServer({ productId, purchaseToken, wishId }) {
       'Content-Type': 'application/json',
       apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
     },
-    body: JSON.stringify({
-      provider: 'google_play',
-      product_id: productId,
-      purchase_token: purchaseToken,
-      wish_id: wishId || null,
-    }),
+    body: JSON.stringify(provider === 'app_store'
+      ? { provider: 'app_store', product_id: productId, transaction_id: transactionId, wish_id: wishId || null }
+      : { provider: 'google_play', product_id: productId, purchase_token: purchaseToken, wish_id: wishId || null }),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
@@ -87,6 +99,7 @@ export async function buyWithGooglePlay({ type, wishId }) {
   if (!user) throw new Error('Non authentifié')
 
   const { NativePurchases, PURCHASE_TYPE } = await plugin()
+  if (isIOS()) return buyWithAppStore({ NativePurchases, PURCHASE_TYPE, user, type, wishId })
   const tx = await NativePurchases.purchaseProduct({
     productIdentifier: type,
     productType: PURCHASE_TYPE.INAPP,
@@ -99,7 +112,7 @@ export async function buyWithGooglePlay({ type, wishId }) {
 
   // Mémorisé AVANT l'appel serveur : si le réseau coupe, on pourra rejouer
   // (le wish_id ne peut pas être retrouvé autrement pour urgent/prolongation).
-  const pending = { productId: type, purchaseToken: tx.purchaseToken, wishId: wishId || null }
+  const pending = { provider: 'google_play', productId: type, purchaseToken: tx.purchaseToken, wishId: wishId || null }
   writePending([...readPending().filter((p) => p.purchaseToken !== tx.purchaseToken), pending])
 
   let result
@@ -120,6 +133,43 @@ export async function buyWithGooglePlay({ type, wishId }) {
   return { id: `gp:${tx.orderId || tx.transactionId}`, provider: 'google_play', result }
 }
 
+/** Termine une transaction App Store (après crédit côté serveur). */
+async function finishAppStoreTransaction(transactionId) {
+  try {
+    const { NativePurchases } = await plugin()
+    await NativePurchases.acknowledgePurchase({ purchaseToken: String(transactionId) })
+  } catch (e) {
+    // Déjà terminée ou introuvable : sans conséquence (le serveur est idempotent).
+    console.warn('[billing] finish App Store:', e?.message)
+  }
+}
+
+/** Achat App Store (iPhone) : achat → vérification serveur → fin de transaction. */
+async function buyWithAppStore({ NativePurchases, PURCHASE_TYPE, user, type, wishId }) {
+  const tx = await NativePurchases.purchaseProduct({
+    productIdentifier: type,
+    productType: PURCHASE_TYPE.INAPP,
+    quantity: 1,
+    appAccountToken: user.id, // UUID Supabase : lie l'achat au compte Wish Maker
+    autoAcknowledgePurchases: false, // terminée seulement après crédit serveur
+  })
+  if (!tx?.transactionId) throw new Error('Achat App Store incomplet')
+
+  const pending = { provider: 'app_store', productId: type, transactionId: String(tx.transactionId), wishId: wishId || null }
+  writePending([...readPending().filter((p) => p.transactionId !== pending.transactionId), pending])
+
+  let result
+  try {
+    result = await sendToServer(pending)
+  } catch (err) {
+    if (!(err?.status >= 400 && err?.status < 500)) err.paidButPending = true
+    throw err
+  }
+  await finishAppStoreTransaction(pending.transactionId)
+  writePending(readPending().filter((p) => p.transactionId !== pending.transactionId))
+  return { id: `as:${pending.transactionId}`, provider: 'app_store', result }
+}
+
 /**
  * Rejoue les achats payés mais pas encore appliqués (coupure réseau, app tuée
  * pendant l'appel serveur…). À appeler au démarrage, une fois connecté.
@@ -131,9 +181,13 @@ export async function retryPendingPlayPurchases() {
   if (!list.length) return
   const remaining = []
   for (const p of list) {
+    // Les plateformes ne se mélangent pas (un rejeu iPhone n'a pas de sens sur Android).
+    const provider = p.provider || 'google_play'
+    if ((provider === 'app_store') !== isIOS()) { remaining.push(p); continue }
     try {
-      const result = await sendToServer(p)
-      if (result?.consumed === false) remaining.push(p) // confirmation Google à retenter
+      const result = await sendToServer({ ...p, provider })
+      if (provider === 'app_store') await finishAppStoreTransaction(p.transactionId)
+      else if (result?.consumed === false) remaining.push(p) // confirmation Google à retenter
     } catch (err) {
       // 4xx = refus définitif (achat invalide, remboursé, pas le bon compte…) →
       // on abandonne. Réseau / 5xx = temporaire → on réessaiera plus tard.

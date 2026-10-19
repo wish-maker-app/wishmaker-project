@@ -384,6 +384,151 @@ async function handleGooglePlay(adminClient, userId: string, body) {
   return json({ success: true, type: claimed.type, wish_id: claimed.wish_id, consumed })
 }
 
+// ═══════════════ App Store (app iPhone) ═══════════════
+// Même principe que Google Play : l'app achète SANS terminer la transaction ;
+// ici on la récupère auprès d'Apple (App Store Server API, clé « achats
+// intégrés » : secrets APPSTORE_ISSUER_ID / APPSTORE_KEY_ID / APPSTORE_PRIVATE_KEY),
+// on crédite une seule fois (payment_intent_id = 'as:<transactionId>'), puis
+// l'app termine la transaction. Apple est le vendeur et gère la TVA : pas de
+// facture Stripe.
+const APPSTORE_BUNDLE = 'fr.wishmaker.app'
+
+let cachedAppStoreJwt: { token: string; exp: number } | null = null
+async function getAppStoreJwt(): Promise<string> {
+  const now = Math.floor(Date.now() / 1000)
+  if (cachedAppStoreJwt && cachedAppStoreJwt.exp > now + 60) return cachedAppStoreJwt.token
+  const issuer = Deno.env.get('APPSTORE_ISSUER_ID')
+  const keyId = Deno.env.get('APPSTORE_KEY_ID')
+  const pem = Deno.env.get('APPSTORE_PRIVATE_KEY')
+  if (!issuer || !keyId || !pem) throw new Error('Secrets App Store manquants')
+  const enc = (o: unknown) => b64url(new TextEncoder().encode(JSON.stringify(o)))
+  const exp = now + 1200
+  const unsigned = `${enc({ alg: 'ES256', kid: keyId, typ: 'JWT' })}.${enc({
+    iss: issuer, iat: now, exp, aud: 'appstoreconnect-v1', bid: APPSTORE_BUNDLE,
+  })}`
+  const key = await crypto.subtle.importKey(
+    'pkcs8', pemToDer(pem), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign'],
+  )
+  // WebCrypto renvoie déjà la signature au format JWS (r||s, 64 octets)
+  const sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(unsigned)))
+  const token = `${unsigned}.${b64url(sig)}`
+  cachedAppStoreJwt = { token, exp }
+  return token
+}
+
+function decodeJwsPayload(jws: string) {
+  const part = jws.split('.')[1]
+  const b64 = part.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((part.length + 3) % 4)
+  return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))))
+}
+
+// Transaction lue directement chez Apple (TLS) : production d'abord, puis
+// sandbox (achats de test / TestFlight / examen Apple).
+async function appStoreGetTransaction(transactionId: string) {
+  const jwt = await getAppStoreJwt()
+  for (const host of ['api.storekit.itunes.apple.com', 'api.storekit-sandbox.itunes.apple.com']) {
+    const res = await fetch(`https://${host}/inApps/v1/transactions/${encodeURIComponent(transactionId)}`, {
+      headers: { Authorization: `Bearer ${jwt}` },
+    })
+    if (res.status === 404) continue
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.signedTransactionInfo) {
+      throw new Error(`App Store ${res.status}: ${data?.errorMessage || 'réponse invalide'}`)
+    }
+    return decodeJwsPayload(data.signedTransactionInfo)
+  }
+  return null
+}
+
+async function handleAppStore(adminClient, userId: string, body) {
+  const productId = String(body.product_id || '')
+  const transactionId = String(body.transaction_id || '')
+  const wishId = body.wish_id || null
+
+  if (!PLAY_PRICE_CENTS[productId]) return json({ error: 'Produit inconnu' }, 400)
+  if (!/^\d+$/.test(transactionId)) return json({ error: 'transaction_id requis' }, 400)
+
+  if (productId === 'urgent_boost' || productId === 'extension') {
+    if (!wishId) return json({ error: 'wish_id requis' }, 400)
+    const { data: wish } = await adminClient.from('wishes').select('id, wisher_id').eq('id', wishId).maybeSingle()
+    if (!wish || wish.wisher_id !== userId) return json({ error: 'Vœu introuvable' }, 403)
+  }
+
+  // 1) Vérification auprès d'Apple
+  let tx
+  try {
+    tx = await appStoreGetTransaction(transactionId)
+  } catch (e) {
+    console.error('[apply-purchase][appstore] verification:', e?.message)
+    return json({ error: 'Vérification Apple impossible' }, 502)
+  }
+  if (!tx) return json({ error: 'Transaction Apple introuvable' }, 404)
+  if (tx.bundleId !== APPSTORE_BUNDLE || tx.productId !== productId) {
+    return json({ error: 'Achat ne correspondant pas au produit' }, 400)
+  }
+  if (tx.revocationDate) return json({ error: 'Achat remboursé ou annulé' }, 400)
+  if (tx.appAccountToken && String(tx.appAccountToken).toLowerCase() !== userId.toLowerCase()) {
+    return json({ error: 'Achat lié à un autre compte' }, 403)
+  }
+
+  const key = `as:${tx.transactionId}`
+
+  // 2) Enregistrement 'pending' (idempotent : index unique sur payment_intent_id)
+  const { error: insErr } = await adminClient.from('transactions').insert({
+    user_id: userId,
+    wish_id: wishId,
+    type: productId,
+    payment_intent_id: key,
+    amount_cents: PLAY_PRICE_CENTS[productId],
+    currency: 'eur',
+    status: 'pending',
+    metadata: {
+      provider: 'app_store',
+      transaction_id: String(tx.transactionId),
+      original_transaction_id: String(tx.originalTransactionId || ''),
+      product_id: productId,
+      test: tx.environment !== 'Production',
+      storefront: tx.storefront || null,
+    },
+  })
+  if (insErr && insErr.code !== '23505') {
+    console.error('[apply-purchase][appstore] insert:', insErr.message)
+    return json({ error: 'Erreur enregistrement transaction' }, 500)
+  }
+
+  // 3) Claim atomique
+  const { data: claimed, error: claimErr } = await adminClient
+    .from('transactions')
+    .update({ status: 'succeeded' })
+    .eq('payment_intent_id', key)
+    .eq('user_id', userId)
+    .neq('status', 'succeeded')
+    .select()
+    .maybeSingle()
+  if (claimErr) {
+    console.error('[apply-purchase][appstore] claim:', claimErr.message)
+    return json({ error: 'Erreur claim transaction' }, 500)
+  }
+  if (!claimed) {
+    const { data: existing } = await adminClient
+      .from('transactions').select('type, status, user_id').eq('payment_intent_id', key).maybeSingle()
+    if (!existing || existing.user_id !== userId) return json({ error: 'Transaction introuvable' }, 403)
+    if (existing.status === 'succeeded') return json({ success: true, already_applied: true, type: existing.type })
+    return json({ error: `Transaction ${existing.status}` }, 409)
+  }
+
+  // 4) Application (valeurs de la transaction enregistrée)
+  try {
+    await applyEffect(adminClient, userId, claimed.type, claimed.wish_id, claimed.amount_cents)
+  } catch (applyErr) {
+    await adminClient.from('transactions').update({ status: 'pending' }).eq('payment_intent_id', key)
+    console.error('[apply-purchase][appstore] application echouee, claim annule:', applyErr?.message)
+    return json({ error: String(applyErr?.message || applyErr), reverted: true }, 500)
+  }
+
+  return json({ success: true, type: claimed.type, wish_id: claimed.wish_id })
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS })
   try {
@@ -403,6 +548,10 @@ Deno.serve(async (req: Request) => {
     // Achat fait dans l'app Android via Google Play Billing
     if (body?.provider === 'google_play') {
       return await handleGooglePlay(adminClient, user.id, body)
+    }
+    // Achat fait dans l'app iPhone via l'App Store
+    if (body?.provider === 'app_store') {
+      return await handleAppStore(adminClient, user.id, body)
     }
 
     const { payment_intent_id } = body

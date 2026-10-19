@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import toast from 'react-hot-toast'
 import { getStripe, createPaymentIntent, formatEuros } from '../../lib/stripe'
-import { isPlayBillingAvailable, getPlayPrice, buyWithGooglePlay } from '../../lib/playBilling'
+import { isPlayBillingAvailable, getPlayPrice, buyWithGooglePlay, storeName } from '../../lib/playBilling'
 import Button from './Button'
 
 /**
  * Point d'entrée unique des paiements (packs, urgent, prolongation).
- *  - App Android → Google Play Billing (obligatoire pour les achats numériques)
+ *  - App Android → Google Play Billing, app iPhone → App Store (obligatoires
+ *    pour les achats numériques)
  *  - Web / PWA   → Stripe (inchangé)
  * Même interface pour les écrans appelants : onSuccess({ id, ... }).
  */
@@ -75,7 +76,7 @@ function PlayBillingForm({ type, wish_id, onSuccess, onCancel }) {
         </Button>
       </div>
       <p className="text-xs text-[#8A8A9A] text-center">
-        Paiement sécurisé par Google Play.
+        Paiement sécurisé par {storeName()}.
       </p>
     </div>
   )
