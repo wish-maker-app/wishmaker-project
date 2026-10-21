@@ -364,7 +364,7 @@ export default function WishDetail() {
   // Piloté par le statut du vœu lui-même → le check vaut pour TOUS les points
   // d'entrée (notif push, lien direct, partage, messagerie).
   const isCompleted = wish.statut === 'realise'
-  // Vœu expiré → le propriétaire peut le prolonger (réactivation payante 0,99€),
+  // Vœu expiré → le propriétaire peut le prolonger (réactivation payante 1,99€),
   // tant qu'il n'a pas déjà été prolongé une fois.
   const isExpired = wish.statut === 'expire' ||
     (!!wish.expires_at && new Date(wish.expires_at).getTime() < Date.now())
@@ -890,7 +890,7 @@ export default function WishDetail() {
               <button onClick={() => setShowProposal(false)} className="w-full mt-3 text-sm text-[#8A8A9A] text-center">Annuler</button>
       </BottomSheet>
 
-      {/* Bottom sheet — Prolonger le vœu (réactivation payante 0,99€) */}
+      {/* Bottom sheet — Prolonger le vœu (réactivation payante 1,99€) */}
       <BottomSheet open={showExtend} onClose={() => setShowExtend(false)}>
         <div className="text-center mb-5">
           <h2 className="text-lg font-bold text-[#1A1A2E]">Prolonger ce vœu</h2>
@@ -901,7 +901,7 @@ export default function WishDetail() {
           wish_id={wish.id}
           onSuccess={handleExtendSuccess}
           onCancel={() => setShowExtend(false)}
-          submitLabel="Payer 0,99€"
+          submitLabel="Payer 1,99€"
         />
       </BottomSheet>
 

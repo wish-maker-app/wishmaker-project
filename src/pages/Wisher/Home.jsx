@@ -546,7 +546,7 @@ export default function WisherHome() {
 
   function handleExtend() {
     if (!modal?.wish) return
-    // Ouvrir le paiement 0.99€ pour la prolongation
+    // Ouvrir le paiement 1,99€ pour la prolongation
     setPaymentModal({ type: 'extension', wish_id: modal.wish.id, label: t('wisher.home.modal_prolonger_label') })
     setModal(null)
   }
@@ -895,7 +895,7 @@ export default function WisherHome() {
             onClose={() => setModal(null)}
             title={t('wisher.home.modal_prolonger_titre')}
             description={t('wisher.home.modal_prolonger_desc', { duration: formatDuration(wishDurationHours, t) })}
-            price="0,99€"
+            price="1,99€"
             buttonLabel={t('wisher.home.modal_prolonger_btn')}
             onConfirm={handleExtend}
             loading={actionLoading}
@@ -936,7 +936,7 @@ export default function WisherHome() {
         onSuccess={() => setShowPackModal(false)}
       />
 
-      {/* Modal paiement Stripe (Urgent 1,99€ / Prolongation 0,99€) */}
+      {/* Modal paiement Stripe (Urgent 1,99€ / Prolongation 1,99€) */}
       <BottomSheet open={!!paymentModal} onClose={handlePaymentCancel} maxHeight="90vh">
         {paymentModal && (
           <>
@@ -953,7 +953,7 @@ export default function WisherHome() {
               wish_id={paymentModal.wish_id}
               onSuccess={handlePaymentSuccess}
               onCancel={handlePaymentCancel}
-              submitLabel={paymentModal.type === 'urgent_boost' ? 'Payer 1,99€' : 'Payer 0,99€'}
+              submitLabel="Payer 1,99€"
             />
           </>
         )}

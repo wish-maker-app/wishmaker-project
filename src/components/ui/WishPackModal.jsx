@@ -11,9 +11,9 @@ import { isPlayBillingAvailable } from '../../lib/playBilling'
 import BottomSheet from './BottomSheet'
 
 const PACKS = [
-  { id: 'pack_starter', type: 'pack_starter', name: 'Pack Starter', wishes: 3, price: 2.99, description: 'Idéal pour débuter' },
-  { id: 'pack_essential', type: 'pack_essential', name: 'Pack Essentiel', wishes: 7, price: 5.99, description: 'Le plus populaire', recommended: true },
-  { id: 'pack_pro', type: 'pack_pro', name: 'Pack Pro', wishes: 15, price: 9.99, description: 'Pour les utilisateurs actifs' },
+  { id: 'pack_starter', type: 'pack_starter', name: 'Pack Starter', wishes: 3, price: 4.99, description: 'Idéal pour débuter' },
+  { id: 'pack_essential', type: 'pack_essential', name: 'Pack Essentiel', wishes: 7, price: 9.99, description: 'Le plus populaire', recommended: true },
+  { id: 'pack_pro', type: 'pack_pro', name: 'Pack Pro', wishes: 15, price: 15.99, description: 'Pour les utilisateurs actifs' },
 ]
 
 export default function WishPackModal({ open, onClose, onSuccess }) {

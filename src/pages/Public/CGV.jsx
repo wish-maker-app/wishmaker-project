@@ -46,7 +46,7 @@ export default function CGV() {
             Conditions Générales de Vente
           </h1>
           <p className="mt-2 text-[13px] text-[#8A8A9A]">
-            Version 1.1 — En vigueur au 9 octobre 2026
+            Version 1.2 — En vigueur au 21 octobre 2026
           </p>
 
           <div className="mt-10 flex flex-col gap-10">
@@ -68,11 +68,11 @@ export default function CGV() {
                 La Plateforme propose les services payants suivants :
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
-                <li><strong className="font-semibold text-[#1A1A2E]">Pack Starter</strong> — 2,99&nbsp;€ TTC : crédit de vœux supplémentaires</li>
-                <li><strong className="font-semibold text-[#1A1A2E]">Pack Essentiel</strong> — 5,99&nbsp;€ TTC : crédit de vœux supplémentaires</li>
-                <li><strong className="font-semibold text-[#1A1A2E]">Pack Pro</strong> — 9,99&nbsp;€ TTC : crédit de vœux supplémentaires</li>
+                <li><strong className="font-semibold text-[#1A1A2E]">Pack Starter</strong> — 4,99&nbsp;€ TTC : crédit de vœux supplémentaires</li>
+                <li><strong className="font-semibold text-[#1A1A2E]">Pack Essentiel</strong> — 9,99&nbsp;€ TTC : crédit de vœux supplémentaires</li>
+                <li><strong className="font-semibold text-[#1A1A2E]">Pack Pro</strong> — 15,99&nbsp;€ TTC : crédit de vœux supplémentaires</li>
                 <li><strong className="font-semibold text-[#1A1A2E]">Option « Urgent »</strong> — 1,99&nbsp;€ TTC : mise en avant prioritaire d'un vœu pendant sa durée de vie</li>
-                <li><strong className="font-semibold text-[#1A1A2E]">Option « Prolongation »</strong> — 0,99&nbsp;€ TTC : extension de la durée de vie d'un vœu</li>
+                <li><strong className="font-semibold text-[#1A1A2E]">Option « Prolongation »</strong> — 1,99&nbsp;€ TTC : extension de la durée de vie d'un vœu</li>
               </ul>
               <p>
                 Wish Maker SAS se réserve le droit de modifier la composition de son catalogue à tout moment, sans que cela puisse affecter les commandes en cours.

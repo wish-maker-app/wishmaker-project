@@ -195,11 +195,11 @@ async function applyEffect(adminClient, userId: string, type: string, wishId: st
 // Pas de facture Stripe : pour ces ventes, Google est le vendeur et gère la TVA.
 const PLAY_PACKAGE = 'fr.wishmaker.app'
 const PLAY_PRICE_CENTS: Record<string, number> = {
-  pack_starter: 299,
-  pack_essential: 599,
-  pack_pro: 999,
+  pack_starter: 499,
+  pack_essential: 999,
+  pack_pro: 1599,
   urgent_boost: 199,
-  extension: 99,
+  extension: 199,
 }
 
 function b64url(bytes: Uint8Array): string {

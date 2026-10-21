@@ -739,7 +739,7 @@ const FEATURES = [
 
 const PRICING = [
   { tag: 'Gratuit', name: 'Découverte', price: '0€', priceSub: '/mois', detail: '3 vœux gratuits chaque mois, renouvelés automatiquement.' },
-  { tag: 'Pack', name: 'Starter', price: '2,99€', priceSub: '', detail: '+3 vœux supplémentaires, valables jusqu\'à utilisation.' },
-  { tag: 'Pack', name: 'Essentiel', price: '5,99€', priceSub: '', detail: '+7 vœux. Le plus populaire pour un usage régulier.', recommended: true },
-  { tag: 'Pack', name: 'Pro', price: '9,99€', priceSub: '', detail: '+15 vœux. Idéal pour les utilisateurs très actifs ou les pros.' },
+  { tag: 'Pack', name: 'Starter', price: '4,99€', priceSub: '', detail: '+3 vœux supplémentaires, valables jusqu\'à utilisation.' },
+  { tag: 'Pack', name: 'Essentiel', price: '9,99€', priceSub: '', detail: '+7 vœux. Le plus populaire pour un usage régulier.', recommended: true },
+  { tag: 'Pack', name: 'Pro', price: '15,99€', priceSub: '', detail: '+15 vœux. Idéal pour les utilisateurs très actifs ou les pros.' },
 ]
